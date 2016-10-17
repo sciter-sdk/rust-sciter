@@ -137,7 +137,8 @@ if (var num = self.select("input[type=number]")) {
 use ::{_API};
 use capi::sctypes::*;
 use value::Value;
-
+use capi::scvalue::{VALUE as ScValue};
+use capi::scbehavior::{BEHAVIOR_EVENTS, EVENT_REASON, BEHAVIOR_EVENT_PARAMS};
 pub use capi::scdom::{SCDOM_RESULT, HELEMENT, SET_ELEMENT_HTML};
 
 pub use dom::event::EventHandler;
@@ -385,7 +386,28 @@ impl Element {
 	// TODO: get_location
 	// TODO: request_data, request_html
 	// TODO: send_request
-	// TODO: send_event, post_event, fire_event
+	// TODO: post_event
+
+	pub fn fire_event(&self, source: HELEMENT, target: HELEMENT, code: BEHAVIOR_EVENTS, reason: EVENT_REASON, post: bool, data: Option<Value>) -> Result<()> {
+		let data = match data {
+			Some(data) => {
+				let mut value = ScValue::default();
+				data.pack_to(&mut value);
+				value
+			},
+			_ => ScValue::default(),
+		};
+		let event_params = BEHAVIOR_EVENT_PARAMS {
+			cmd: code as UINT,
+			heTarget: target,
+			he: source,
+			reason: reason as UINT_PTR,
+			data: data,
+		};
+		let mut handled = false as BOOL;
+		let ok = (_API.SciterFireEvent)(&event_params, post as BOOL, &mut handled);
+		ok_or!((), ok, SCDOM_RESULT::OPERATION_FAILED)
+	}
 
 	/// Evaluate script in element context.
 	pub fn eval_script(&self, script: &str) -> Result<Value> {
