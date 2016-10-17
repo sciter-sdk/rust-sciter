@@ -1,19 +1,19 @@
 <html>
-  <head>
-    <title>Minimalistic Sciter demo</title>
-    <style>
-    
-      html {
-        background: radial-gradient(75% 75%, circle farthest-side, white, orange, rgb(0,0,204));
-        color:#fff;
-      }
-      
-      html:rtl {
-        mapping: left-to-right(background);
-      }
-    
-    </style>
-    <script type="text/tiscript">
+<head>
+  <title>Minimalistic Sciter demo</title>
+  <style>
+
+    html {
+      background: radial-gradient(75% 75%, circle farthest-side, white, orange, rgb(0,0,204));
+      color:#fff;
+    }
+
+    html:rtl {
+      mapping: left-to-right(background);
+    }
+
+  </style>
+  <script type="text/tiscript">
       stdout.println("hello, rust!");
       stdout.println("hello, again!");
 
@@ -37,18 +37,20 @@
       });
 
     </script>
-  </head>
+</head>
 <body>
 
-  <h1>Minimal Sciter Application</h1>
-  <p>Running on <em #machine /> machine</p>
-  
-  <button #append>Append</button>
-  <button #open>Open</button>
-  <select>
-    <option>First</option>
-    <option>Second</option>
-    <option>Third</option>
-  </select>
+<h1>Minimal Sciter Application</h1>
+<p>Running on <em #machine /> machine</p>
+
+<button #append>Append</button>
+<button #fire-event>Fire an event</button>
+<button #open>Open</button>
+<select>
+  <option>First</option>
+  <option>Second</option>
+  <option>Third</option>
+</select>
+<div #fire-event-message></div>
 </body>
 </html>
