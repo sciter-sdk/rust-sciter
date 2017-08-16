@@ -217,6 +217,9 @@ pub struct Element {
 	he: HELEMENT,
 }
 
+unsafe impl Send for Element {}
+unsafe impl Sync for Element {}
+
 impl Element {
 
 	//\name Creation
