@@ -788,7 +788,7 @@ impl Element {
 
 	/// Will find all elements starting from this satisfying given css selector(s).
 	pub fn find_all(&self, selector: &str) -> Result<Option<Vec<Element>>> {
-		let cb = FindFirstElement::default();
+		let cb = FindAllElements::default();
 		let all = self.select_elements(selector, cb);
 		all.map(|x| Some(x))
 	}
