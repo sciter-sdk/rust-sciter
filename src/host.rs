@@ -93,7 +93,7 @@ pub trait HostHandler {
 	/// Parameters here must be taken from `SCN_LOAD_DATA` structure. You can store them for later usage,
 	/// but you must answer as `LOAD_RESULT::LOAD_DELAYED` code and provide an `request_id` here.
 	///
-	fn data_ready(&mut self, hwnd: HWINDOW, uri: &str, data: &[u8], request_id: Option<HREQUEST>) {
+	fn data_ready(&self, hwnd: HWINDOW, uri: &str, data: &[u8], request_id: Option<HREQUEST>) {
 		let (s,_) = s2w!(uri);
 		match request_id {
 			Some(req) => {
@@ -357,4 +357,65 @@ extern "system" fn _on_debug_notification<T: HostHandler>(param: LPVOID, subsyst
 		let message = ::utf::w2s(text).replace("\r", "\n");
 		me.on_debug_output(subsystem, severity, message.trim_right());
 	}
+}
+
+
+/// Sciter compressed archive.
+///
+/// An archive is produced by `packfolder` (from SDK) that creates a blob with compressed resources.
+/// It allows to use the same resource pack uniformly across different platforms.
+///
+/// For example, app resource files (HTML/CSS/scripts) can be stored in an `assets` folder
+/// that can be packed into a single archive by calling `packfolder.exe assets target/assets.rc -binary`.
+/// And later can be accessed via the Archive API:
+///
+/// ```rust,ignore
+/// let archived = include_bytes!("target/assets.rc");
+/// let assets = sciter::host::Archive::open(archived);
+///
+/// // access `assets/index.htm`
+/// let html_data = assets.get("index.htm").unwrap();
+/// ```
+pub struct Archive(HSARCHIVE);
+
+/// Close the archive.
+impl Drop for Archive {
+  fn drop(&mut self) {
+    (_API.SciterCloseArchive)(self.0);
+  }
+}
+
+impl Archive {
+  /// Open archive blob.
+  pub fn open(archived: &[u8]) -> Self {
+    let p = (_API.SciterOpenArchive)(archived.as_ptr(), archived.len() as u32);
+    Archive(p)
+  }
+
+  /// Get an archive item.
+  ///
+  /// Given a path, returns a reference to the contents of an archived item.
+  pub fn get(&self, path: &str) -> Option<&[u8]> {
+    // skip initial part of the path
+    let skip = if path.starts_with("this://app/") {
+      "this://app/".len()
+    } else if path.starts_with("//") {
+      "//".len()
+    } else {
+      0
+    };
+
+    let (wname, _) = s2w!(path);
+    let name = &wname[skip..];
+
+    let mut pb = ::std::ptr::null();
+    let mut cb = 0;
+    let ok = (_API.SciterGetArchiveItem)(self.0, name.as_ptr(), &mut pb, &mut cb);
+    if ok != 0 && !pb.is_null() {
+      let data = unsafe { ::std::slice::from_raw_parts(pb, cb as usize) };
+      Some(data)
+    } else {
+      None
+    }
+  }
 }
