@@ -81,7 +81,7 @@ pub trait HostHandler {
   /// Most probably bad gfx drivers.
 	fn on_graphics_critical_failure(&mut self) { }
 
-	/// This output function will be used for reprting problems found while loading html and css documents.
+	/// This output function will be used for reporting problems found while loading html and css documents.
 	fn on_debug_output(&mut self, subsystem: OUTPUT_SUBSYTEMS, severity: OUTPUT_SEVERITY, message: &str) {
 		if !message.is_empty() {
 			println!("{:?}:{:?}: {}", severity, subsystem, message);
@@ -152,7 +152,7 @@ impl Host {
 	/// Attach `dom::EventHandler` to the Sciter window.
 	pub fn attach_handler<T: EventHandler>(&self, handler: T) {
 		let hwnd = self.get_hwnd();
-		let boxed = Box::new( WindowHandler { hwnd: hwnd, handler: handler } );
+		let boxed = Box::new( WindowHandler { hwnd, handler } );
 		let ptr = Box::into_raw(boxed);
 		(_API.SciterWindowAttachEventHandler)(hwnd, _event_handler_window_proc::<T>, ptr as LPVOID, ::dom::event::default_events() as UINT);
 	}
