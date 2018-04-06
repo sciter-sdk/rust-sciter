@@ -862,19 +862,19 @@ impl Element {
 	}
 
 	/// Attach the native event handler to this element.
-	pub fn attach_handler<T: ::dom::EventHandler>(&mut self, handler: T) -> Result<u64> {
+	pub fn attach_handler<Handler: EventHandler>(&mut self, handler: Handler) -> Result<u64> {
 		// make native handler
 		let boxed = Box::new(handler);
 		let ptr = Box::into_raw(boxed);
 		let token = ptr as usize as u64;
-		let ok = (_API.SciterAttachEventHandler)(self.he, ::eventhandler::_event_handler_proc::<T>, ptr as LPVOID);
+		let ok = (_API.SciterAttachEventHandler)(self.he, ::eventhandler::_event_handler_proc::<Handler>, ptr as LPVOID);
 		ok_or!(token, ok)
 	}
 
 	/// Detach your handler from the element. Handlers identified by `token` from `attach_handler()` result.
-	pub fn detach_handler<T: ::dom::EventHandler>(&mut self, token: u64) -> Result<()> {
-		let ptr = token as usize as *mut T;
-		let ok = (_API.SciterDetachEventHandler)(self.he, ::eventhandler::_event_handler_proc::<T>, ptr as LPVOID);
+	pub fn detach_handler<Handler: EventHandler>(&mut self, token: u64) -> Result<()> {
+		let ptr = token as usize as *mut Handler;
+		let ok = (_API.SciterDetachEventHandler)(self.he, ::eventhandler::_event_handler_proc::<Handler>, ptr as LPVOID);
 		ok_or!((), ok)
 	}
 }

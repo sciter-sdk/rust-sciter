@@ -105,6 +105,14 @@ pub trait HostHandler {
 		};
 	}
 
+	fn attach_behavior<Handler: EventHandler>(&self, pnm: &mut SCN_ATTACH_BEHAVIOR, handler: Handler) {
+		// make native handler
+		let boxed = Box::new(handler);
+		let ptr = Box::into_raw(boxed);
+		pnm.elementProc = ::eventhandler::_event_handler_proc::<Handler>;
+		pnm.elementTag = ptr as LPVOID;
+	}
+
 }
 
 

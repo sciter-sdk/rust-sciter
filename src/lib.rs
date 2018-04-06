@@ -83,6 +83,7 @@ pub mod host;
 pub mod types;
 pub mod utf;
 pub mod value;
+pub mod video;
 pub mod window;
 
 pub use dom::Element;
