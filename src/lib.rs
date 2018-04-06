@@ -59,12 +59,10 @@ and module-level sections for the guides about:
 
 #![cfg_attr(feature = "cargo-clippy", allow(needless_return, let_and_return))]
 
-
 /* Macros */
 
 #[cfg(target_os="macos")]
 #[macro_use] extern crate objc;
-
 #[macro_use] extern crate lazy_static;
 
 
