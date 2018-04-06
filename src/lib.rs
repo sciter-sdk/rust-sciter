@@ -87,7 +87,7 @@ pub mod types;
 
 pub use dom::Element;
 pub use dom::event::EventHandler;
-pub use host::{Host, HostHandler};
+pub use host::{Archive, Host, HostHandler};
 pub use value::{Value, FromValue};
 pub use window::Window;
 

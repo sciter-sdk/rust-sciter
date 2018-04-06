@@ -1,0 +1,4 @@
+# `rustfmt --config-help` for formatting options
+max_width = 140
+ideal_width = 100
+tab_spaces = 2

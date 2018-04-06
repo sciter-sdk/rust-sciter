@@ -225,6 +225,7 @@ pub struct SCN_LOAD_DATA
   pub outData: LPCBYTE,
   /// [in,out] loaded data size to return.
   pub outDataSize: UINT,
+
   /// [in] resource type category
   pub dataType: SCITER_RESOURCE_TYPE,
 
