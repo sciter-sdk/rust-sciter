@@ -1,0 +1,65 @@
+<html>
+  <head>
+    <title>Video behavior demo</title>
+    <style>
+
+      body { background:gold; }
+
+      video.generator {
+        behavior: video-generator video;
+        size: *;
+        foreground-size:contain;
+        border:1px solid #000;
+      }
+
+    </style>
+    <script type="text/tiscript">
+
+      $(video).onSize = function() {
+        var (w,h) = this.box(#dimension);
+        $(form).value = { width:w, height:h };
+      }
+
+      event click $(#snapshot) {
+        var frame = $(video).style.foregroundImage;
+        frame.toBytes().save("d:\\test.png");
+      }
+
+      var video = $(video);
+      var host;
+
+      event click $(#show-detached) {
+
+        // It creates a new window and moves the current video element to it.
+        if( this.value )
+        {
+          host = view.window {
+            type:View.TOOL_WINDOW,
+            url: self.url("sample-element-host-window.htm"),
+            width : 640,
+            height : 480,
+            alignment: 5
+          };
+          video.detach();
+          host.root.$(body).append(video);
+        } else {
+
+          // and back
+          video.detach();
+          self.$(body).append(video);
+          host.close();
+        }
+      }
+
+    </script>
+  </head>
+<body>
+  <p>This demo simulates partial video frame update.
+  On each frame (24 FPS) it updates portion of the frame.</p>
+
+  <button id="snapshot">Save current frame</button>
+  <button type=checkbox id="show-detached">Show video in a separate window</button>
+  <form>pixels <output name=width />x<output name=height /></form>
+  <video class="generator" />
+</body>
+</html>

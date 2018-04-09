@@ -1,7 +1,7 @@
 //! Sciter custom video rendering primitives.
 use capi::sctypes::{UINT, LPCBYTE};
 
-
+// const char*
 pub static INAME_VIDEO_SOURCE: &[u8] = b"source.video.sciter.com\0";
 pub static INAME_VIDEO_DESTINATION: &[u8] = b"destination.video.sciter.com\0";
 pub static INAME_VIDEO_FRAGMENTED_DESTINATION: &[u8] = b"fragmented.destination.video.sciter.com\0";
@@ -17,7 +17,7 @@ pub enum COLOR_SPACE {
 	Rgb24,
 	Rgb555,
 	Rgb565,
-	Rgb32, // with alpha, sic!
+	Rgb32,
 }
 
 
@@ -112,44 +112,45 @@ pub struct fragmented_video_destination {
 }
 
 
+/// A managed `iasset` pointer.
 pub struct AssetPtr<T> {
 	ptr: *mut T,
 }
 
+/// It's okay to transfer video pointers between threads.
+unsafe impl<T> Send for AssetPtr<T> {}
+
+/// Decrements the reference count of a managed pointer.
 impl<T> Drop for AssetPtr<T> {
 	fn drop(&mut self) {
-		if !self.ptr.is_null() {
-			unsafe {
-				let lp = self.ptr as *mut iasset;
-				let vtbl = (*lp).vtbl;
-				((*vtbl).add_ref)(lp);
-			}
+		unsafe {
+			let lp = self.ptr as *mut iasset;
+			let vtbl = (*lp).vtbl;
+			((*vtbl).release)(lp);
 		}
 	}
 }
 
 impl<T> AssetPtr<T> {
-	pub fn new(lp: *mut T) -> Self {
-		if !lp.is_null() {
-			unsafe {
-				let lp = lp as *mut iasset;
-				let vtbl = (*lp).vtbl;
-				((*vtbl).add_ref)(lp);
-			}
-		}
-		Self {
-			ptr: lp
-		}
-	}
-
+	/// Attach to an existing pointer without reference increment.
 	pub fn attach(lp: *mut T) -> Self {
+		assert!(!lp.is_null());
 		Self {
 			ptr: lp
 		}
 	}
 
-	pub fn is_null(&self) -> bool {
-		self.ptr.is_null()
+	/// Attach to a pointer and increment its reference count.
+	pub fn adopt(lp: *mut T) -> Self {
+		assert!(!lp.is_null());
+		unsafe {
+			let lp = lp as *mut iasset;
+			let vtbl = (*lp).vtbl;
+			((*vtbl).add_ref)(lp);
+		}
+		Self {
+			ptr: lp
+		}
 	}
 
 	pub fn get(&self) -> *mut T {
