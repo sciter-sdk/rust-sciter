@@ -47,26 +47,31 @@ pub enum SCRIPT_RUNTIME_FEATURES
   ALLOW_SYSINFO = 0x0000_0008
 }
 
+/// Explicitly set a sciter graphics layer.
 #[repr(C)]
 #[derive(Debug)]
 #[allow(missing_docs)]
-/// Explicitly set sciter graphics layer.
 pub enum GFX_LAYER
 {
-	#[cfg(windows)]
-  GDI      = 1,
-
-  #[cfg(osx)]
-  CG       = 1,
-
-  #[cfg(unix)]
-  CAIRO    = 1,
-
-  WARP     = 2,
-  D2D      = 3,
-  SKIA_CPU = 4,
-  SKIA_OPENGL = 5,
+	/// An auto-selected backend.
   AUTO     = 0xFFFF,
+
+	/// Depends on OS: GDI, Cairo or CoreGraphics.
+	CPU = 1,
+
+	/// A software rasterizer for Direct2D.
+	#[cfg(windows)]
+  WARP     = 2,
+
+  /// A hardware Direct2D mode.
+  #[cfg(windows)]
+  D2D      = 3,
+
+  /// Skia backend with CPU rasterization mode.
+  SKIA_CPU = 4,
+
+  /// Skia backend with OpenGL rendering.
+  SKIA_OPENGL = 5,
 }
 
 #[repr(C)]
