@@ -2,6 +2,7 @@
   <head>
     <title>Video behavior demo</title>
     <style>
+      p { padding: 4dip; }
 
       body { background:gold; }
 
@@ -27,6 +28,7 @@
 
       var video = $(video);
       var host;
+      var body;
 
       event click $(#show-detached) {
 
@@ -35,31 +37,56 @@
         {
           host = view.window {
             type:View.TOOL_WINDOW,
-            url: self.url("sample-element-host-window.htm"),
+            html: $(html > head > .template > html).html,
             width : 640,
             height : 480,
             alignment: 5
           };
+          body = video.parent;
           video.detach();
           host.root.$(body).append(video);
         } else {
 
           // and back
           video.detach();
-          self.$(body).append(video);
+          body.append(video);
           host.close();
         }
       }
 
     </script>
+
+    <div class="template">
+    <html window-resizable>
+      <head>
+        <title>Hosted element</title>
+        <style>
+          body { margin:0; padding:0; }
+
+          video.generator {
+            display:block;
+            behavior: video-generator video;
+            size: *;
+            foreground-size:contain;
+          }
+
+        </style>
+        <script type="text/tiscript"></script>
+      </head>
+    <body>
+    </body>
+    </html>
+    </div>
+
   </head>
 <body>
+
   <p>This demo simulates partial video frame update.
   On each frame (24 FPS) it updates portion of the frame.</p>
 
   <button id="snapshot">Save current frame</button>
   <button type=checkbox id="show-detached">Show video in a separate window</button>
-  <form>pixels <output name=width />x<output name=height /></form>
+  <form>pixels <output name=width /> x <output name=height /></form>
   <video class="generator" />
 </body>
 </html>

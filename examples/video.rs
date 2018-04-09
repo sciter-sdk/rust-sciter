@@ -64,24 +64,28 @@ impl VideoGen {
     ));
     println!("[video] initialized: {:?}", ok);
 
-    let figure = [0xFF_CCCCCCu32; 256usize];
+    let figure = [0xFF_FFA500u32; (FRAGMENT_SIZE.0 * FRAGMENT_SIZE.1) as usize];
 
     let (mut calls, mut errors) = (0, 0);
 
+    let mut x = 0;
+    let mut y = 0;
     while cppcall!(video_destination::is_alive(site)) {
       calls += 1;
       if !cppcall!(fragmented_video_destination::render_frame_part(
         site,
         figure.as_ptr() as *const u8,
-        figure.len() as u32,
-        0,
-        0,
+        figure.len() as u32 * 4,
+        x,
+        y,
         FRAGMENT_SIZE.0,
         FRAGMENT_SIZE.1
       )) {
         errors += 1;
       }
       // 25 FPS
+      x += 1;
+      y += 1;
       std::thread::sleep(std::time::Duration::from_millis(1000 / 25));
     }
 
