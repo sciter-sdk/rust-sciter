@@ -406,9 +406,10 @@ impl<T: NamedInterface> AssetPtr<T> {
 	///
 	/// Example:
 	/// ```rust,no_run
+	/// # use sciter::video::{AssetPtr, iasset, video_source};
 	/// # let external_ptr: *mut iasset = ::std::ptr::null_mut();
-	/// let site = AssetPtr::adopt(external_ptr);
-	/// let source = AssetPtr::<video_source>::try_from(site);
+	/// let mut site = AssetPtr::adopt(external_ptr);
+	/// let source = AssetPtr::<video_source>::try_from(&mut site);
 	/// assert!(source.is_ok());
 	/// ```
 	pub fn try_from<U>(other: &mut AssetPtr<U>) -> Result<Self> {
