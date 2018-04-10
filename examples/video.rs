@@ -13,7 +13,7 @@ struct Handler {}
 impl sciter::HostHandler for Handler {
   fn on_attach_behavior(&mut self, pnm: &mut SCN_ATTACH_BEHAVIOR) -> bool {
     let name = u2s!(pnm.name);
-    eprintln!("behavior: {:?}", name);
+    println!("behavior: {:?}", name);
     if name == "video-generator" {
       self.attach_behavior(pnm, VideoGen::new());
       return true;
@@ -22,20 +22,17 @@ impl sciter::HostHandler for Handler {
   }
 }
 
-macro_rules! cppcall {
-	($ty: ident :: $func:ident ($this: ident $(, $arg:expr)* )) => {
-		unsafe {
-			let lp = $this.get() as *mut $ty;
-			let vtbl = (*lp).vtbl;
-			((*vtbl).$func)(lp, $($arg),* )
-		}
-	}
-}
 
 use sciter::video::{fragmented_video_destination, AssetPtr};
 
 struct VideoGen {
   thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl Drop for VideoGen {
+	fn drop(&mut self) {
+		println!("[video] behavior is destroyed");
+	}
 }
 
 impl VideoGen {
@@ -44,52 +41,48 @@ impl VideoGen {
   }
 
   fn generation_thread(site: AssetPtr<fragmented_video_destination>) {
-    println!("[video] thread started.");
+    println!("[video] thread is started");
 
-    const VIDEO_SIZE: (i32, i32) = (1200, 800);
-    const FRAGMENT_SIZE: (i32, i32) = (256, 32);
+    // our video frame size and its part to update
+    const FRAME: (i32, i32) = (1200, 800);
+    const UPDATE: (i32, i32) = (256, 32);
 
-    use sciter::video::*;
+    // our frame data (RGBA)
+    let figure = [0xFF_FFA500u32; (UPDATE.0 * UPDATE.1) as usize];
 
-    let is_alive = cppcall!(video_destination::is_alive(site));
-    println!("[video] is alive {:?}", is_alive);
-
-    let video_control = std::ptr::null_mut();
-    let ok = cppcall!(video_destination::start_streaming(
-      site,
-      VIDEO_SIZE.0,
-      VIDEO_SIZE.1,
-      sciter::video::COLOR_SPACE::Rgb32,
-      video_control
-    ));
+    // configure video output
+    let mut site = site;
+    let ok = site.start_streaming(FRAME, sciter::video::COLOR_SPACE::Rgb32, None);
     println!("[video] initialized: {:?}", ok);
 
-    let figure = [0xFF_FFA500u32; (FRAGMENT_SIZE.0 * FRAGMENT_SIZE.1) as usize];
+    let mut x = 0; let mut xd = 1;
+    let mut y = 0; let mut yd = 1;
+    while site.is_alive() {
+    	// send an update portion
+      let buf: &[u8] = unsafe { std::mem::transmute(figure.as_ref()) };
+      site.render_frame_part(buf, (x, y), UPDATE);
 
-    let (mut calls, mut errors) = (0, 0);
+      // set the next position
+      x += xd;
+      y += yd;
 
-    let mut x = 0;
-    let mut y = 0;
-    while cppcall!(video_destination::is_alive(site)) {
-      calls += 1;
-      if !cppcall!(fragmented_video_destination::render_frame_part(
-        site,
-        figure.as_ptr() as *const u8,
-        figure.len() as u32 * 4,
-        x,
-        y,
-        FRAGMENT_SIZE.0,
-        FRAGMENT_SIZE.1
-      )) {
-        errors += 1;
+      if x == 0 {
+      	xd = 1;
+      } else if x + UPDATE.0 == FRAME.0 {
+      	xd = -1;
       }
-      // 25 FPS
-      x += 1;
-      y += 1;
+      if y == 0 {
+      	yd = 1;
+      } else if y + UPDATE.1 == FRAME.1 {
+      	yd = -1;
+      }
+
+      // simulate 25 FPS
       std::thread::sleep(std::time::Duration::from_millis(1000 / 25));
     }
 
-    println!("[video] thread finished after {} / {} frames.", calls - errors, calls);
+    site.stop_streaming();
+    println!("[video] thread is finished");
   }
 }
 
@@ -99,7 +92,7 @@ impl sciter::EventHandler for VideoGen {
   }
 
   fn detached(&mut self, _root: HELEMENT) {
-    println!("[video] detached");
+    println!("[video] <video> element is detached");
     if let Some(h) = self.thread.take() {
       h.join();
     }
@@ -121,30 +114,23 @@ impl sciter::EventHandler for VideoGen {
     match code {
       BEHAVIOR_EVENTS::VIDEO_BIND_RQ => {
         let source = Element::from(source);
-        println!("[video] {:?} {:?} ({:?})", source, code, reason);
+        println!("[video] {:?} {} ({:?})", code, source, reason);
 
         if let EventReason::VideoBind(ptr) = reason {
           if ptr.is_null() {
-            // first phase, consume the event to mark as we will provide frames
+            // first, consume the event to announce us as a video producer.
             return true;
           }
 
           use sciter::video::*;
 
-          // attach to a video destination interface
-          let site = AssetPtr::attach(ptr as *mut video_destination);
+          // `VideoBind` comes with a video_destination interface
+          let mut site = AssetPtr::adopt(ptr as *mut video_destination);
 
           // query a fragmented video destination interface
-          let mut fragmented: *mut iasset = std::ptr::null_mut();
-          let mut target = &mut fragmented as *mut _;
-          let ok = cppcall!(iasset::get_interface(site, INAME_VIDEO_FRAGMENTED_DESTINATION.as_ptr(), target));
-
-          println!("query fragmented: {:?} ({:?})", ok, target);
-          if ok && !fragmented.is_null() {
-            // use this one
-            println!("run video thread");
-            let fragmented = fragmented as *mut fragmented_video_destination;
-            let fragmented = AssetPtr::adopt(fragmented);
+          if let Ok(mut fragmented) = AssetPtr::<fragmented_video_destination>::try_from(&mut site) {
+            // and use it
+            println!("[video] start video thread");
             let tid = ::std::thread::spawn(|| VideoGen::generation_thread(fragmented));
             self.thread = Some(tid);
           }
@@ -152,15 +138,15 @@ impl sciter::EventHandler for VideoGen {
       }
 
       BEHAVIOR_EVENTS::VIDEO_INITIALIZED => {
-        eprintln!("{:?}", code);
+        println!("[video] {:?}", code);
       }
 
       BEHAVIOR_EVENTS::VIDEO_STARTED => {
-        eprintln!("{:?}", code);
+        println!("[video] {:?}", code);
       }
 
       BEHAVIOR_EVENTS::VIDEO_STOPPED => {
-        eprintln!("{:?}", code);
+        println!("[video] {:?}", code);
       }
 
       _ => return false,
@@ -172,9 +158,9 @@ impl sciter::EventHandler for VideoGen {
 
 fn main() {
   if cfg!(all(target_os = "windows", target_arch = "x86")) {
-    eprintln!("\nerror: Sciter video will not work on Windows x86.");
-    eprintln!("error: Consider using a nightly Rust version to enable `abi_thiscall`,");
-    eprintln!("error: see the https://github.com/rust-lang/rust/issues/42202.");
+    println!("\nerror: Sciter video will not work on Windows x86.");
+    println!("error: Consider using a nightly Rust version to enable `abi_thiscall`,");
+    println!("error: see the https://github.com/rust-lang/rust/issues/42202.");
     std::process::exit(126);
   }
 
