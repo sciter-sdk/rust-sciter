@@ -405,6 +405,7 @@ impl<T: NamedInterface> AssetPtr<T> {
 	/// Retrieve a supported interface of the managed pointer.
 	///
 	/// Example:
+	///
 	/// ```rust,no_run
 	/// # use sciter::video::{AssetPtr, iasset, video_source};
 	/// # let external_ptr: *mut iasset = ::std::ptr::null_mut();

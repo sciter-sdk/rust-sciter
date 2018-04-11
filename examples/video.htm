@@ -2,14 +2,15 @@
   <head>
     <title>Video behavior demo</title>
     <style>
-      p { padding: 4dip; }
+      body { background:gold; padding: 5dip; margin: 0; }
 
-      body { background:gold; }
+      form { margin: 5dip; }
+
+      p { padding: 4dip; }
 
       video.generator {
         behavior: video-generator video;
         size: *;
-        margin: 5dip;
         foreground-size:contain;
         border:1px solid orange;
       }
@@ -22,9 +23,17 @@
         $(form).value = { width:w, height:h };
       }
 
+      function self.ready() {
+        var (w,h) = this.box(#dimension);
+        $(form).value = { width:w, height:h };
+      }
+
       event click $(#snapshot) {
         var frame = $(video).style.foregroundImage;
-        frame.toBytes().save("d:\\test.png");
+        var image = frame.toBytes();
+        if (var fn = view.selectFile(#save, "Images|*.png;*.jpg|All files|*.*", "png")) {
+          frame.toBytes().save(fn);
+        }
       }
 
       var video = $(video);
@@ -57,12 +66,11 @@
 
     </script>
 
-    <div class="template">
+    <frame class="template">
     <html window-resizable>
       <head>
         <title>Hosted element</title>
         <style>
-          body { margin:0; padding:0; }
 
           video.generator {
             display:block;
@@ -77,17 +85,23 @@
     <body>
     </body>
     </html>
-    </div>
+    </frame>
 
   </head>
 <body>
 
   <p>This demo simulates partial video frame update.
-  On each frame (24 FPS) it updates portion of the frame.</p>
+  On each frame (24 FPS) it updates another portion of the frame.</p>
 
-  <button id="snapshot">Save current frame</button>
-  <button type=checkbox id="show-detached">Show video in a separate window</button>
-  <form>pixels <output name=width /> x <output name=height /></form>
+  <div>
+    <button id="snapshot">Save current frame</button>
+    <button type=checkbox id="show-detached">Show video in a separate window</button>
+  </div>
+
+  <div>
+    <form>pixels <output name=width /> x <output name=height /></form>
+  </div>
+
   <video class="generator" />
 </body>
 </html>

@@ -115,6 +115,7 @@ impl sciter::EventHandler for VideoGen {
           if let Ok(mut fragmented) = AssetPtr::<fragmented_video_destination>::try_from(&mut site) {
             // and use it
             println!("[video] start video thread");
+
             let tid = ::std::thread::spawn(|| VideoGen::generation_thread(fragmented));
             self.thread = Some(tid);
           }
@@ -127,6 +128,12 @@ impl sciter::EventHandler for VideoGen {
 
       BEHAVIOR_EVENTS::VIDEO_STARTED => {
         println!("[video] {:?}", code);
+
+        let source = Element::from(source);
+	      use sciter::dom::ELEMENT_AREAS;
+		    let flags = ELEMENT_AREAS::CONTENT_BOX as u32 | ELEMENT_AREAS::SELF_RELATIVE as u32;
+		    let rc = source.get_location(flags).unwrap();
+	      println!("[video] start video thread on <{}> which is about {:?} pixels", source, rc.size());
       }
 
       BEHAVIOR_EVENTS::VIDEO_STOPPED => {
