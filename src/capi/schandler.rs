@@ -8,6 +8,7 @@ type Opaque = LPCVOID;
 
 
 /// Native wrapper for handlers which can be passed to foreign functions.
+#[repr(C)]
 #[derive(Debug)]
 pub struct NativeHandler {
 	// pointer to handler
@@ -41,22 +42,14 @@ impl NativeHandler {
 		return NativeHandler { handler: ptr as Opaque, dtor: dtor };
 	}
 
-	pub fn from_ptr(ptr: LPCVOID) -> * const NativeHandler {
-		ptr as *const NativeHandler
-	}
-
-	pub fn from_mut_ptr<'a>(ptr: LPVOID) -> &'a mut NativeHandler {
-		let obj = ptr as *mut NativeHandler;
-		unsafe { &mut *obj}
-	}
 	/// Return a native pointer to handler wrapper.
 	pub fn as_ptr(&self) -> LPCVOID {
-		self as *const NativeHandler as LPCVOID
+		self.handler as LPCVOID
 	}
 
 	/// Return a native pointer to handler wrapper.
 	pub fn as_mut_ptr(&self) -> LPVOID {
-		self as *const NativeHandler as LPVOID
+		self.handler as LPVOID
 	}
 
 	/// Access handler by reference.
@@ -71,6 +64,12 @@ impl NativeHandler {
 		let pobj = self.handler as *mut T;
 		let boxed = unsafe { &mut *pobj };
 		return boxed;
+	}
+
+	pub fn get_data<T>(ptr: &LPVOID) -> &mut T {
+		assert!(!ptr.is_null());
+		let obj = *ptr as *mut T;
+		unsafe { &mut *obj}
 	}
 
 	// Call destructor of handler.

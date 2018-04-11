@@ -11,9 +11,26 @@ pub struct WindowHandler<T>
 	pub handler: T,
 }
 
+#[repr(C)]
+pub struct BoxedHandler {
+	pub handler: Box<EventHandler>,
+}
+
+fn is_detach_event(evtg: UINT, params: LPVOID) -> bool {
+	let evtg : EVENT_GROUPS = unsafe { ::std::mem::transmute(evtg) };
+	if evtg == EVENT_GROUPS::HANDLE_INITIALIZATION {
+		assert!(!params.is_null());
+		let scnm = params as *const INITIALIZATION_EVENTS;
+		let cmd = unsafe { *scnm };
+		if cmd == INITIALIZATION_EVENTS::BEHAVIOR_DETACH {
+			return true;
+		}
+	}
+	false
+}
+
 pub extern "system" fn _event_handler_window_proc<T: EventHandler>(tag: LPVOID, _he: ::capi::scdom::HELEMENT, evtg: UINT, params: LPVOID) -> BOOL
 {
-	use capi::scbehavior::*;
 	use capi::scdom::HELEMENT;
 
 	let boxed = tag as *mut WindowHandler<T>;
@@ -26,32 +43,47 @@ pub extern "system" fn _event_handler_window_proc<T: EventHandler>(tag: LPVOID, 
 		::std::ptr::null_mut()
 	};
 
-	// custom initialization
-	let evt: EVENT_GROUPS = unsafe { ::std::mem::transmute(evtg) };
-	if evt == EVENT_GROUPS::HANDLE_INITIALIZATION {
-		let me = &mut tuple.handler;
+	// custom initialization (because there is no DOM in plain window)
+	let group : EVENT_GROUPS = unsafe { ::std::mem::transmute(evtg) };
+	if group == EVENT_GROUPS::HANDLE_INITIALIZATION {
+		assert!(!params.is_null());
 		let scnm = params as *const INITIALIZATION_EVENTS;
 		let cmd = unsafe { *scnm };
 		match cmd {
+			INITIALIZATION_EVENTS::BEHAVIOR_ATTACH => {
+				tuple.handler.attached(hroot);
+			},
 			INITIALIZATION_EVENTS::BEHAVIOR_DETACH => {
-				me.detached(hroot);
+				tuple.handler.detached(hroot);
 
 				// here we dropping our tuple
 				let ptr = unsafe { Box::from_raw(boxed) };
 				drop(ptr);
-				return true as BOOL;
-			},
-
-			INITIALIZATION_EVENTS::BEHAVIOR_ATTACH => {
-				me.attached(hroot);
 			},
 		};
 		return true as BOOL;
-	};
+	}
 
-	return ::eventhandler::_event_handler_proc::<T>(&mut tuple.handler as *mut T as LPVOID, hroot, evtg, params);
+	process_events(&mut tuple.handler, hroot, evtg, params)
 }
 
+pub extern "system" fn _event_handler_behavior_proc(tag: LPVOID, he: HELEMENT, evtg: UINT, params: LPVOID) -> BOOL {
+	// reconstruct pointer to Handler
+	let boxed = tag as *mut BoxedHandler;
+	let me = unsafe { &mut *boxed };
+	let me = &mut *me.handler;
+
+	if is_detach_event(evtg, params) {
+		me.detached(he);
+
+		// here we dropping our handler
+		let ptr = unsafe { Box::from_raw(boxed) };
+		drop(ptr);
+		return true as BOOL;
+	}
+
+	process_events(me, he, evtg, params)
+}
 
 pub extern "system" fn _event_handler_proc<T: EventHandler>(tag: LPVOID, he: HELEMENT, evtg: UINT, params: LPVOID) -> BOOL
 {
@@ -59,6 +91,20 @@ pub extern "system" fn _event_handler_proc<T: EventHandler>(tag: LPVOID, he: HEL
 	let boxed = tag as *mut T;
 	let me = unsafe { &mut *boxed };
 
+	if is_detach_event(evtg, params) {
+		me.detached(he);
+
+		// here we dropping our handler
+		let ptr = unsafe { Box::from_raw(boxed) };
+		drop(ptr);
+		return true as BOOL;
+	}
+
+	process_events(me, he, evtg, params)
+}
+
+fn process_events(me: &mut EventHandler, he: HELEMENT, evtg: UINT, params: LPVOID) -> BOOL
+{
 	let evtg : EVENT_GROUPS = unsafe { ::std::mem::transmute(evtg) };
 	// assert!(!he.is_null() || evtg == EVENT_GROUPS::SUBSCRIPTIONS_REQUEST);
 	if he.is_null() && evtg != EVENT_GROUPS::SUBSCRIPTIONS_REQUEST {
@@ -68,6 +114,7 @@ pub extern "system" fn _event_handler_proc<T: EventHandler>(tag: LPVOID, he: HEL
 	let result = match evtg {
 
 		EVENT_GROUPS::SUBSCRIPTIONS_REQUEST => {
+			assert!(!params.is_null());
 			let scnm = params as *mut EVENT_GROUPS;
 			let nm = unsafe {&mut *scnm};
 			let handled = me.get_subscription();
@@ -78,16 +125,12 @@ pub extern "system" fn _event_handler_proc<T: EventHandler>(tag: LPVOID, he: HEL
 		},
 
 		EVENT_GROUPS::HANDLE_INITIALIZATION => {
+			assert!(!params.is_null());
 			let scnm = params as *const INITIALIZATION_EVENTS;
 			let cmd = unsafe { *scnm };
 			match cmd {
 				INITIALIZATION_EVENTS::BEHAVIOR_DETACH => {
 					me.detached(he);
-
-					// here we dropping our handler
-					let ptr = unsafe { Box::from_raw(boxed) };
-					drop(ptr);
-					return true as BOOL;
 				},
 
 				INITIALIZATION_EVENTS::BEHAVIOR_ATTACH => {
@@ -98,6 +141,7 @@ pub extern "system" fn _event_handler_proc<T: EventHandler>(tag: LPVOID, he: HEL
 		},
 
 		EVENT_GROUPS::HANDLE_BEHAVIOR_EVENT => {
+			assert!(!params.is_null());
 			let scnm = params as *const BEHAVIOR_EVENT_PARAMS;
 			let nm = unsafe { &*scnm };
 
@@ -140,6 +184,7 @@ pub extern "system" fn _event_handler_proc<T: EventHandler>(tag: LPVOID, he: HEL
 		},
 
 		EVENT_GROUPS::HANDLE_SCRIPTING_METHOD_CALL => {
+			assert!(!params.is_null());
 			let scnm = params as *mut SCRIPTING_METHOD_PARAMS;
 			let nm = unsafe { &mut *scnm };
 			let name = u2s!(nm.name);
@@ -155,6 +200,7 @@ pub extern "system" fn _event_handler_proc<T: EventHandler>(tag: LPVOID, he: HEL
 		},
 
 		EVENT_GROUPS::HANDLE_TIMER => {
+			assert!(!params.is_null());
 			let scnm = params as *const TIMER_PARAMS;
 			let nm = unsafe { & *scnm };
 			let handled = me.on_timer(he, nm.timerId as u64);
