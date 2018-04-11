@@ -1,4 +1,4 @@
-/*! DOM access methods.
+/*! DOM access methods via the [`dom::Element`](struct.Element.html).
 
 
 ## Introduction.
@@ -159,7 +159,7 @@ use ::{_API};
 use capi::sctypes::*;
 use value::Value;
 
-pub use capi::scdom::{SCDOM_RESULT, HELEMENT, SET_ELEMENT_HTML};
+pub use capi::scdom::{SCDOM_RESULT, HELEMENT, SET_ELEMENT_HTML, ELEMENT_AREAS};
 use capi::scbehavior::{CLICK_REASON, BEHAVIOR_EVENTS, BEHAVIOR_EVENT_PARAMS};
 
 pub use dom::event::EventHandler;
@@ -409,14 +409,20 @@ impl Element {
 		ok_or!((), ok)
 	}
 
-	/// Get HWINDOW of containing window.
+	/// Get `HWINDOW` of containing window.
 	pub fn get_hwnd(&self, for_root: bool) -> HWINDOW {
 		let mut hwnd: HWINDOW = ::std::ptr::null_mut();
 		(_API.SciterGetElementHwnd)(self.he, &mut hwnd as *mut HWINDOW, for_root as BOOL);
 		return hwnd;
 	}
 
-	// TODO: get_location
+	/// Get bounding rectangle of the element. See the [`ELEMENT_AREAS`](enum.ELEMENT_AREAS.html) enum for `kind` flags.
+	pub fn get_location(&self, kind: u32) -> Result<RECT> {
+		let mut rc = RECT::default();
+		let ok = (_API.SciterGetElementLocation)(self.he, &mut rc as *mut _, kind as u32);
+		ok_or!(rc, ok)
+	}
+
 	// TODO: request_data, request_html
 	// TODO: send_request
 
