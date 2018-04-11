@@ -1,4 +1,4 @@
-/*! DOM access methods.
+/*! DOM access methods via the [`dom::Element`](struct.Element.html).
 
 
 ## Introduction.
@@ -159,7 +159,7 @@ use ::{_API};
 use capi::sctypes::*;
 use value::Value;
 
-pub use capi::scdom::{SCDOM_RESULT, HELEMENT, SET_ELEMENT_HTML};
+pub use capi::scdom::{SCDOM_RESULT, HELEMENT, SET_ELEMENT_HTML, ELEMENT_AREAS};
 use capi::scbehavior::{CLICK_REASON, BEHAVIOR_EVENTS, BEHAVIOR_EVENT_PARAMS};
 
 pub use dom::event::EventHandler;
@@ -409,14 +409,20 @@ impl Element {
 		ok_or!((), ok)
 	}
 
-	/// Get HWINDOW of containing window.
+	/// Get `HWINDOW` of containing window.
 	pub fn get_hwnd(&self, for_root: bool) -> HWINDOW {
 		let mut hwnd: HWINDOW = ::std::ptr::null_mut();
 		(_API.SciterGetElementHwnd)(self.he, &mut hwnd as *mut HWINDOW, for_root as BOOL);
 		return hwnd;
 	}
 
-	// TODO: get_location
+	/// Get bounding rectangle of the element. See the [`ELEMENT_AREAS`](enum.ELEMENT_AREAS.html) enum for `kind` flags.
+	pub fn get_location(&self, kind: u32) -> Result<RECT> {
+		let mut rc = RECT::default();
+		let ok = (_API.SciterGetElementLocation)(self.he, &mut rc as *mut _, kind as u32);
+		ok_or!(rc, ok)
+	}
+
 	// TODO: request_data, request_html
 	// TODO: send_request
 
@@ -792,8 +798,7 @@ impl Element {
 	fn select_elements<T: ElementVisitor>(&self, selector: &str, callback: T) -> Result<Vec<Element>> {
 		use ::capi::schandler::NativeHandler;
 		extern "system" fn inner<T: ElementVisitor>(he: HELEMENT, param: LPVOID) -> BOOL {
-			let handler = NativeHandler::from_mut_ptr(param);
-			let obj = handler.as_mut::<T>();
+			let obj = NativeHandler::get_data::<T>(&param);
 			let e = Element::from(he);
 			let stop = obj.on_element(e);
 			return stop as BOOL;
@@ -862,19 +867,19 @@ impl Element {
 	}
 
 	/// Attach the native event handler to this element.
-	pub fn attach_handler<T: ::dom::EventHandler>(&mut self, handler: T) -> Result<u64> {
+	pub fn attach_handler<Handler: EventHandler>(&mut self, handler: Handler) -> Result<u64> {
 		// make native handler
 		let boxed = Box::new(handler);
 		let ptr = Box::into_raw(boxed);
 		let token = ptr as usize as u64;
-		let ok = (_API.SciterAttachEventHandler)(self.he, ::eventhandler::_event_handler_proc::<T>, ptr as LPVOID);
+		let ok = (_API.SciterAttachEventHandler)(self.he, ::eventhandler::_event_handler_proc::<Handler>, ptr as LPVOID);
 		ok_or!(token, ok)
 	}
 
 	/// Detach your handler from the element. Handlers identified by `token` from `attach_handler()` result.
-	pub fn detach_handler<T: ::dom::EventHandler>(&mut self, token: u64) -> Result<()> {
-		let ptr = token as usize as *mut T;
-		let ok = (_API.SciterDetachEventHandler)(self.he, ::eventhandler::_event_handler_proc::<T>, ptr as LPVOID);
+	pub fn detach_handler<Handler: EventHandler>(&mut self, token: u64) -> Result<()> {
+		let ptr = token as usize as *mut Handler;
+		let ok = (_API.SciterDetachEventHandler)(self.he, ::eventhandler::_event_handler_proc::<Handler>, ptr as LPVOID);
 		ok_or!((), ok)
 	}
 }
@@ -1197,6 +1202,7 @@ This way you can establish interaction between scipt and native code inside your
 	}
 
 	/// UI action causing change.
+	#[derive(Debug)]
 	pub enum EventReason {
 		/// General event source triggers (by mouse, key or synthesized).
 		General(CLICK_REASON),

@@ -269,7 +269,6 @@ pub struct SCN_DATA_LOADED
 }
 
 #[repr(C)]
-#[derive(Debug)]
 /// This notification is sent on parsing the document and while processing elements
 /// having non empty `style.behavior` attribute value.
 pub struct SCN_ATTACH_BEHAVIOR
@@ -284,7 +283,7 @@ pub struct SCN_ATTACH_BEHAVIOR
   /// [in] zero terminated string, string appears as value of CSS `behavior: ` attribute.
   pub name: LPCSTR,
   /// [out] pointer to ElementEventProc function.
-  pub elementProc: *mut ElementEventProc,
+  pub elementProc: ElementEventProc,
   /// [out] tag value, passed as is into pointer ElementEventProc function.
   pub elementTag: LPVOID,
 }

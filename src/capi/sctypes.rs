@@ -51,7 +51,7 @@ pub type PBOOL = *mut BOOL;
 
 
 #[repr(C)]
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct RECT {
     pub left: LONG,
     pub top: LONG,
@@ -61,9 +61,36 @@ pub struct RECT {
 pub type LPRECT = *mut RECT;
 pub type LPCRECT = *const RECT;
 
+impl RECT {
+	/// Calculate height of rect.
+	pub fn height(&self) -> LONG {
+		self.bottom - self.top
+	}
+
+	/// Calculate width of rect.
+	pub fn width(&self) -> LONG {
+		self.right - self.left
+	}
+
+	/// Return the size of rect in width and height form.
+	pub fn size(&self) -> SIZE {
+		SIZE {
+			cx: self.width(),
+			cy: self.height(),
+		}
+	}
+
+	/// Returns the top-left point of rect.
+	pub fn topleft(&self) -> POINT {
+		POINT {
+			x: self.left,
+			y: self.top,
+		}
+	}
+}
 
 #[repr(C)]
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct POINT {
     pub x: LONG,
     pub y: LONG,
@@ -72,7 +99,7 @@ pub type LPPOINT = *mut POINT;
 
 
 #[repr(C)]
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct SIZE {
     pub cx: LONG,
     pub cy: LONG,
@@ -82,6 +109,7 @@ pub type LPSIZE = *mut SIZE;
 
 #[cfg(windows)]
 #[repr(C)]
+#[derive(Debug)]
 pub struct MSG {
     pub hwnd: HWINDOW,
     pub message: UINT,

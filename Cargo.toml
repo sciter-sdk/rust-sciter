@@ -22,10 +22,15 @@ maintenance = { status = "passively-maintained" }
 [workspace]
 members = [".", "serde"]
 
+
 [lib]
 name = "sciter"
 path = "src/lib.rs"
 crate-type = ["rlib"]
+
+[features]
+default = []
+nightly = []
 
 [dependencies]
 libc = "0.2"
@@ -34,6 +39,7 @@ lazy_static = "1.0"
 [target.x86_64-apple-darwin.dependencies]
 objc = "0.2"
 objc-foundation = "0.1"
+
 
 [[example]]
 name = "first"
@@ -66,3 +72,7 @@ path = "examples/threads.rs"
 [[example]]
 name = "archived"
 path = "examples/archived.rs"
+
+[[example]]
+name = "video"
+path = "examples/video.rs"
