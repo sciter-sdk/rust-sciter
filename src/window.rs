@@ -31,9 +31,9 @@ use capi::sctypes::*;
 use platform::{BaseWindow, OsWindow};
 use host::{Host, HostHandler};
 use dom::event::{EventHandler};
-use eventhandler::*;
 
 use std::rc::Rc;
+
 
 /// `SCITER_CREATE_WINDOW_FLAGS` alias.
 pub type Flags = SCITER_CREATE_WINDOW_FLAGS;
@@ -95,7 +95,7 @@ impl Window {
 		return wnd;
 	}
 
-	/// Attach Sciter to existing native window.
+	/// Attach Sciter to an existing native window.
 	pub fn attach(hwnd: HWINDOW) -> Window {
 		assert!(!hwnd.is_null());
 		Window { base: OsWindow::from(hwnd), host: Rc::new(Host::attach(hwnd)) }
@@ -107,17 +107,23 @@ impl Window {
 	}
 
 	/// Set callback for sciter engine events.
-	pub fn sciter_handler<T: HostHandler + Sized>(&mut self, handler: T) {
-		self.host.setup_callback(self.base.get_hwnd(), handler);
+	pub fn sciter_handler<Callback: HostHandler + Sized>(&mut self, handler: Callback) {
+		self.host.setup_callback(handler);
 	}
 
 	/// Attach `dom::EventHandler` to the Sciter window.
 	///
 	/// You can install Window EventHandler only once - it will survive all document reloads.
-	pub fn event_handler<T: EventHandler>(&mut self, handler: T) {
-		let boxed = Box::new( WindowHandler { hwnd: self.base.get_hwnd(), handler: handler } );
-		let ptr = Box::into_raw(boxed);
-		(_API.SciterWindowAttachEventHandler)(self.base.get_hwnd(), _event_handler_window_proc::<T>, ptr as LPVOID, ::dom::event::default_events() as UINT);
+	pub fn event_handler<Handler: EventHandler>(&mut self, handler: Handler) {
+		self.host.attach_handler(handler);
+	}
+
+	/// Register a native event handler for the specified behavior name.
+	pub fn register_behavior<Factory>(&mut self, name: &str, factory: Factory)
+	where
+		Factory: Fn() -> Box<EventHandler> + 'static
+	{
+		self.host.register_behavior(name, factory);
 	}
 
 	/// Load HTML document from file.

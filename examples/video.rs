@@ -1,27 +1,9 @@
 #![allow(unused_variables, unused_must_use)]
 
-#[macro_use]
 extern crate sciter;
 
 use sciter::dom::event::*;
-use sciter::host::SCN_ATTACH_BEHAVIOR;
 use sciter::{Element, HELEMENT};
-
-#[derive(Default)]
-struct Handler {}
-
-impl sciter::HostHandler for Handler {
-  fn on_attach_behavior(&mut self, pnm: &mut SCN_ATTACH_BEHAVIOR) -> bool {
-    let name = u2s!(pnm.name);
-    println!("behavior: {:?}", name);
-    if name == "video-generator" {
-      self.attach_behavior(pnm, VideoGen::new());
-      return true;
-    }
-    return false;
-  }
-}
-
 
 use sciter::video::{fragmented_video_destination, AssetPtr};
 
@@ -30,9 +12,9 @@ struct VideoGen {
 }
 
 impl Drop for VideoGen {
-	fn drop(&mut self) {
-		println!("[video] behavior is destroyed");
-	}
+  fn drop(&mut self) {
+    println!("[video] behavior is destroyed");
+  }
 }
 
 impl VideoGen {
@@ -55,10 +37,12 @@ impl VideoGen {
     let ok = site.start_streaming(FRAME, sciter::video::COLOR_SPACE::Rgb32, None);
     println!("[video] initialized: {:?}", ok);
 
-    let mut x = 0; let mut xd = 1;
-    let mut y = 0; let mut yd = 1;
+    let mut x = 0;
+    let mut xd = 1;
+    let mut y = 0;
+    let mut yd = 1;
     while site.is_alive() {
-    	// send an update portion
+      // send an update portion
       let buf: &[u8] = unsafe { std::mem::transmute(figure.as_ref()) };
       site.render_frame_part(buf, (x, y), UPDATE);
 
@@ -67,14 +51,14 @@ impl VideoGen {
       y += yd;
 
       if x == 0 {
-      	xd = 1;
+        xd = 1;
       } else if x + UPDATE.0 == FRAME.0 {
-      	xd = -1;
+        xd = -1;
       }
       if y == 0 {
-      	yd = 1;
+        yd = 1;
       } else if y + UPDATE.1 == FRAME.1 {
-      	yd = -1;
+        yd = -1;
       }
 
       // simulate 25 FPS
@@ -165,10 +149,10 @@ fn main() {
   }
 
   use sciter::window;
+
   let mut frame = window::Window::with_size((750, 750), window::Flags::main_window(true));
-  let handler = Handler::default();
-  frame.sciter_handler(handler);
   frame.set_title("Video renderer sample");
+  frame.register_behavior("video-generator", || Box::new(VideoGen::new()));
   frame.load_html(include_bytes!("video.htm"), None);
   frame.run_app();
 }
