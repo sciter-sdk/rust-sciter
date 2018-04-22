@@ -8,7 +8,7 @@ use capi::scdom::*;
 use capi::scvalue::*;
 use capi::sctiscript::{HVM, tiscript_value, tiscript_native_interface};
 use capi::scbehavior::*;
-use capi::scgraphics::{SciterGraphicsAPI};
+use capi::scgraphics::SciterGraphicsAPI;
 use capi::screquest::{SciterRequestAPI, HREQUEST};
 use capi::scmsg::{SCITER_X_MSG};
 

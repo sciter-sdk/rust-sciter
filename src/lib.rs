@@ -77,6 +77,7 @@ mod platform;
 mod eventhandler;
 
 pub mod dom;
+pub mod graphics;
 pub mod host;
 pub mod types;
 pub mod utf;
@@ -106,7 +107,8 @@ pub type WindowBuilder = window::Builder;
 
 /* Loader */
 pub use capi::scapi::{ISciterAPI};
-
+use capi::scgraphics::SciterGraphicsAPI;
+use capi::screquest::SciterRequestAPI;
 
 #[cfg(windows)]
 mod ext {
@@ -160,8 +162,8 @@ mod ext {
 	extern "system" { pub fn SciterAPI() -> *const ::capi::scapi::ISciterAPI;	}
 }
 
-#[allow(non_snake_case)]
 #[doc(hidden)]
+#[allow(non_snake_case)]
 /// Getting ISciterAPI reference, can be used for manual API calling.
 pub fn SciterAPI<'a>() -> &'a ISciterAPI {
 	let ap = unsafe {
@@ -174,6 +176,8 @@ pub fn SciterAPI<'a>() -> &'a ISciterAPI {
 
 lazy_static! {
 	static ref _API: &'static ISciterAPI = { SciterAPI() };
+	static ref _GAPI: &'static SciterGraphicsAPI = { unsafe { &*(SciterAPI().GetSciterGraphicsAPI)() } };
+	static ref _RAPI: &'static SciterRequestAPI = { unsafe { &*(SciterAPI().GetSciterRequestAPI)() } };
 }
 
 /// Sciter engine version number (e.g. `0x03030200`).
