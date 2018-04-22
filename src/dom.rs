@@ -872,7 +872,7 @@ impl Element {
 	pub fn attach_handler<Handler: EventHandler>(&mut self, handler: Handler) -> Result<u64> {
 		// make native handler
 		let boxed = Box::new(handler);
-		let ptr = Box::into_raw(boxed);
+		let ptr = Box::into_raw(boxed);	// dropped in `_event_handler_proc`
 		let token = ptr as usize as u64;
 		let ok = (_API.SciterAttachEventHandler)(self.he, ::eventhandler::_event_handler_proc::<Handler>, ptr as LPVOID);
 		ok_or!(token, ok)

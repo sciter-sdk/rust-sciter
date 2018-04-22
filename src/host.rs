@@ -108,7 +108,7 @@ pub trait HostHandler {
 	fn attach_behavior<Handler: EventHandler>(&self, pnm: &mut SCN_ATTACH_BEHAVIOR, handler: Handler) {
 		// make native handler
 		let boxed = Box::new(handler);
-		let ptr = Box::into_raw(boxed);
+		let ptr = Box::into_raw(boxed);	// dropped in `_event_handler_proc`
 		pnm.elementProc = ::eventhandler::_event_handler_proc::<Handler>;
 		pnm.elementTag = ptr as LPVOID;
 	}
@@ -165,7 +165,7 @@ impl Host {
 	pub fn attach_handler<Handler: EventHandler>(&self, handler: Handler) {
 		let hwnd = self.get_hwnd();
 		let boxed = Box::new( WindowHandler { hwnd, handler } );
-		let ptr = Box::into_raw(boxed);
+		let ptr = Box::into_raw(boxed);	// dropped in `_event_handler_window_proc`
 		let func = _event_handler_window_proc::<Handler>;
 		let flags = ::dom::event::default_events();
 		(_API.SciterWindowAttachEventHandler)(hwnd, func, ptr as LPVOID, flags as UINT);
@@ -382,7 +382,7 @@ extern "system" fn _on_handle_notification<T: HostHandler>(pnm: *mut ::capi::scd
 
 				if let Some(behavior) = behavior {
 					let boxed = Box::new( BoxedHandler { handler: behavior } );
-					let ptr = Box::into_raw(boxed);
+					let ptr = Box::into_raw(boxed);	// dropped in `_event_handler_behavior_proc`
 
 					scnm.elementProc = ::eventhandler::_event_handler_behavior_proc;
 					scnm.elementTag = ptr as LPVOID;

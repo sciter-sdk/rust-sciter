@@ -367,10 +367,10 @@ impl Value {
 		extern "system" fn on_pair(param: LPVOID, pkey: *const VALUE, pval: *const VALUE) -> BOOL {
 			assert!(!param.is_null());
 			unsafe {
-				let mut result = Box::from_raw(param as *mut Pair);
+				let result = param as *mut Pair;
+				let result = &mut *result;
 				let src = (Value::copy_from(pkey), Value::copy_from(pval));
 				result.push(src);
-				Box::into_raw(result);	// prevent free
 			}
 			return true as BOOL;
 		}
@@ -892,7 +892,7 @@ impl<F> From<F> for Value
 	fn from(f: F) -> Value {
 		let mut v = Value::new();
 		let boxed = Box::new(f);
-		let ptr = Box::into_raw(boxed);
+		let ptr = Box::into_raw(boxed);	// dropped in `_functor_release`
 		(_API.ValueNativeFunctorSet)(v.as_ptr(), _functor_invoke::<F>, _functor_release::<F>, ptr as LPVOID);
 		return v;
 	}
