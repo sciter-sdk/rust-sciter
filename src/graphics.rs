@@ -98,30 +98,32 @@ impl Image {
   /// Render on image using methods of the [`Graphics`](struct.Graphics.html) object.
   ///
   /// `PaintFn` must be the following:
-  /// `fn paint(gfx: &mut Graphics, (width, height): (u32, u32))`.
+  /// `fn paint(gfx: &mut Graphics, (width, height): (f32, f32))`.
   ///
   /// # Example:
   ///
   /// ```rust
+  /// # use sciter::graphics::Image;
   /// let image = Image::create(100, 100, false).unwrap();
   /// image.paint(|gfx, size| {
-  ///   gfx.rectangle(5, 5, size.0 - 5, size.1 - 5)?;
-  ///	}).ok();
+  ///   gfx.rectangle(5.0, 5.0, size.0 - 5.0, size.1 - 5.0)?;
+  ///   Ok(())
+  ///	}).unwrap();
   /// ```
   pub fn paint<PaintFn>(&self, painter: PaintFn) -> Result<()>
-  	where PaintFn: Fn(&mut Graphics, (u32, u32)) -> Result<()>
+  	where PaintFn: Fn(&mut Graphics, (f32, f32)) -> Result<()>
   {
   	#[repr(C)]
   	struct Payload<PaintFn> {
   		painter: PaintFn,
   		result: Result<()>,
   	}
-    extern "system" fn on_paint<PaintFn: Fn(&mut Graphics, (u32, u32)) -> Result<()>>(prm: LPVOID, hgfx: HGFX, width: UINT, height: UINT) {
+    extern "system" fn on_paint<PaintFn: Fn(&mut Graphics, (f32, f32)) -> Result<()>>(prm: LPVOID, hgfx: HGFX, width: UINT, height: UINT) {
       let param = prm as *mut Payload<PaintFn>;
       assert!(!param.is_null());
       let payload = unsafe { &mut *param };
       let mut gfx = Graphics(hgfx);
-      let ok = (payload.painter)(&mut gfx, (width, height));
+      let ok = (payload.painter)(&mut gfx, (width as f32, height as f32));
       payload.result = ok;
     }
     let payload = Payload {
