@@ -22,12 +22,18 @@ pub type SC_COLOR = u32;
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
+/// Type of the result value for Sciter Graphics functions.
 pub enum GRAPHIN_RESULT {
-  PANIC = -1, // e.g. not enough memory
+	/// E.g. not enough memory.
+  PANIC = -1,
+  /// Success.
   OK = 0,
-  BAD_PARAM = 1,    // bad parameter
-  FAILURE = 2,      // operation failed, e.g. restore() without save()
-  NOTSUPPORTED = 3, // the platform does not support requested feature
+  /// Bad parameter.
+  BAD_PARAM = 1,
+  /// Operation failed, e.g. `restore()` without `save()`.
+  FAILURE = 2,
+  /// Platform does not support the requested feature.
+  NOTSUPPORTED = 3,
 }
 
 #[repr(C)]

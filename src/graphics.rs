@@ -4,15 +4,18 @@ Used in custom behaviors / event handlers to draw on element's surface in native
 Essentially this mimics [`Graphics`](https://sciter.com/docs/content/sciter/Graphics.htm) scripting object as close as possible.
 
 */
-use capi::scgraphics::{GRAPHIN_RESULT, HGFX, HIMG, SC_COLOR};
+use capi::scgraphics::{HGFX, HIMG, SC_COLOR, SC_POS};
 use capi::sctypes::{BOOL, LPCBYTE, LPVOID, UINT};
 use std::ptr::null_mut;
 use value::{FromValue, Value};
 use _GAPI;
 
+pub use capi::scgraphics::{GRAPHIN_RESULT};
+
 /// Image encoding used in `Image.save`.
 #[derive(Debug, PartialEq)]
 pub enum ImageEncoding {
+	/// In `[a,b,g,r,a,b,g,r,...]` form.
   Raw,
   Png,
   Jpg,
@@ -35,37 +38,40 @@ pub type Result<T> = ::std::result::Result<T, GRAPHIN_RESULT>;
 /// A color type in the `ARGB` form.
 pub type Color = SC_COLOR;
 
-/// Image painter.
-pub trait Painter {
-  /// Paint on image using `Graphics`.
-  fn paint(&mut self, gfx: &mut Graphics, width: u32, height: u32);
-}
+/// Position on surface.
+pub type Pos = SC_POS;
 
+/// Graphics image object.
 pub struct Image(HIMG);
+
+/// Graphics object. Represents graphic surface of the element.
 pub struct Graphics(HGFX);
 
 impl Image {
-  /// Create a new image.
-  pub fn create(width: u32, height: u32, with_alpha: bool) -> ::std::result::Result<Image, GRAPHIN_RESULT> {
+  /// Create a new blank image.
+  pub fn create(width: u32, height: u32, with_alpha: bool) -> Result<Image> {
     let mut h = null_mut();
     let ok = (_GAPI.imageCreate)(&mut h, width, height, with_alpha as BOOL);
     ok_or!(Image(h), ok)
   }
 
   /// Create image from `BGRA` data. Size of pixmap is `width*height*4` bytes.
-  pub fn create_from(width: u32, height: u32, with_alpha: bool, pixmap: &[u8]) -> ::std::result::Result<Image, GRAPHIN_RESULT> {
+  pub fn create_from(width: u32, height: u32, with_alpha: bool, pixmap: &[u8]) -> Result<Image> {
     let mut h = null_mut();
     let ok = (_GAPI.imageCreateFromPixmap)(&mut h, width, height, with_alpha as BOOL, pixmap.as_ptr());
     ok_or!(Image(h), ok)
   }
 
-  /// Load image from PNG or JPEG encoded data.
-  pub fn load(data: &[u8]) -> ::std::result::Result<Image, GRAPHIN_RESULT> {
+  /// Load image from PNG or JPEG (or any other supported) encoded data.
+  pub fn load(image_data: &[u8]) -> Result<Image> {
     let mut h = null_mut();
-    let ok = (_GAPI.imageLoad)(data.as_ptr(), data.len() as UINT, &mut h);
+    let ok = (_GAPI.imageLoad)(image_data.as_ptr(), image_data.len() as UINT, &mut h);
     ok_or!(Image(h), ok)
   }
 
+  /// Saves content of the image as a byte vector.
+  ///
+  /// `quality` is a number in the range `10..100` – JPEG or WebP compression level.
   pub fn save(&self, encoding: ImageEncoding, quality: u8) -> Result<Vec<u8>> {
     extern "system" fn on_save(prm: LPVOID, data: LPCBYTE, data_length: UINT) {
       unsafe {
@@ -89,6 +95,47 @@ impl Image {
     ok_or!(data, ok)
   }
 
+  /// Render on image using methods of the [`Graphics`](struct.Graphics.html) object.
+  ///
+  /// `PaintFn` must be the following:
+  /// `fn paint(gfx: &mut Graphics, (width, height): (u32, u32))`.
+  ///
+  /// # Example:
+  ///
+  /// ```rust
+  /// let image = Image::create(100, 100, false).unwrap();
+  /// image.paint(|gfx, size| {
+  ///   gfx.rectangle(5, 5, size.0 - 5, size.1 - 5)?;
+  ///	}).ok();
+  /// ```
+  pub fn paint<PaintFn>(&self, painter: PaintFn) -> Result<()>
+  	where PaintFn: Fn(&mut Graphics, (u32, u32)) -> Result<()>
+  {
+  	#[repr(C)]
+  	struct Payload<PaintFn> {
+  		painter: PaintFn,
+  		result: Result<()>,
+  	}
+    extern "system" fn on_paint<PaintFn: Fn(&mut Graphics, (u32, u32)) -> Result<()>>(prm: LPVOID, hgfx: HGFX, width: UINT, height: UINT) {
+      let param = prm as *mut Payload<PaintFn>;
+      assert!(!param.is_null());
+      let payload = unsafe { &mut *param };
+      let mut gfx = Graphics(hgfx);
+      let ok = (payload.painter)(&mut gfx, (width, height));
+      payload.result = ok;
+    }
+    let payload = Payload {
+    	painter: painter,
+    	result: Ok(()),
+    };
+    let param = Box::new(payload);
+    let param = Box::into_raw(param);
+    let ok = (_GAPI.imagePaint)(self.0, on_paint::<PaintFn>, param as LPVOID);
+    let ok = ok_or!((), ok);
+    let param = unsafe { Box::from_raw(param) };
+    ok.and(param.result)
+  }
+
   /// Clear image by filling it with the black color.
   pub fn clear(&mut self) -> Result<()> {
     let ok = (_GAPI.imageClear)(self.0, 0);
@@ -101,6 +148,7 @@ impl Image {
     ok_or!((), ok)
   }
 
+  /// Get width and height of the image (in pixels).
   pub fn dimensions(&self) -> Result<(u32, u32)> {
     let mut alpha = 0;
     let mut w = 0;
@@ -109,18 +157,6 @@ impl Image {
     ok_or!((w, h), ok)
   }
 
-  pub fn paint<T: Painter>(&self, painter: T) -> Result<()> {
-    extern "system" fn on_paint<T: Painter>(prm: LPVOID, hgfx: HGFX, width: UINT, height: UINT) {
-      let param = prm as *mut T;
-      assert!(!param.is_null());
-      let me = unsafe { &mut *param };
-      let mut gfx = Graphics(hgfx);
-      me.paint(&mut gfx, width, height);
-    }
-    let param = Box::new(painter);
-    let ok = (_GAPI.imagePaint)(self.0, on_paint::<T>, Box::into_raw(param) as LPVOID);
-    ok_or!((), ok)
-  }
 }
 
 /// Get an `Image` object contained in the `Value`.
@@ -162,4 +198,13 @@ impl Clone for Image {
     (_GAPI.imageAddRef)(dst.0);
     dst
   }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+impl Graphics {
+	pub fn rectangle(&mut self, x1: Pos, y1: Pos, x2: Pos, y2: Pos) -> Result<()> {
+		let ok = (_GAPI.gRectangle)(self.0, x1, y1, x2, y2);
+		ok_or!((), ok)
+	}
 }
