@@ -4,18 +4,18 @@ Used in custom behaviors / event handlers to draw on element's surface in native
 Essentially this mimics [`Graphics`](https://sciter.com/docs/content/sciter/Graphics.htm) scripting object as close as possible.
 
 */
-use capi::scgraphics::{HGFX, HIMG, SC_COLOR, SC_POS};
+use capi::scgraphics::{HGFX, HIMG, HPATH, SC_COLOR, SC_POS};
 use capi::sctypes::{BOOL, LPCBYTE, LPVOID, UINT};
 use std::ptr::null_mut;
 use value::{FromValue, Value};
 use _GAPI;
 
-pub use capi::scgraphics::{GRAPHIN_RESULT};
+pub use capi::scgraphics::GRAPHIN_RESULT;
 
 /// Image encoding used in `Image.save`.
 #[derive(Debug, PartialEq)]
 pub enum ImageEncoding {
-	/// In `[a,b,g,r,a,b,g,r,...]` form.
+  /// In `[a,b,g,r,a,b,g,r,...]` form.
   Raw,
   Png,
   Jpg,
@@ -38,25 +38,79 @@ pub type Result<T> = ::std::result::Result<T, GRAPHIN_RESULT>;
 /// A color type in the `ARGB` form.
 pub type Color = SC_COLOR;
 
-/// Position on surface.
-pub type Pos = SC_POS;
+/// Position on a surface in `(x, y)` form.
+pub type Pos = (SC_POS, SC_POS);
+
+/// Angle (in radians).
+pub type Angle = SC_POS;
 
 /// Graphics image object.
 pub struct Image(HIMG);
 
+/// Graphics path object.
+pub struct Path(HPATH);
+
 /// Graphics object. Represents graphic surface of the element.
 pub struct Graphics(HGFX);
 
+/// Construct a color value from the `red`, `green`, `blue` and `opacity` components.
+pub fn color(red: u8, green: u8, blue: u8, opacity: Option<u8>) -> Color {
+  (_GAPI.RGBA)(u32::from(red), u32::from(green), u32::from(blue), u32::from(opacity.unwrap_or(255)))
+}
+///////////////////////////////////////////////////////////////////////////////
+// Image
+
+/// Destroy pointed image object.
+impl Drop for Image {
+  fn drop(&mut self) {
+    (_GAPI.imageRelease)(self.0);
+  }
+}
+
+/// Copies image object.
+///
+/// All allocated objects are reference counted so copying is just a matter of increasing reference counts.
+impl Clone for Image {
+  fn clone(&self) -> Self {
+    let dst = Image(self.0);
+    (_GAPI.imageAddRef)(dst.0);
+    dst
+  }
+}
+
+/// Get an `Image` object contained in the `Value`.
+impl FromValue for Image {
+  fn from_value(v: &Value) -> Option<Image> {
+    let mut h = null_mut();
+    let ok = (_GAPI.vUnWrapImage)(v.as_cptr(), &mut h);
+    if ok == GRAPHIN_RESULT::OK {
+      Some(Image(h))
+    } else {
+      None
+    }
+  }
+}
+
+/// Store the `Image` object as a `Value`.
+impl From<Image> for Value {
+  fn from(i: Image) -> Value {
+    let mut v = Value::new();
+    let ok = (_GAPI.vWrapImage)(i.0, v.as_ptr());
+    assert!(ok == GRAPHIN_RESULT::OK);
+    v
+  }
+}
+
 impl Image {
   /// Create a new blank image.
-  pub fn create(width: u32, height: u32, with_alpha: bool) -> Result<Image> {
+  pub fn new(width: u32, height: u32, with_alpha: bool) -> Result<Image> {
     let mut h = null_mut();
     let ok = (_GAPI.imageCreate)(&mut h, width, height, with_alpha as BOOL);
     ok_or!(Image(h), ok)
   }
 
   /// Create image from `BGRA` data. Size of pixmap is `width*height*4` bytes.
-  pub fn create_from(width: u32, height: u32, with_alpha: bool, pixmap: &[u8]) -> Result<Image> {
+  pub fn with_data(width: u32, height: u32, with_alpha: bool, pixmap: &[u8]) -> Result<Image> {
     let mut h = null_mut();
     let ok = (_GAPI.imageCreateFromPixmap)(&mut h, width, height, with_alpha as BOOL, pixmap.as_ptr());
     ok_or!(Image(h), ok)
@@ -111,13 +165,14 @@ impl Image {
   ///	}).unwrap();
   /// ```
   pub fn paint<PaintFn>(&self, painter: PaintFn) -> Result<()>
-  	where PaintFn: Fn(&mut Graphics, (f32, f32)) -> Result<()>
+  where
+    PaintFn: Fn(&mut Graphics, (f32, f32)) -> Result<()>,
   {
-  	#[repr(C)]
-  	struct Payload<PaintFn> {
-  		painter: PaintFn,
-  		result: Result<()>,
-  	}
+    #[repr(C)]
+    struct Payload<PaintFn> {
+      painter: PaintFn,
+      result: Result<()>,
+    }
     extern "system" fn on_paint<PaintFn: Fn(&mut Graphics, (f32, f32)) -> Result<()>>(prm: LPVOID, hgfx: HGFX, width: UINT, height: UINT) {
       let param = prm as *mut Payload<PaintFn>;
       assert!(!param.is_null());
@@ -127,8 +182,8 @@ impl Image {
       payload.result = ok;
     }
     let payload = Payload {
-    	painter: painter,
-    	result: Ok(()),
+      painter: painter,
+      result: Ok(()),
     };
     let param = Box::new(payload);
     let param = Box::into_raw(param);
@@ -158,16 +213,36 @@ impl Image {
     let ok = (_GAPI.imageGetInfo)(self.0, &mut w, &mut h, &mut alpha);
     ok_or!((w, h), ok)
   }
+}
 
+///////////////////////////////////////////////////////////////////////////////
+// Path
+
+/// Destroy pointed image object.
+impl Drop for Path {
+  fn drop(&mut self) {
+    (_GAPI.pathRelease)(self.0);
+  }
+}
+
+/// Copies path object.
+///
+/// All allocated objects are reference counted so copying is just a matter of increasing reference counts.
+impl Clone for Path {
+  fn clone(&self) -> Self {
+    let dst = Path(self.0);
+    (_GAPI.pathAddRef)(dst.0);
+    dst
+  }
 }
 
 /// Get an `Image` object contained in the `Value`.
-impl FromValue for Image {
-  fn from_value(v: &Value) -> Option<Image> {
+impl FromValue for Path {
+  fn from_value(v: &Value) -> Option<Path> {
     let mut h = null_mut();
-    let ok = (_GAPI.vUnWrapImage)(v.as_cptr(), &mut h);
+    let ok = (_GAPI.vUnWrapPath)(v.as_cptr(), &mut h);
     if ok == GRAPHIN_RESULT::OK {
-      Some(Image(h))
+      Some(Path(h))
     } else {
       None
     }
@@ -175,38 +250,93 @@ impl FromValue for Image {
 }
 
 /// Store the `Image` object as a `Value`.
-impl From<Image> for Value {
-  fn from(i: Image) -> Value {
+impl From<Path> for Value {
+  fn from(i: Path) -> Value {
     let mut v = Value::new();
-    let ok = (_GAPI.vWrapImage)(i.0, v.as_ptr());
+    let ok = (_GAPI.vWrapPath)(i.0, v.as_ptr());
     assert!(ok == GRAPHIN_RESULT::OK);
     v
   }
 }
 
-/// Destroy pointed image object.
-impl Drop for Image {
-  fn drop(&mut self) {
-    (_GAPI.imageRelease)(self.0);
+impl Path {
+  /// Create a new empty path.
+  pub fn new() -> Result<Path> {
+    let mut h = null_mut();
+    let ok = (_GAPI.pathCreate)(&mut h);
+    ok_or!(Path(h), ok)
   }
-}
 
-/// Copies image.
-///
-/// All allocated objects are reference counted so copying is just a matter of increasing reference counts.
-impl Clone for Image {
-  fn clone(&self) -> Self {
-    let dst = Image(self.0);
-    (_GAPI.imageAddRef)(dst.0);
-    dst
+  /// Close the current path/figure.
+  pub fn close(&mut self) -> Result<()> {
+    let ok = (_GAPI.pathClosePath)(self.0);
+    ok_or!((), ok)
+  }
+
+  /// Move the current drawing path position to `x,y`.
+  ///
+  /// If `is_relative` is `true` then `x` and `y` are interpreted as deltas from the current path position.
+  pub fn move_to(&mut self, point: Pos, is_relative: bool) -> Result<&mut Path> {
+    let ok = (_GAPI.pathMoveTo)(self.0, point.0, point.1, is_relative as BOOL);
+    ok_or!(self, ok)
+  }
+
+  /// Draw a line and move the current drawing path position to `x,y`.
+  ///
+  /// If `is_relative` is `true` then `x` and `y` are interpreted as deltas from the current path position.
+  pub fn line_to(&mut self, point: Pos, is_relative: bool) -> Result<&mut Path> {
+    let ok = (_GAPI.pathLineTo)(self.0, point.0, point.1, is_relative as BOOL);
+    ok_or!(self, ok)
+  }
+
+  /// Draw an arc.
+  pub fn arc_to(&mut self, xy: Pos, angle: Angle, rxy: Pos, is_large: bool, is_clockwise: bool, is_relative: bool) -> Result<&mut Path> {
+    let ok = (_GAPI.pathArcTo)(
+      self.0,
+      xy.0,
+      xy.1,
+      angle,
+      rxy.0,
+      rxy.1,
+      is_large as BOOL,
+      is_clockwise as BOOL,
+      is_relative as BOOL,
+    );
+    ok_or!(self, ok)
+  }
+
+  /// Draw a quadratic Bézier curve.
+  ///
+  /// If `is_relative` is `true` then `x` and `y` are interpreted as deltas from the current path position.
+  pub fn quadratic_curve_to(&mut self, control: Pos, end: Pos, is_relative: bool) -> Result<&mut Path> {
+    let ok = (_GAPI.pathQuadraticCurveTo)(self.0, control.0, control.1, end.0, end.1, is_relative as BOOL);
+    ok_or!(self, ok)
+  }
+
+  /// Draw a quadratic Bézier curve.
+  ///
+  /// If `is_relative` is `true` then `x` and `y` are interpreted as deltas from the current path position.
+  pub fn bezier_curve_to(&mut self, control1: Pos, control2: Pos, end: Pos, is_relative: bool) -> Result<&mut Path> {
+    let ok = (_GAPI.pathBezierCurveTo)(
+      self.0,
+      control1.0,
+      control1.1,
+      control2.0,
+      control2.1,
+      end.0,
+      end.1,
+      is_relative as BOOL,
+    );
+    ok_or!(self, ok)
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Graphics
 
 impl Graphics {
-	pub fn rectangle(&mut self, x1: Pos, y1: Pos, x2: Pos, y2: Pos) -> Result<()> {
-		let ok = (_GAPI.gRectangle)(self.0, x1, y1, x2, y2);
-		ok_or!((), ok)
-	}
+  pub fn rectangle(&mut self, left_top: Pos, right_bottom: Pos) -> Result<()> {
+    let ok = (_GAPI.gRectangle)(self.0, left_top.0, left_top.1, right_bottom.0, right_bottom.1);
+    ok_or!((), ok)
+  }
 }
