@@ -49,7 +49,7 @@ pub type BOOL = int8_t;
 
 pub type PBOOL = *mut BOOL;
 
-
+/// Defines the coordinates of the upper-left and lower-right corners of a rectangle.
 #[repr(C)]
 #[derive(Default, Debug)]
 pub struct RECT {
@@ -89,6 +89,7 @@ impl RECT {
 	}
 }
 
+/// Defines the `x` and `y` coordinates of a point.
 #[repr(C)]
 #[derive(Default, Debug)]
 pub struct POINT {
@@ -97,7 +98,7 @@ pub struct POINT {
 }
 pub type LPPOINT = *mut POINT;
 
-
+/// Specifies the width and height of a rectangle.
 #[repr(C)]
 #[derive(Default, Debug)]
 pub struct SIZE {

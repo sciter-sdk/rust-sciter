@@ -4,22 +4,26 @@ Used in custom behaviors / event handlers to draw on element's surface in native
 Essentially this mimics [`Graphics`](https://sciter.com/docs/content/sciter/Graphics.htm) scripting object as close as possible.
 
 */
-use capi::scgraphics::{HGFX, HIMG, HPATH, SC_COLOR, SC_POS};
-use capi::sctypes::{BOOL, LPCBYTE, LPVOID, UINT};
+use capi::scgraphics::DRAW_PATH_MODE;
+use capi::scgraphics::{HGFX, HIMG, HPATH, SC_ANGLE, SC_COLOR, SC_DIM, SC_POS};
+use capi::sctypes::{BOOL, LPCBYTE, LPVOID, POINT, SIZE, UINT};
 use std::ptr::null_mut;
 use value::{FromValue, Value};
 use _GAPI;
 
 pub use capi::scgraphics::GRAPHIN_RESULT;
 
-/// Image encoding used in `Image.save`.
+/// Image encoding used in [`Image.save`](struct.Image.html#method.save).
 #[derive(Debug, PartialEq)]
-pub enum ImageEncoding {
-  /// In `[a,b,g,r,a,b,g,r,...]` form.
+pub enum SaveImageEncoding {
+  /// Raw bitmap in a `[a,b,g,r, a,b,g,r, ...]` form.
   Raw,
+  /// Portable Network Graphics format.
   Png,
-  Jpg,
-  Webp,
+  /// JPEG with the specified quality level (in range of `10..100`).
+  Jpeg(u8),
+  /// WebP with the specified quality level (in range of `10..100`).
+  Webp(u8),
 }
 
 macro_rules! ok_or {
@@ -41,8 +45,14 @@ pub type Color = SC_COLOR;
 /// Position on a surface in `(x, y)` form.
 pub type Pos = (SC_POS, SC_POS);
 
+/// Size in `(width, height)` form.
+pub type Size = (SC_DIM, SC_DIM);
+
 /// Angle (in radians).
-pub type Angle = SC_POS;
+pub type Angle = SC_ANGLE;
+
+/// Dimension.
+pub type Dim = SC_DIM;
 
 /// Graphics image object.
 pub struct Image(HIMG);
@@ -123,10 +133,8 @@ impl Image {
     ok_or!(Image(h), ok)
   }
 
-  /// Saves content of the image as a byte vector.
-  ///
-  /// `quality` is a number in the range `10..100` – JPEG or WebP compression level.
-  pub fn save(&self, encoding: ImageEncoding, quality: u8) -> Result<Vec<u8>> {
+  /// Save content of the image as a byte vector.
+  pub fn save(&self, encoding: SaveImageEncoding) -> Result<Vec<u8>> {
     extern "system" fn on_save(prm: LPVOID, data: LPCBYTE, data_length: UINT) {
       unsafe {
         let param = prm as *mut Vec<u8>;
@@ -138,14 +146,14 @@ impl Image {
       }
     }
     use capi::scgraphics::SCITER_IMAGE_ENCODING::*;
-    let enc = match encoding {
-      ImageEncoding::Raw => RAW,
-      ImageEncoding::Png => PNG,
-      ImageEncoding::Jpg => JPG,
-      ImageEncoding::Webp => WEBP,
+    let (enc, q) = match encoding {
+      SaveImageEncoding::Raw => (RAW, 0),
+      SaveImageEncoding::Png => (PNG, 0),
+      SaveImageEncoding::Jpeg(q) => (JPG, q),
+      SaveImageEncoding::Webp(q) => (WEBP, q),
     };
     let mut data = Vec::new();
-    let ok = (_GAPI.imageSave)(self.0, on_save, &mut data as *mut _ as LPVOID, enc, quality as u32);
+    let ok = (_GAPI.imageSave)(self.0, on_save, &mut data as *mut _ as LPVOID, enc, q as u32);
     ok_or!(data, ok)
   }
 
@@ -218,7 +226,7 @@ impl Image {
 ///////////////////////////////////////////////////////////////////////////////
 // Path
 
-/// Destroy pointed image object.
+/// Destroy pointed path object.
 impl Drop for Path {
   fn drop(&mut self) {
     (_GAPI.pathRelease)(self.0);
@@ -236,7 +244,7 @@ impl Clone for Path {
   }
 }
 
-/// Get an `Image` object contained in the `Value`.
+/// Get a `Path` object contained in the `Value`.
 impl FromValue for Path {
   fn from_value(v: &Value) -> Option<Path> {
     let mut h = null_mut();
@@ -249,7 +257,7 @@ impl FromValue for Path {
   }
 }
 
-/// Store the `Image` object as a `Value`.
+/// Store the `Path` object as a `Value`.
 impl From<Path> for Value {
   fn from(i: Path) -> Value {
     let mut v = Value::new();
@@ -334,9 +342,178 @@ impl Path {
 ///////////////////////////////////////////////////////////////////////////////
 // Graphics
 
+/// Destroy pointed graphics object.
+impl Drop for Graphics {
+  fn drop(&mut self) {
+    (_GAPI.gRelease)(self.0);
+  }
+}
+
+/// Copies graphics object.
+///
+/// All allocated objects are reference counted so copying is just a matter of increasing reference counts.
+impl Clone for Graphics {
+  fn clone(&self) -> Self {
+    let dst = Graphics(self.0);
+    (_GAPI.gAddRef)(dst.0);
+    dst
+  }
+}
+
+/// Get an `Graphics` object contained in the `Value`.
+impl FromValue for Graphics {
+  fn from_value(v: &Value) -> Option<Graphics> {
+    let mut h = null_mut();
+    let ok = (_GAPI.vUnWrapGfx)(v.as_cptr(), &mut h);
+    if ok == GRAPHIN_RESULT::OK {
+      Some(Graphics(h))
+    } else {
+      None
+    }
+  }
+}
+
+/// Store the `Graphics` object as a `Value`.
+impl From<Graphics> for Value {
+  fn from(i: Graphics) -> Value {
+    let mut v = Value::new();
+    let ok = (_GAPI.vWrapGfx)(i.0, v.as_ptr());
+    assert!(ok == GRAPHIN_RESULT::OK);
+    v
+  }
+}
+
 impl Graphics {
-  pub fn rectangle(&mut self, left_top: Pos, right_bottom: Pos) -> Result<()> {
+	/// Save the current graphics attributes on top of the internal state stack.
+	pub fn push_state(&mut self) -> Result<()> {
+		let ok = (_GAPI.gStateSave)(self.0);
+		ok_or!((), ok)
+	}
+
+	/// Restore graphics attributes from top of the internal state stack.
+	pub fn pop_state(&mut self) -> Result<()> {
+		let ok = (_GAPI.gStateRestore)(self.0);
+		ok_or!((), ok)
+	}
+
+  /// Draws a line from the `start` to the `end` points using the current stroke brushes.
+  pub fn line(&mut self, start: Pos, end: Pos) -> Result<&mut Self> {
+    let ok = (_GAPI.gLine)(self.0, start.0, start.1, end.0, end.1);
+    ok_or!(self, ok)
+  }
+
+  /// Draw a rectangle using the current fill and stroke brushes.
+  pub fn rectangle(&mut self, left_top: Pos, right_bottom: Pos) -> Result<&mut Self> {
     let ok = (_GAPI.gRectangle)(self.0, left_top.0, left_top.1, right_bottom.0, right_bottom.1);
-    ok_or!((), ok)
+    ok_or!(self, ok)
+  }
+
+  /// Draw a rounded rectangle using the current fill and stroke brushes.
+  pub fn round_rect(&mut self, left_top: Pos, right_bottom: Pos, radius: Dim) -> Result<&mut Self> {
+    let rad: [Dim; 8] = [radius; 8usize];
+    let ok = (_GAPI.gRoundedRectangle)(self.0, left_top.0, left_top.1, right_bottom.0, right_bottom.1, rad.as_ptr());
+    ok_or!(self, ok)
+  }
+
+  /// Draw a rounded rectangle using the current fill and stroke brushes.
+  pub fn round_rect4(&mut self, left_top: Pos, right_bottom: Pos, radius: (Dim, Dim, Dim, Dim)) -> Result<&mut Self> {
+    let r = radius;
+    let rad: [Dim; 8] = [r.0, r.0, r.1, r.1, r.2, r.2, r.3, r.3];
+    let ok = (_GAPI.gRoundedRectangle)(self.0, left_top.0, left_top.1, right_bottom.0, right_bottom.1, rad.as_ptr());
+    ok_or!(self, ok)
+  }
+
+  /// Draw an ellipse using the current fill and stroke brushes.
+  pub fn ellipse(&mut self, xy: Pos, radii: Pos) -> Result<&mut Self> {
+    let ok = (_GAPI.gEllipse)(self.0, xy.0, xy.1, radii.0, radii.1);
+    ok_or!(self, ok)
+  }
+
+  /// Draw a circle using the current fill and stroke brushes.
+  pub fn circle(&mut self, xy: Pos, radius: Dim) -> Result<&mut Self> {
+    let ok = (_GAPI.gEllipse)(self.0, xy.0, xy.1, radius, radius);
+    ok_or!(self, ok)
+  }
+
+  // TODO: the rest of drawing operations
+  // TODO: drawing attributes
+  // TODO: affine transformations
+
+  /// Draw the path object using current fill and stroke brushes.
+  pub fn draw_path(&mut self, path: &Path, mode: DRAW_PATH_MODE) -> Result<&mut Self> {
+    let ok = (_GAPI.gDrawPath)(self.0, path.0, mode);
+    ok_or!(self, ok)
+  }
+
+  /// Draw the whole image onto the graphics surface.
+  ///
+  /// With the current transformation applied (scale, rotation).
+  ///
+  /// Performance: expensive.
+  pub fn draw_image(&mut self, image: &Image, pos: Pos) -> Result<&mut Self> {
+    let ok = (_GAPI.gDrawImage)(self.0, image.0, pos.0, pos.1, None, None, None, None, None, None, None);
+    ok_or!(self, ok)
+  }
+
+  /// Draw a part of the image onto the graphics surface.
+  ///
+  /// With the current transformation applied (scale, rotation).
+  ///
+  /// Performance: expensive.
+  pub fn draw_image_part(&mut self, image: &Image, dst_pos: Pos, dst_size: Size, src_pos: POINT, src_size: SIZE) -> Result<&mut Self> {
+    let ix = src_pos.x as UINT;
+    let iy = src_pos.y as UINT;
+    let iw = src_size.cx as UINT;
+    let ih = src_size.cy as UINT;
+    let ok = (_GAPI.gDrawImage)(
+      self.0,
+      image.0,
+      dst_pos.0,
+      dst_pos.1,
+      Some(&dst_size.0),
+      Some(&dst_size.1),
+      Some(&ix),
+      Some(&iy),
+      Some(&iw),
+      Some(&ih),
+      None,
+    );
+    ok_or!(self, ok)
+  }
+
+  /// Blend the image with the graphics surface.
+  ///
+  /// No affine transformations.
+  ///
+  /// Performance: less expensive.
+  pub fn blend_image(&mut self, image: &Image, dst_pos: Pos, opacity: f32) -> Result<&mut Self> {
+    let ok = (_GAPI.gDrawImage)(self.0, image.0, dst_pos.0, dst_pos.1, None, None, None, None, None, None, Some(&opacity));
+    ok_or!(self, ok)
+  }
+
+  /// Blend a part of the image with the graphics surface.
+  ///
+  /// No affine transformations.
+  ///
+  /// Performance: less expensive.
+  pub fn blend_image_part(&mut self, image: &Image, dst_pos: Pos, opacity: f32, src_pos: POINT, src_size: SIZE) -> Result<&mut Self> {
+    let ix = src_pos.x as UINT;
+    let iy = src_pos.y as UINT;
+    let iw = src_size.cx as UINT;
+    let ih = src_size.cy as UINT;
+    let ok = (_GAPI.gDrawImage)(
+      self.0,
+      image.0,
+      dst_pos.0,
+      dst_pos.1,
+      None,
+      None,
+      Some(&ix),
+      Some(&iy),
+      Some(&iw),
+      Some(&ih),
+      Some(&opacity),
+    );
+    ok_or!(self, ok)
   }
 }

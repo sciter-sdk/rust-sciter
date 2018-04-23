@@ -242,6 +242,7 @@ pub struct Builder {
 	parent: Option<HWINDOW>,
 }
 
+// Note: https://rust-lang-nursery.github.io/api-guidelines/type-safety.html#non-consuming-builders-preferred
 impl Builder {
 
 	/// Main application window (resizeable with min/max buttons and title).
