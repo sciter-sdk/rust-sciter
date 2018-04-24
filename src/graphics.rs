@@ -113,14 +113,14 @@ impl From<Image> for Value {
 
 impl Image {
   /// Create a new blank image.
-  pub fn new(width: u32, height: u32, with_alpha: bool) -> Result<Image> {
+  pub fn new((width, height): (u32, u32), with_alpha: bool) -> Result<Image> {
     let mut h = null_mut();
     let ok = (_GAPI.imageCreate)(&mut h, width, height, with_alpha as BOOL);
     ok_or!(Image(h), ok)
   }
 
   /// Create image from `BGRA` data. Size of pixmap is `width*height*4` bytes.
-  pub fn with_data(width: u32, height: u32, with_alpha: bool, pixmap: &[u8]) -> Result<Image> {
+  pub fn with_data((width, height): (u32, u32), with_alpha: bool, pixmap: &[u8]) -> Result<Image> {
     let mut h = null_mut();
     let ok = (_GAPI.imageCreateFromPixmap)(&mut h, width, height, with_alpha as BOOL, pixmap.as_ptr());
     ok_or!(Image(h), ok)
@@ -136,10 +136,10 @@ impl Image {
   /// Save content of the image as a byte vector.
   pub fn save(&self, encoding: SaveImageEncoding) -> Result<Vec<u8>> {
     extern "system" fn on_save(prm: LPVOID, data: LPCBYTE, data_length: UINT) {
+      assert!(!prm.is_null());
+      assert!(!data.is_null());
       unsafe {
         let param = prm as *mut Vec<u8>;
-        assert!(param.is_null());
-        assert!(data.is_null());
         let dst = &mut *param;
         let src = ::std::slice::from_raw_parts(data, data_length as usize);
         dst.extend_from_slice(src);
@@ -166,9 +166,9 @@ impl Image {
   ///
   /// ```rust
   /// # use sciter::graphics::Image;
-  /// let image = Image::create(100, 100, false).unwrap();
+  /// let image = Image::new((100, 100), false).unwrap();
   /// image.paint(|gfx, size| {
-  ///   gfx.rectangle(5.0, 5.0, size.0 - 5.0, size.1 - 5.0)?;
+  ///   gfx.rectangle((5.0, 5.0), (size.0 - 5.0, size.1 - 5.0))?;
   ///   Ok(())
   ///	}).unwrap();
   /// ```
@@ -201,6 +201,15 @@ impl Image {
     ok.and(param.result)
   }
 
+  /// Get width and height of the image (in pixels).
+  pub fn dimensions(&self) -> Result<(u32, u32)> {
+    let mut alpha = 0;
+    let mut w = 0;
+    let mut h = 0;
+    let ok = (_GAPI.imageGetInfo)(self.0, &mut w, &mut h, &mut alpha);
+    ok_or!((w, h), ok)
+  }
+
   /// Clear image by filling it with the black color.
   pub fn clear(&mut self) -> Result<()> {
     let ok = (_GAPI.imageClear)(self.0, 0);
@@ -211,15 +220,6 @@ impl Image {
   pub fn clear_with(&mut self, color: Color) -> Result<()> {
     let ok = (_GAPI.imageClear)(self.0, color);
     ok_or!((), ok)
-  }
-
-  /// Get width and height of the image (in pixels).
-  pub fn dimensions(&self) -> Result<(u32, u32)> {
-    let mut alpha = 0;
-    let mut w = 0;
-    let mut h = 0;
-    let ok = (_GAPI.imageGetInfo)(self.0, &mut w, &mut h, &mut alpha);
-    ok_or!((w, h), ok)
   }
 }
 
@@ -384,17 +384,17 @@ impl From<Graphics> for Value {
 }
 
 impl Graphics {
-	/// Save the current graphics attributes on top of the internal state stack.
-	pub fn push_state(&mut self) -> Result<()> {
-		let ok = (_GAPI.gStateSave)(self.0);
-		ok_or!((), ok)
-	}
+  /// Save the current graphics attributes on top of the internal state stack.
+  pub fn push_state(&mut self) -> Result<()> {
+    let ok = (_GAPI.gStateSave)(self.0);
+    ok_or!((), ok)
+  }
 
-	/// Restore graphics attributes from top of the internal state stack.
-	pub fn pop_state(&mut self) -> Result<()> {
-		let ok = (_GAPI.gStateRestore)(self.0);
-		ok_or!((), ok)
-	}
+  /// Restore graphics attributes from top of the internal state stack.
+  pub fn pop_state(&mut self) -> Result<()> {
+    let ok = (_GAPI.gStateRestore)(self.0);
+    ok_or!((), ok)
+  }
 
   /// Draws a line from the `start` to the `end` points using the current stroke brushes.
   pub fn line(&mut self, start: Pos, end: Pos) -> Result<&mut Self> {
@@ -487,7 +487,19 @@ impl Graphics {
   ///
   /// Performance: less expensive.
   pub fn blend_image(&mut self, image: &Image, dst_pos: Pos, opacity: f32) -> Result<&mut Self> {
-    let ok = (_GAPI.gDrawImage)(self.0, image.0, dst_pos.0, dst_pos.1, None, None, None, None, None, None, Some(&opacity));
+    let ok = (_GAPI.gDrawImage)(
+      self.0,
+      image.0,
+      dst_pos.0,
+      dst_pos.1,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      Some(&opacity),
+    );
     ok_or!(self, ok)
   }
 
