@@ -385,15 +385,15 @@ impl From<Graphics> for Value {
 
 impl Graphics {
   /// Save the current graphics attributes on top of the internal state stack.
-  pub fn push_state(&mut self) -> Result<()> {
+  pub fn push_state(&mut self) -> Result<&mut Self> {
     let ok = (_GAPI.gStateSave)(self.0);
-    ok_or!((), ok)
+    ok_or!(self, ok)
   }
 
   /// Restore graphics attributes from top of the internal state stack.
-  pub fn pop_state(&mut self) -> Result<()> {
+  pub fn pop_state(&mut self) -> Result<&mut Self> {
     let ok = (_GAPI.gStateRestore)(self.0);
-    ok_or!((), ok)
+    ok_or!(self, ok)
   }
 
   /// Draws a line from the `start` to the `end` points using the current stroke brushes.
