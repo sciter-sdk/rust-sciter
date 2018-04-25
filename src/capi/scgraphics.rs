@@ -211,7 +211,7 @@ pub struct SciterGraphicsAPI {
   // end of path opearations
 
 // SECTION: affine tranformations:
-  pub gRotate: extern "system" fn(hgfx: HGFX, radians: SC_ANGLE, cx: *const SC_POS, cy: *const SC_POS) -> GRAPHIN_RESULT,
+  pub gRotate: extern "system" fn(hgfx: HGFX, radians: SC_ANGLE, cx: Option<&SC_POS>, cy: Option<&SC_POS>) -> GRAPHIN_RESULT,
 
   pub gTranslate: extern "system" fn(hgfx: HGFX, cx: SC_POS, cy: SC_POS) -> GRAPHIN_RESULT,
 

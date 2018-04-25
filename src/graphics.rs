@@ -4,8 +4,8 @@ Used in custom behaviors / event handlers to draw on element's surface in native
 Essentially this mimics [`Graphics`](https://sciter.com/docs/content/sciter/Graphics.htm) scripting object as close as possible.
 
 */
-use capi::scgraphics::DRAW_PATH_MODE;
-use capi::scgraphics::{HGFX, HIMG, HPATH, SC_ANGLE, SC_COLOR, SC_DIM, SC_POS};
+use capi::scgraphics::{DRAW_PATH_MODE, SCITER_LINE_CAP_TYPE, SCITER_LINE_JOIN_TYPE};
+use capi::scgraphics::{HGFX, HIMG, HPATH, SC_ANGLE, SC_COLOR, SC_DIM, SC_POS, SC_COLOR_STOP};
 use capi::sctypes::{BOOL, LPCBYTE, LPVOID, POINT, SIZE, UINT};
 use std::ptr::null_mut;
 use value::{FromValue, Value};
@@ -160,7 +160,9 @@ impl Image {
   /// Render on image using methods of the [`Graphics`](struct.Graphics.html) object.
   ///
   /// `PaintFn` must be the following:
-  /// `fn paint(gfx: &mut Graphics, (width, height): (f32, f32))`.
+  /// `fn paint(gfx: &mut Graphics, (width, height): (f32, f32)) -> sciter::graphics::Result<()>`.
+  ///
+  /// Note that errors inside painter are promoted back to the caller of the `paint()`.
   ///
   /// # Example:
   ///
@@ -383,6 +385,7 @@ impl From<Graphics> for Value {
   }
 }
 
+/// Save/restore graphics state.
 impl Graphics {
   /// Save the current graphics attributes on top of the internal state stack.
   pub fn push_state(&mut self) -> Result<&mut Self> {
@@ -395,27 +398,33 @@ impl Graphics {
     let ok = (_GAPI.gStateRestore)(self.0);
     ok_or!(self, ok)
   }
+}
 
-  /// Draws a line from the `start` to the `end` points using the current stroke brushes.
+/// Primitives drawing operations.
+///
+/// All operations use the current fill and stroke brushes.
+impl Graphics {
+
+  /// Draws a line from the `start` to the `end`.
   pub fn line(&mut self, start: Pos, end: Pos) -> Result<&mut Self> {
     let ok = (_GAPI.gLine)(self.0, start.0, start.1, end.0, end.1);
     ok_or!(self, ok)
   }
 
-  /// Draw a rectangle using the current fill and stroke brushes.
+  /// Draw a rectangle.
   pub fn rectangle(&mut self, left_top: Pos, right_bottom: Pos) -> Result<&mut Self> {
     let ok = (_GAPI.gRectangle)(self.0, left_top.0, left_top.1, right_bottom.0, right_bottom.1);
     ok_or!(self, ok)
   }
 
-  /// Draw a rounded rectangle using the current fill and stroke brushes.
+  /// Draw a rounded rectangle with the same corners.
   pub fn round_rect(&mut self, left_top: Pos, right_bottom: Pos, radius: Dim) -> Result<&mut Self> {
     let rad: [Dim; 8] = [radius; 8usize];
     let ok = (_GAPI.gRoundedRectangle)(self.0, left_top.0, left_top.1, right_bottom.0, right_bottom.1, rad.as_ptr());
     ok_or!(self, ok)
   }
 
-  /// Draw a rounded rectangle using the current fill and stroke brushes.
+  /// Draw a rounded rectangle with different corners.
   pub fn round_rect4(&mut self, left_top: Pos, right_bottom: Pos, radius: (Dim, Dim, Dim, Dim)) -> Result<&mut Self> {
     let r = radius;
     let rad: [Dim; 8] = [r.0, r.0, r.1, r.1, r.2, r.2, r.3, r.3];
@@ -423,22 +432,249 @@ impl Graphics {
     ok_or!(self, ok)
   }
 
-  /// Draw an ellipse using the current fill and stroke brushes.
+  /// Draw an ellipse.
   pub fn ellipse(&mut self, xy: Pos, radii: Pos) -> Result<&mut Self> {
     let ok = (_GAPI.gEllipse)(self.0, xy.0, xy.1, radii.0, radii.1);
     ok_or!(self, ok)
   }
 
-  /// Draw a circle using the current fill and stroke brushes.
+  /// Draw a circle.
   pub fn circle(&mut self, xy: Pos, radius: Dim) -> Result<&mut Self> {
     let ok = (_GAPI.gEllipse)(self.0, xy.0, xy.1, radius, radius);
     ok_or!(self, ok)
   }
 
-  // TODO: the rest of drawing operations
-  // TODO: drawing attributes
-  // TODO: affine transformations
+  /// Draw a closed arc.
+  pub fn arc(&mut self, xy: Pos, rxy: Pos, start: Angle, sweep: Angle) -> Result<&mut Self> {
+    let ok = (_GAPI.gArc)(self.0, xy.0, xy.1, rxy.0, rxy.1, start, sweep);
+    ok_or!(self, ok)
+  }
 
+  /// Draw a star.
+  pub fn star(&mut self, xy: Pos, r1: Dim, r2: Dim, start: Angle, rays: usize) -> Result<&mut Self> {
+    let ok = (_GAPI.gStar)(self.0, xy.0, xy.1, r1, r2, start, rays as UINT);
+    ok_or!(self, ok)
+  }
+
+  /// Draw a closed polygon.
+  pub fn polygon(&mut self, points: &[Pos]) -> Result<&mut Self> {
+  	// A compile time assert (credits to https://github.com/nvzqz/static-assertions-rs)
+		type PosArray = [Pos; 2];
+		type FloatArray = [SC_POS; 4];
+  	let _ = ::std::mem::transmute::<FloatArray, PosArray>;
+
+    let ok = (_GAPI.gPolygon)(self.0, points.as_ptr() as *const SC_POS, points.len() as UINT);
+    ok_or!(self, ok)
+  }
+
+  /// Draw a polyline.
+  pub fn polyline(&mut self, points: &[Pos]) -> Result<&mut Self> {
+  	// A compile time assert (credits to https://github.com/nvzqz/static-assertions-rs)
+		type PosArray = [Pos; 2];
+		type FloatArray = [SC_POS; 4];
+  	let _ = ::std::mem::transmute::<FloatArray, PosArray>;
+
+    let ok = (_GAPI.gPolyline)(self.0, points.as_ptr() as *const SC_POS, points.len() as UINT);
+    ok_or!(self, ok)
+  }
+}
+
+/// Drawing attributes.
+impl Graphics {
+
+  /// Set the color for solid fills for subsequent drawings.
+  pub fn fill_color(&mut self, color: Color) -> Result<&mut Self> {
+    let ok = (_GAPI.gFillColor)(self.0, color);
+    ok_or!(self, ok)
+  }
+
+  /// Set the mode for solid fills for subsequent drawings.
+  ///
+  /// `false` means "fill non zero".
+  pub fn fill_mode(&mut self, even_odd: bool) -> Result<&mut Self> {
+    let ok = (_GAPI.gFillMode)(self.0, even_odd as BOOL);
+    ok_or!(self, ok)
+  }
+
+  /// Disables fills for subsequent drawing operations.
+  pub fn no_fill(&mut self) -> Result<&mut Self> {
+  	self.fill_color(0 as Color)
+  }
+
+  /// Set the line color for subsequent drawings.
+  pub fn line_color(&mut self, color: Color) -> Result<&mut Self> {
+    let ok = (_GAPI.gLineColor)(self.0, color);
+    ok_or!(self, ok)
+  }
+
+  /// Set the line width for subsequent drawings.
+  pub fn line_width(&mut self, width: Dim) -> Result<&mut Self> {
+    let ok = (_GAPI.gLineWidth)(self.0, width);
+    ok_or!(self, ok)
+  }
+
+  /// Set the line cap (stroke dash ending style) for subsequent drawings.
+  pub fn line_cap(&mut self, style: SCITER_LINE_CAP_TYPE) -> Result<&mut Self> {
+    let ok = (_GAPI.gLineCap)(self.0, style);
+    ok_or!(self, ok)
+  }
+
+  /// Set the line width for subsequent drawings.
+  pub fn line_join(&mut self, style: SCITER_LINE_JOIN_TYPE) -> Result<&mut Self> {
+    let ok = (_GAPI.gLineJoin)(self.0, style);
+    ok_or!(self, ok)
+  }
+
+  /// Disable outline drawing.
+  pub fn no_line(&mut self) -> Result<&mut Self> {
+  	self.line_width(0.0)
+  }
+
+  /// Setup parameters of a linear gradient of lines.
+  pub fn line_linear_gradient(&mut self, start: Pos, end: Pos, c1: Color, c2: Color) -> Result<&mut Self> {
+  	let stops = [(c1, 0.0), (c2, 1.0)];
+  	self.line_linear_gradients(start, end, &stops)
+  }
+
+  /// Setup parameters of a linear gradient of lines using multiple colors and color stop positions `(0.0 ... 1.0)`.
+  pub fn line_linear_gradients(&mut self, start: Pos, end: Pos, colors: &[(Color, Dim)]) -> Result<&mut Self> {
+  	let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
+  	let ok = (_GAPI.gLineGradientLinear)(self.0, start.0, start.1, end.0, end.1, colors.as_ptr() as *const SC_COLOR_STOP, colors.len() as UINT);
+  	ok_or!(self, ok)
+  }
+
+  /// Setup parameters of linear gradient fills.
+  pub fn fill_linear_gradient(&mut self, c1: Color, c2: Color, start: Pos, end: Pos) -> Result<&mut Self> {
+  	let stops = [(c1, 0.0), (c2, 1.0)];
+  	self.fill_linear_gradients(&stops, start, end)
+  }
+
+  /// Setup parameters of linear gradient fills using multiple colors and color stop positions `(0.0 ... 1.0)`.
+  pub fn fill_linear_gradients(&mut self, colors: &[(Color, Dim)], start: Pos, end: Pos) -> Result<&mut Self> {
+  	let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
+  	let ok = (_GAPI.gFillGradientLinear)(self.0, start.0, start.1, end.0, end.1, colors.as_ptr() as *const SC_COLOR_STOP, colors.len() as UINT);
+  	ok_or!(self, ok)
+  }
+
+  /// Setup parameters of a radial gradient of lines.
+  pub fn line_radial_gradient(&mut self, point: Pos, radii: (Dim, Dim), c1: Color, c2: Color) -> Result<&mut Self> {
+  	let stops = [(c1, 0.0), (c2, 1.0)];
+  	self.line_radial_gradients(point, radii, &stops)
+  }
+
+  /// Setup parameters of a radial gradient of lines using multiple colors and color stop positions `(0.0 ... 1.0)`.
+  pub fn line_radial_gradients(&mut self, point: Pos, radii: (Dim, Dim), colors: &[(Color, Dim)]) -> Result<&mut Self> {
+  	let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
+  	let ok = (_GAPI.gLineGradientRadial)(self.0, point.0, point.1, radii.0, radii.1, colors.as_ptr() as *const SC_COLOR_STOP, colors.len() as UINT);
+  	ok_or!(self, ok)
+  }
+
+  /// Setup parameters of radial gradient of fills.
+  pub fn fill_radial_gradient(&mut self, c1: Color, c2: Color, point: Pos, radii: (Dim, Dim)) -> Result<&mut Self> {
+  	let stops = [(c1, 0.0), (c2, 1.0)];
+  	self.fill_radial_gradients(&stops, point, radii)
+  }
+
+  /// Setup parameters of radial gradient of fills using multiple colors and color stop positions `(0.0 ... 1.0)`.
+  pub fn fill_radial_gradients(&mut self, colors: &[(Color, Dim)], point: Pos, radii: (Dim, Dim)) -> Result<&mut Self> {
+  	let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
+  	let ok = (_GAPI.gFillGradientRadial)(self.0, point.0, point.1, radii.0, radii.1, colors.as_ptr() as *const SC_COLOR_STOP, colors.len() as UINT);
+  	ok_or!(self, ok)
+  }
+}
+
+/// Affine transformations.
+impl Graphics {
+
+  /// Rotate coordinate system on `radians` angle.
+  pub fn rotate(&mut self, radians: Angle) -> Result<&mut Self> {
+    let ok = (_GAPI.gRotate)(self.0, radians, None, None);
+    ok_or!(self, ok)
+  }
+
+  /// Rotate coordinate system on `radians` angle around the `center`.
+  pub fn rotate_around(&mut self, radians: Angle, center: Pos) -> Result<&mut Self> {
+    let ok = (_GAPI.gRotate)(self.0, radians, Some(&center.0), Some(&center.1));
+    ok_or!(self, ok)
+  }
+
+  /// Move origin of coordinate system to the `(to_x, to_y)` point.
+  pub fn translate(&mut self, to_xy: Pos) -> Result<&mut Self> {
+    let ok = (_GAPI.gTranslate)(self.0, to_xy.0, to_xy.1);
+    ok_or!(self, ok)
+  }
+
+  /// Scale coordinate system.
+  ///
+  /// `(sc_x, sc_y)` are the scale factors in the horizontal and vertical directions respectively.
+  ///
+  /// Both parameters must be positive numbers.
+  /// Values smaller than `1.0` reduce the unit size and values larger than `1.0` increase the unit size.
+  pub fn scale(&mut self, sc_xy: Pos) -> Result<&mut Self> {
+    let ok = (_GAPI.gScale)(self.0, sc_xy.0, sc_xy.1);
+    ok_or!(self, ok)
+  }
+
+  /// Setup a skewing (shearing) transformation.
+  pub fn skew(&mut self, sh_xy: Pos) -> Result<&mut Self> {
+    let ok = (_GAPI.gSkew)(self.0, sh_xy.0, sh_xy.1);
+    ok_or!(self, ok)
+  }
+
+  /// Multiply the current transformation with the matrix described by the arguments.
+  ///
+  /// It allows to scale, rotate, move and skew the context
+  /// as described by:
+  ///
+  /// ```
+  ///    scale_x  skew_y   move_x
+  /// [  skew_x   scale_y  move_y  ]
+  ///    0        0        1
+  /// ```
+  ///
+  /// where
+  ///
+  /// * `scale_x`, `scale_y`: horizontal and vertical scaling,
+  /// * `skew_x`, `skew_y`:   horizontal and vertical shearing (skewing),
+  /// * `move_x`, `move_y`:   horizontal and vertical moving.
+  ///
+  pub fn transform(&mut self, scale_by: Pos, skew_by: Pos, move_to: Pos) -> Result<&mut Self> {
+  	// m11, m12, m21, m22, dx, dy
+  	// scx, shx, shy, scy, dx, dy
+    let ok = (_GAPI.gTransform)(self.0, scale_by.0, skew_by.0, skew_by.1, scale_by.0, move_to.0, move_to.1);
+    ok_or!(self, ok)
+  }
+
+  /// Multiply the current transformation with the matrix described by the arguments.
+  ///
+  /// It allows to scale, rotate, move and skew the context
+  /// as described by:
+  ///
+  /// ```
+  ///    m11   m21  dx
+  /// [  m12   m22  dy  ]
+  ///    0     0    1
+  /// ```
+  ///
+  /// * `m11` (`scale_x`): horizontal scaling
+  /// * `m12` (`skew_x`):  horizontal skewing
+  /// * `m21` (`skew_y`):  vertical skewing
+  /// * `m22` (`scale_y`): vertical scaling
+  /// * `dx`  (`move_x`):  horizontal moving
+  /// * `dy`  (`move_y`):  vertical moving
+  ///
+  pub fn transform_matrix(&mut self, m11: Dim, m12: Dim, m21: Dim, m22: Dim, dx: Dim, dy: Dim) -> Result<&mut Self> {
+  	self.transform((m11, m22), (m12, m21), (dx, dy))
+  }
+}
+
+/// Coordinate space.
+impl Graphics {
+
+}
+
+/// Image and path rendering.
+impl Graphics {
   /// Draw the path object using current fill and stroke brushes.
   pub fn draw_path(&mut self, path: &Path, mode: DRAW_PATH_MODE) -> Result<&mut Self> {
     let ok = (_GAPI.gDrawPath)(self.0, path.0, mode);
@@ -528,4 +764,28 @@ impl Graphics {
     );
     ok_or!(self, ok)
   }
+}
+
+#[allow(dead_code)]
+fn check() -> Result<()> {
+  let pos = (0.0, 0.0);
+
+  let mut p = Path::new().unwrap();
+  p.line_to(pos, false).ok();
+  p.move_to(pos, false).ok();
+  p.close().ok();
+
+  let mut p = Path::new()?;
+  p.line_to(pos, false)?;
+  p.move_to(pos, false)?;
+  p.close()?;
+
+  let mut p = Path::new()?;
+
+  p.line_to(pos, false).and_then(Path::close)?;
+
+  let ok = p.line_to(pos, false).and_then(|m| m.move_to(pos, false)).and_then(|m| m.close());
+  ok.unwrap();
+
+  Ok(())
 }
