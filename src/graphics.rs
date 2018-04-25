@@ -5,7 +5,7 @@ Essentially this mimics [`Graphics`](https://sciter.com/docs/content/sciter/Grap
 
 */
 use capi::scgraphics::{DRAW_PATH_MODE, SCITER_LINE_CAP_TYPE, SCITER_LINE_JOIN_TYPE};
-use capi::scgraphics::{HGFX, HIMG, HPATH, SC_ANGLE, SC_COLOR, SC_DIM, SC_POS, SC_COLOR_STOP};
+use capi::scgraphics::{HGFX, HIMG, HPATH, SC_ANGLE, SC_COLOR, SC_COLOR_STOP, SC_DIM, SC_POS};
 use capi::sctypes::{BOOL, LPCBYTE, LPVOID, POINT, SIZE, UINT};
 use std::ptr::null_mut;
 use value::{FromValue, Value};
@@ -13,7 +13,7 @@ use _GAPI;
 
 pub use capi::scgraphics::GRAPHIN_RESULT;
 
-/// Image encoding used in [`Image.save`](struct.Image.html#method.save).
+/// Supported image encodings for [`Image.save`](struct.Image.html#method.save).
 #[derive(Debug, PartialEq)]
 pub enum SaveImageEncoding {
   /// Raw bitmap in a `[a,b,g,r, a,b,g,r, ...]` form.
@@ -22,7 +22,7 @@ pub enum SaveImageEncoding {
   Png,
   /// JPEG with the specified quality level (in range of `10..100`).
   Jpeg(u8),
-  /// WebP with the specified quality level (in range of `10..100`).
+  /// WebP with the specified quality level (in range of `0..100`, where `0` means a lossless compression).
   Webp(u8),
 }
 
@@ -39,7 +39,7 @@ macro_rules! ok_or {
 /// A specialized `Result` type for graphics operations.
 pub type Result<T> = ::std::result::Result<T, GRAPHIN_RESULT>;
 
-/// A color type in the `ARGB` form.
+/// A color type in the `RGBA` form.
 pub type Color = SC_COLOR;
 
 /// Position on a surface in `(x, y)` form.
@@ -63,7 +63,7 @@ pub struct Path(HPATH);
 /// Graphics object. Represents graphic surface of the element.
 pub struct Graphics(HGFX);
 
-/// Construct a color value from the `red`, `green`, `blue` and `opacity` components.
+/// Construct a color value (in `RGBA` form) from the `red`, `green`, `blue` and `opacity` components.
 pub fn color(red: u8, green: u8, blue: u8, opacity: Option<u8>) -> Color {
   (_GAPI.RGBA)(u32::from(red), u32::from(green), u32::from(blue), u32::from(opacity.unwrap_or(255)))
 }
@@ -94,6 +94,7 @@ impl FromValue for Image {
     let mut h = null_mut();
     let ok = (_GAPI.vUnWrapImage)(v.as_cptr(), &mut h);
     if ok == GRAPHIN_RESULT::OK {
+    	(_GAPI.imageAddRef)(h);
       Some(Image(h))
     } else {
       None
@@ -119,14 +120,16 @@ impl Image {
     ok_or!(Image(h), ok)
   }
 
-  /// Create image from `BGRA` data. Size of pixmap is `width*height*4` bytes.
+  /// Create image from `BGRA` data. Size of the pixmap is `width * height * 4` bytes.
   pub fn with_data((width, height): (u32, u32), with_alpha: bool, pixmap: &[u8]) -> Result<Image> {
     let mut h = null_mut();
     let ok = (_GAPI.imageCreateFromPixmap)(&mut h, width, height, with_alpha as BOOL, pixmap.as_ptr());
     ok_or!(Image(h), ok)
   }
 
-  /// Load image from PNG or JPEG (or any other supported) encoded data.
+  /// Load image from memory.
+  ///
+  /// Supported formats are: BMP, GIF, ICO, JPEG, PNG, WebP. On Windows also TIFF and WMP.
   pub fn load(image_data: &[u8]) -> Result<Image> {
     let mut h = null_mut();
     let ok = (_GAPI.imageLoad)(image_data.as_ptr(), image_data.len() as UINT, &mut h);
@@ -157,10 +160,20 @@ impl Image {
     ok_or!(data, ok)
   }
 
-  /// Render on image using methods of the [`Graphics`](struct.Graphics.html) object.
+  /// Render on bitmap image using methods of the [`Graphics`](struct.Graphics.html) object.
   ///
-  /// `PaintFn` must be the following:
-  /// `fn paint(gfx: &mut Graphics, (width, height): (f32, f32)) -> sciter::graphics::Result<()>`.
+  /// The image must be created using [`Image::new()`](struct.Image.html#method.new) or
+  /// [`Image::with_data()`](struct.Image.html#method.with_data) methods
+  /// or loaded from a [BMP](https://en.wikipedia.org/wiki/BMP_file_format) file.
+  ///
+  /// `PaintFn` painter type must be the following:
+  ///
+  /// ```rust
+  /// use sciter::graphics::{Graphics, Result};
+  ///
+  /// fn paint(gfx: &mut Graphics, (width, height): (f32, f32)) -> Result<()>
+  /// # { Ok(()) }
+  /// ```
   ///
   /// Note that errors inside painter are promoted back to the caller of the `paint()`.
   ///
@@ -186,9 +199,15 @@ impl Image {
     extern "system" fn on_paint<PaintFn: Fn(&mut Graphics, (f32, f32)) -> Result<()>>(prm: LPVOID, hgfx: HGFX, width: UINT, height: UINT) {
       let param = prm as *mut Payload<PaintFn>;
       assert!(!param.is_null());
-      let payload = unsafe { &mut *param };
-      let mut gfx = Graphics(hgfx);
-      let ok = (payload.painter)(&mut gfx, (width as f32, height as f32));
+      assert!(!hgfx.is_null());
+    	let payload = unsafe { &mut *param };
+      let ok = if !hgfx.is_null() {
+      	let mut gfx = Graphics(hgfx);
+      	(_GAPI.gAddRef)(hgfx);
+      	(payload.painter)(&mut gfx, (width as f32, height as f32))
+      } else {
+      	Err(GRAPHIN_RESULT::BAD_PARAM)
+      };
       payload.result = ok;
     }
     let payload = Payload {
@@ -214,7 +233,7 @@ impl Image {
 
   /// Clear image by filling it with the black color.
   pub fn clear(&mut self) -> Result<()> {
-    let ok = (_GAPI.imageClear)(self.0, 0);
+    let ok = (_GAPI.imageClear)(self.0, 0 as Color);
     ok_or!((), ok)
   }
 
@@ -252,6 +271,7 @@ impl FromValue for Path {
     let mut h = null_mut();
     let ok = (_GAPI.vUnWrapPath)(v.as_cptr(), &mut h);
     if ok == GRAPHIN_RESULT::OK {
+    	(_GAPI.pathAddRef)(h);
       Some(Path(h))
     } else {
       None
@@ -368,6 +388,7 @@ impl FromValue for Graphics {
     let mut h = null_mut();
     let ok = (_GAPI.vUnWrapGfx)(v.as_cptr(), &mut h);
     if ok == GRAPHIN_RESULT::OK {
+    	(_GAPI.gAddRef)(h);
       Some(Graphics(h))
     } else {
       None
@@ -404,7 +425,6 @@ impl Graphics {
 ///
 /// All operations use the current fill and stroke brushes.
 impl Graphics {
-
   /// Draws a line from the `start` to the `end`.
   pub fn line(&mut self, start: Pos, end: Pos) -> Result<&mut Self> {
     let ok = (_GAPI.gLine)(self.0, start.0, start.1, end.0, end.1);
@@ -458,10 +478,10 @@ impl Graphics {
 
   /// Draw a closed polygon.
   pub fn polygon(&mut self, points: &[Pos]) -> Result<&mut Self> {
-  	// A compile time assert (credits to https://github.com/nvzqz/static-assertions-rs)
-		type PosArray = [Pos; 2];
-		type FloatArray = [SC_POS; 4];
-  	let _ = ::std::mem::transmute::<FloatArray, PosArray>;
+    // A compile time assert (credits to https://github.com/nvzqz/static-assertions-rs)
+    type PosArray = [Pos; 2];
+    type FloatArray = [SC_POS; 4];
+    let _ = ::std::mem::transmute::<FloatArray, PosArray>;
 
     let ok = (_GAPI.gPolygon)(self.0, points.as_ptr() as *const SC_POS, points.len() as UINT);
     ok_or!(self, ok)
@@ -469,10 +489,10 @@ impl Graphics {
 
   /// Draw a polyline.
   pub fn polyline(&mut self, points: &[Pos]) -> Result<&mut Self> {
-  	// A compile time assert (credits to https://github.com/nvzqz/static-assertions-rs)
-		type PosArray = [Pos; 2];
-		type FloatArray = [SC_POS; 4];
-  	let _ = ::std::mem::transmute::<FloatArray, PosArray>;
+    // A compile time assert (credits to https://github.com/nvzqz/static-assertions-rs)
+    type PosArray = [Pos; 2];
+    type FloatArray = [SC_POS; 4];
+    let _ = ::std::mem::transmute::<FloatArray, PosArray>;
 
     let ok = (_GAPI.gPolyline)(self.0, points.as_ptr() as *const SC_POS, points.len() as UINT);
     ok_or!(self, ok)
@@ -481,24 +501,23 @@ impl Graphics {
 
 /// Drawing attributes.
 impl Graphics {
-
   /// Set the color for solid fills for subsequent drawings.
   pub fn fill_color(&mut self, color: Color) -> Result<&mut Self> {
     let ok = (_GAPI.gFillColor)(self.0, color);
     ok_or!(self, ok)
   }
 
-  /// Set the mode for solid fills for subsequent drawings.
+  /// Set the even/odd rule of solid fills for subsequent drawings.
   ///
   /// `false` means "fill non zero".
-  pub fn fill_mode(&mut self, even_odd: bool) -> Result<&mut Self> {
-    let ok = (_GAPI.gFillMode)(self.0, even_odd as BOOL);
+  pub fn fill_mode(&mut self, is_even: bool) -> Result<&mut Self> {
+    let ok = (_GAPI.gFillMode)(self.0, is_even as BOOL);
     ok_or!(self, ok)
   }
 
   /// Disables fills for subsequent drawing operations.
   pub fn no_fill(&mut self) -> Result<&mut Self> {
-  	self.fill_color(0 as Color)
+    self.fill_color(0 as Color)
   }
 
   /// Set the line color for subsequent drawings.
@@ -527,65 +546,96 @@ impl Graphics {
 
   /// Disable outline drawing.
   pub fn no_line(&mut self) -> Result<&mut Self> {
-  	self.line_width(0.0)
+    self.line_width(0.0)
   }
 
   /// Setup parameters of a linear gradient of lines.
   pub fn line_linear_gradient(&mut self, start: Pos, end: Pos, c1: Color, c2: Color) -> Result<&mut Self> {
-  	let stops = [(c1, 0.0), (c2, 1.0)];
-  	self.line_linear_gradients(start, end, &stops)
+    let stops = [(c1, 0.0), (c2, 1.0)];
+    self.line_linear_gradients(start, end, &stops)
   }
 
   /// Setup parameters of a linear gradient of lines using multiple colors and color stop positions `(0.0 ... 1.0)`.
   pub fn line_linear_gradients(&mut self, start: Pos, end: Pos, colors: &[(Color, Dim)]) -> Result<&mut Self> {
-  	let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
-  	let ok = (_GAPI.gLineGradientLinear)(self.0, start.0, start.1, end.0, end.1, colors.as_ptr() as *const SC_COLOR_STOP, colors.len() as UINT);
-  	ok_or!(self, ok)
+    let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
+    let ok = (_GAPI.gLineGradientLinear)(
+      self.0,
+      start.0,
+      start.1,
+      end.0,
+      end.1,
+      colors.as_ptr() as *const SC_COLOR_STOP,
+      colors.len() as UINT,
+    );
+    ok_or!(self, ok)
   }
 
   /// Setup parameters of linear gradient fills.
   pub fn fill_linear_gradient(&mut self, c1: Color, c2: Color, start: Pos, end: Pos) -> Result<&mut Self> {
-  	let stops = [(c1, 0.0), (c2, 1.0)];
-  	self.fill_linear_gradients(&stops, start, end)
+    let stops = [(c1, 0.0), (c2, 1.0)];
+    self.fill_linear_gradients(&stops, start, end)
   }
 
   /// Setup parameters of linear gradient fills using multiple colors and color stop positions `(0.0 ... 1.0)`.
   pub fn fill_linear_gradients(&mut self, colors: &[(Color, Dim)], start: Pos, end: Pos) -> Result<&mut Self> {
-  	let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
-  	let ok = (_GAPI.gFillGradientLinear)(self.0, start.0, start.1, end.0, end.1, colors.as_ptr() as *const SC_COLOR_STOP, colors.len() as UINT);
-  	ok_or!(self, ok)
+    let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
+    let ok = (_GAPI.gFillGradientLinear)(
+      self.0,
+      start.0,
+      start.1,
+      end.0,
+      end.1,
+      colors.as_ptr() as *const SC_COLOR_STOP,
+      colors.len() as UINT,
+    );
+    ok_or!(self, ok)
   }
 
   /// Setup parameters of a radial gradient of lines.
   pub fn line_radial_gradient(&mut self, point: Pos, radii: (Dim, Dim), c1: Color, c2: Color) -> Result<&mut Self> {
-  	let stops = [(c1, 0.0), (c2, 1.0)];
-  	self.line_radial_gradients(point, radii, &stops)
+    let stops = [(c1, 0.0), (c2, 1.0)];
+    self.line_radial_gradients(point, radii, &stops)
   }
 
   /// Setup parameters of a radial gradient of lines using multiple colors and color stop positions `(0.0 ... 1.0)`.
   pub fn line_radial_gradients(&mut self, point: Pos, radii: (Dim, Dim), colors: &[(Color, Dim)]) -> Result<&mut Self> {
-  	let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
-  	let ok = (_GAPI.gLineGradientRadial)(self.0, point.0, point.1, radii.0, radii.1, colors.as_ptr() as *const SC_COLOR_STOP, colors.len() as UINT);
-  	ok_or!(self, ok)
+    let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
+    let ok = (_GAPI.gLineGradientRadial)(
+      self.0,
+      point.0,
+      point.1,
+      radii.0,
+      radii.1,
+      colors.as_ptr() as *const SC_COLOR_STOP,
+      colors.len() as UINT,
+    );
+    ok_or!(self, ok)
   }
 
   /// Setup parameters of radial gradient of fills.
   pub fn fill_radial_gradient(&mut self, c1: Color, c2: Color, point: Pos, radii: (Dim, Dim)) -> Result<&mut Self> {
-  	let stops = [(c1, 0.0), (c2, 1.0)];
-  	self.fill_radial_gradients(&stops, point, radii)
+    let stops = [(c1, 0.0), (c2, 1.0)];
+    self.fill_radial_gradients(&stops, point, radii)
   }
 
   /// Setup parameters of radial gradient of fills using multiple colors and color stop positions `(0.0 ... 1.0)`.
   pub fn fill_radial_gradients(&mut self, colors: &[(Color, Dim)], point: Pos, radii: (Dim, Dim)) -> Result<&mut Self> {
-  	let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
-  	let ok = (_GAPI.gFillGradientRadial)(self.0, point.0, point.1, radii.0, radii.1, colors.as_ptr() as *const SC_COLOR_STOP, colors.len() as UINT);
-  	ok_or!(self, ok)
+    let _ = ::std::mem::transmute::<SC_COLOR_STOP, (Color, Dim)>;
+    let ok = (_GAPI.gFillGradientRadial)(
+      self.0,
+      point.0,
+      point.1,
+      radii.0,
+      radii.1,
+      colors.as_ptr() as *const SC_COLOR_STOP,
+      colors.len() as UINT,
+    );
+    ok_or!(self, ok)
   }
 }
 
 /// Affine transformations.
 impl Graphics {
-
   /// Rotate coordinate system on `radians` angle.
   pub fn rotate(&mut self, radians: Angle) -> Result<&mut Self> {
     let ok = (_GAPI.gRotate)(self.0, radians, None, None);
@@ -626,7 +676,7 @@ impl Graphics {
   /// It allows to scale, rotate, move and skew the context
   /// as described by:
   ///
-  /// ```
+  /// ```text
   ///    scale_x  skew_y   move_x
   /// [  skew_x   scale_y  move_y  ]
   ///    0        0        1
@@ -639,8 +689,8 @@ impl Graphics {
   /// * `move_x`, `move_y`:   horizontal and vertical moving.
   ///
   pub fn transform(&mut self, scale_by: Pos, skew_by: Pos, move_to: Pos) -> Result<&mut Self> {
-  	// m11, m12, m21, m22, dx, dy
-  	// scx, shx, shy, scy, dx, dy
+    // m11, m12, m21, m22, dx, dy
+    // scx, shx, shy, scy, dx, dy
     let ok = (_GAPI.gTransform)(self.0, scale_by.0, skew_by.0, skew_by.1, scale_by.0, move_to.0, move_to.1);
     ok_or!(self, ok)
   }
@@ -650,7 +700,7 @@ impl Graphics {
   /// It allows to scale, rotate, move and skew the context
   /// as described by:
   ///
-  /// ```
+  /// ```text
   ///    m11   m21  dx
   /// [  m12   m22  dy  ]
   ///    0     0    1
@@ -664,13 +714,75 @@ impl Graphics {
   /// * `dy`  (`move_y`):  vertical moving
   ///
   pub fn transform_matrix(&mut self, m11: Dim, m12: Dim, m21: Dim, m22: Dim, dx: Dim, dy: Dim) -> Result<&mut Self> {
-  	self.transform((m11, m22), (m12, m21), (dx, dy))
+    self.transform((m11, m22), (m12, m21), (dx, dy))
   }
 }
 
 /// Coordinate space.
 impl Graphics {
+  /// Translate coordinates.
+  ///
+  /// Translates coordinates from a coordinate system defined by `rotate()`, `scale()`, `translate()` and/or `skew()`
+  /// to the screen coordinate system.
+  pub fn world_to_screen(&self, mut xy: Pos) -> Result<Pos> {
+    let ok = (_GAPI.gWorldToScreen)(self.0, &mut xy.0, &mut xy.1);
+    ok_or!(xy, ok)
+  }
 
+  /// Translate coordinates.
+  ///
+  /// Translates coordinates from a coordinate system defined by `rotate()`, `scale()`, `translate()` and/or `skew()`
+  /// to the screen coordinate system.
+  pub fn world_to_screen1(&self, mut length: Dim) -> Result<Dim> {
+    let mut dummy = 0.0;
+    let ok = (_GAPI.gWorldToScreen)(self.0, &mut length, &mut dummy);
+    ok_or!(length, ok)
+  }
+
+  /// Translate coordinates.
+  ///
+  /// Translates coordinates from screen coordinate system to the one defined by `rotate()`, `scale()`, `translate()` and/or `skew()`.
+  pub fn screen_to_world(&self, mut xy: Pos) -> Result<Pos> {
+    let ok = (_GAPI.gScreenToWorld)(self.0, &mut xy.0, &mut xy.1);
+    ok_or!(xy, ok)
+  }
+
+  /// Translate coordinates.
+  ///
+  /// Translates coordinates from screen coordinate system to the one defined by `rotate()`, `scale()`, `translate()` and/or `skew()`.
+  pub fn screen_to_world1(&self, mut length: Dim) -> Result<Dim> {
+    let mut dummy = 0.0;
+    let ok = (_GAPI.gScreenToWorld)(self.0, &mut length, &mut dummy);
+    ok_or!(length, ok)
+  }
+}
+
+/// Clipping.
+impl Graphics {
+  /// Push a clip layer defined by the specified rectangle bounds.
+  pub fn push_clip_box(&mut self, left_top: Pos, right_bottom: Pos, opacity: Option<f32>) -> Result<&mut Self> {
+    let ok = (_GAPI.gPushClipBox)(
+      self.0,
+      left_top.0,
+      left_top.1,
+      right_bottom.0,
+      right_bottom.1,
+      opacity.unwrap_or(1.0),
+    );
+    ok_or!(self, ok)
+  }
+
+  /// Push a clip layer defined by the specified `path` bounds.
+  pub fn push_clip_path(&mut self, path: &Path, opacity: Option<f32>) -> Result<&mut Self> {
+    let ok = (_GAPI.gPushClipPath)(self.0, path.0, opacity.unwrap_or(1.0));
+    ok_or!(self, ok)
+  }
+
+  /// Pop a clip layer set by previous `push_clip_box()` or `push_clip_path` calls.
+  pub fn pop_clip(&mut self) -> Result<&mut Self> {
+    let ok = (_GAPI.gPopClip)(self.0);
+    ok_or!(self, ok)
+  }
 }
 
 /// Image and path rendering.
@@ -764,28 +876,4 @@ impl Graphics {
     );
     ok_or!(self, ok)
   }
-}
-
-#[allow(dead_code)]
-fn check() -> Result<()> {
-  let pos = (0.0, 0.0);
-
-  let mut p = Path::new().unwrap();
-  p.line_to(pos, false).ok();
-  p.move_to(pos, false).ok();
-  p.close().ok();
-
-  let mut p = Path::new()?;
-  p.line_to(pos, false)?;
-  p.move_to(pos, false)?;
-  p.close()?;
-
-  let mut p = Path::new()?;
-
-  p.line_to(pos, false).and_then(Path::close)?;
-
-  let ok = p.line_to(pos, false).and_then(|m| m.move_to(pos, false)).and_then(|m| m.close());
-  ok.unwrap();
-
-  Ok(())
 }
