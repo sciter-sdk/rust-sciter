@@ -4,7 +4,7 @@
 [![Build Status](https://img.shields.io/travis/sciter-sdk/rust-sciter/master.svg)](https://travis-ci.org/sciter-sdk/rust-sciter)
 [![Current Version](https://img.shields.io/crates/v/sciter-rs.svg)](https://crates.io/crates/sciter-rs)
 [![License](https://img.shields.io/crates/l/sciter-rs.svg)](https://crates.io/crates/sciter-rs)
-[![Join the chat at https://gitter.im/pravic/sciter](https://badges.gitter.im/pravic/sciter.svg)](https://gitter.im/pravic/sciter)
+[![Join the forums at https://sciter.com/forums](https://img.shields.io/badge/forum-sciter.com-orange.svg)](https://sciter.com/forums)
 
 Check [this page](https://sciter.com/developers/sciter-sdk-bindings/) for other language bindings (Delphi / D / Go / .NET / Python / Rust).
 
