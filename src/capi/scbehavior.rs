@@ -62,12 +62,13 @@ pub struct DRAW_PARAMS {
 	/// Element area.
 	pub area: RECT,
 
-	/// Border/Content box.
+	/// Zero at the moment.
 	pub reserved: UINT,
 }
 
 /// Layer to draw.
 #[repr(C)]
+#[derive(Copy, Clone)]
 #[derive(Debug, PartialEq)]
 pub enum DRAW_EVENTS {
 	DRAW_BACKGROUND = 0,
@@ -76,10 +77,10 @@ pub enum DRAW_EVENTS {
 }
 
 
+/// Event groups for subscription.
 #[repr(C)]
 #[derive(Copy, Clone)]
 #[derive(Debug, PartialOrd, PartialEq)]
-/// Event groups for subscription.
 pub enum EVENT_GROUPS
 { /** attached/detached */
 	HANDLE_INITIALIZATION = 0x0000,

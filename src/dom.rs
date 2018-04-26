@@ -851,6 +851,8 @@ impl Element {
 	}
 
 	/// Refresh element area in its window.
+	///
+	/// If the element has drawing behavior attached it will receive [`on_draw`](event/trait.EventHandler.html#method.on_draw) call after that.
 	pub fn refresh(&self) -> Result<()> {
 		let rect = self.get_location(ELEMENT_AREAS::self_content())?;
 		let ok = (_API.SciterRefreshElementArea)(self.he, rect);
@@ -1275,7 +1277,9 @@ This way you can establish interaction between scipt and native code inside your
 		fn on_timer(&mut self, root: HELEMENT, timer_id: u64) -> bool { return false; }
 
 		/// Drawing event.
-		fn on_draw(&mut self, root: HELEMENT, gfx: HGFX, area: RECT, layer: DRAW_EVENTS) -> bool { return false; }
+		///
+		/// It allows to intercept drawing events of an `Element` and to manually draw its content, background and foreground layers.
+		fn on_draw(&mut self, root: HELEMENT, gfx: HGFX, area: &RECT, layer: DRAW_EVENTS) -> bool { return false; }
 
 	}
 
