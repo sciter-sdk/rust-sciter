@@ -305,7 +305,7 @@ impl Path {
 
   /// Move the current drawing path position to `x,y`.
   ///
-  /// If `is_relative` is `true` then `x` and `y` are interpreted as deltas from the current path position.
+  /// If `is_relative` is `true` then the specified coordinates are interpreted as deltas from the current path position.
   pub fn move_to(&mut self, point: Pos, is_relative: bool) -> Result<&mut Path> {
     let ok = (_GAPI.pathMoveTo)(self.0, point.0, point.1, is_relative as BOOL);
     ok_or!(self, ok)
@@ -313,7 +313,7 @@ impl Path {
 
   /// Draw a line and move the current drawing path position to `x,y`.
   ///
-  /// If `is_relative` is `true` then `x` and `y` are interpreted as deltas from the current path position.
+  /// If `is_relative` is `true` then the specified coordinates are interpreted as deltas from the current path position.
   pub fn line_to(&mut self, point: Pos, is_relative: bool) -> Result<&mut Path> {
     let ok = (_GAPI.pathLineTo)(self.0, point.0, point.1, is_relative as BOOL);
     ok_or!(self, ok)
@@ -337,15 +337,15 @@ impl Path {
 
   /// Draw a quadratic Bézier curve.
   ///
-  /// If `is_relative` is `true` then `x` and `y` are interpreted as deltas from the current path position.
+  /// If `is_relative` is `true` then the specified coordinates are interpreted as deltas from the current path position.
   pub fn quadratic_curve_to(&mut self, control: Pos, end: Pos, is_relative: bool) -> Result<&mut Path> {
     let ok = (_GAPI.pathQuadraticCurveTo)(self.0, control.0, control.1, end.0, end.1, is_relative as BOOL);
     ok_or!(self, ok)
   }
 
-  /// Draw a quadratic Bézier curve.
+  /// Draw a cubic Bézier curve.
   ///
-  /// If `is_relative` is `true` then `x` and `y` are interpreted as deltas from the current path position.
+  /// If `is_relative` is `true` then the specified coordinates are interpreted as deltas from the current path position.
   pub fn bezier_curve_to(&mut self, control1: Pos, control2: Pos, end: Pos, is_relative: bool) -> Result<&mut Path> {
     let ok = (_GAPI.pathBezierCurveTo)(
       self.0,
@@ -778,7 +778,7 @@ impl Graphics {
     ok_or!(self, ok)
   }
 
-  /// Pop a clip layer set by previous `push_clip_box()` or `push_clip_path` calls.
+  /// Pop a clip layer set by previous `push_clip_box()` or `push_clip_path()` calls.
   pub fn pop_clip(&mut self) -> Result<&mut Self> {
     let ok = (_GAPI.gPopClip)(self.0);
     ok_or!(self, ok)
