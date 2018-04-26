@@ -38,7 +38,7 @@ pub enum GRAPHIN_RESULT {
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub enum DRAW_PATH_MODE {
+pub enum DRAW_PATH {
   FILL_ONLY = 1,
   STROKE_ONLY = 2,
   FILL_AND_STROKE = 3,
@@ -46,7 +46,7 @@ pub enum DRAW_PATH_MODE {
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub enum SCITER_LINE_JOIN_TYPE {
+pub enum LINE_JOIN {
   MITER = 0,
   ROUND = 1,
   BEVEL = 2,
@@ -55,7 +55,7 @@ pub enum SCITER_LINE_JOIN_TYPE {
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub enum SCITER_LINE_CAP_TYPE {
+pub enum LINE_CAP {
   BUTT = 0,
   SQUARE = 1,
   ROUND = 2,
@@ -63,7 +63,7 @@ pub enum SCITER_LINE_CAP_TYPE {
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub enum SCITER_TEXT_ALIGNMENT {
+pub enum TEXT_ALIGNMENT {
   DEFAULT,
   START,
   END,
@@ -72,7 +72,7 @@ pub enum SCITER_TEXT_ALIGNMENT {
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub enum SCITER_TEXT_DIRECTION {
+pub enum TEXT_DIRECTION {
   DEFAULT,
   LTR,
   RTL,
@@ -81,7 +81,7 @@ pub enum SCITER_TEXT_DIRECTION {
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-pub enum SCITER_IMAGE_ENCODING {
+pub enum IMAGE_ENCODING {
   RAW, // [a,b,g,r,a,b,g,r,...] vector
   PNG,
   JPG,
@@ -97,15 +97,15 @@ pub struct SC_COLOR_STOP {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct SCITER_TEXT_FORMAT {
+pub struct TEXT_FORMAT {
   pub fontFamily: LPWSTR,
   pub fontWeight: UINT,
   pub fontItalic: BOOL, // 100...900, 400 - normal, 700 - bold
   pub fontSize: f32,    // dips
   pub lineHeight: f32,  // dips
-  pub textDirection: SCITER_TEXT_DIRECTION,
-  pub textAlignment: SCITER_TEXT_ALIGNMENT,
-  pub lineAlignment: SCITER_TEXT_ALIGNMENT, // horizontal alignment
+  pub textDirection: TEXT_DIRECTION,
+  pub textAlignment: TEXT_ALIGNMENT,
+  pub lineAlignment: TEXT_ALIGNMENT, // horizontal alignment
   pub localeName: LPWSTR,                   // a.k.a. vertical alignment for roman writing systems
 }
 
@@ -130,7 +130,7 @@ pub struct SciterGraphicsAPI {
 
   pub imageLoad: extern "system" fn(bytes: LPCBYTE, num_bytes: UINT, pout_img: &mut HIMG) -> GRAPHIN_RESULT, // load png/jpeg/etc. image from stream of bytes
 
-  pub imageSave: extern "system" fn(himg: HIMG, pfn: ImageWriteFunction, prm: LPVOID, encoding: SCITER_IMAGE_ENCODING, quality: UINT) -> GRAPHIN_RESULT,
+  pub imageSave: extern "system" fn(himg: HIMG, pfn: ImageWriteFunction, prm: LPVOID, encoding: IMAGE_ENCODING, quality: UINT) -> GRAPHIN_RESULT,
 
   // SECTION: graphics primitives and drawing operations
 
@@ -206,7 +206,7 @@ pub struct SciterGraphicsAPI {
 
   pub pathClosePath: extern "system" fn(path: HPATH) -> GRAPHIN_RESULT,
 
-  pub gDrawPath: extern "system" fn(hgfx: HGFX, path: HPATH, dpm: DRAW_PATH_MODE) -> GRAPHIN_RESULT,
+  pub gDrawPath: extern "system" fn(hgfx: HGFX, path: HPATH, dpm: DRAW_PATH) -> GRAPHIN_RESULT,
 
   // end of path opearations
 
@@ -237,9 +237,9 @@ pub struct SciterGraphicsAPI {
   // set line width for subsequent drawings.
   pub gLineWidth: extern "system" fn(hgfx: HGFX, width: SC_DIM) -> GRAPHIN_RESULT,
 
-  pub gLineJoin: extern "system" fn(hgfx: HGFX, join_type: SCITER_LINE_JOIN_TYPE) -> GRAPHIN_RESULT,
+  pub gLineJoin: extern "system" fn(hgfx: HGFX, join_type: LINE_JOIN) -> GRAPHIN_RESULT,
 
-  pub gLineCap: extern "system" fn(hgfx: HGFX, cap_type: SCITER_LINE_CAP_TYPE) -> GRAPHIN_RESULT,
+  pub gLineCap: extern "system" fn(hgfx: HGFX, cap_type: LINE_CAP) -> GRAPHIN_RESULT,
 
   // SC_COLOR for solid lines/strokes
   pub gLineColor: extern "system" fn(hgfx: HGFX, color: SC_COLOR) -> GRAPHIN_RESULT,
@@ -276,7 +276,7 @@ pub struct SciterGraphicsAPI {
 
   // create text layout using explicit format declaration
   pub textCreate:
-    extern "system" fn(ptext: &mut HTEXT, text: LPCWSTR, textLength: UINT, format: *const SCITER_TEXT_FORMAT) -> GRAPHIN_RESULT,
+    extern "system" fn(ptext: &mut HTEXT, text: LPCWSTR, textLength: UINT, format: *const TEXT_FORMAT) -> GRAPHIN_RESULT,
 
   pub textGetMetrics: extern "system" fn(
     text: HTEXT,

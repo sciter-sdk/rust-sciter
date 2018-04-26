@@ -4,7 +4,6 @@ Used in custom behaviors / event handlers to draw on element's surface in native
 Essentially this mimics [`Graphics`](https://sciter.com/docs/content/sciter/Graphics.htm) scripting object as close as possible.
 
 */
-use capi::scgraphics::{DRAW_PATH_MODE, SCITER_LINE_CAP_TYPE, SCITER_LINE_JOIN_TYPE};
 use capi::scgraphics::{HGFX, HIMG, HPATH, SC_ANGLE, SC_COLOR, SC_COLOR_STOP, SC_DIM, SC_POS};
 use capi::sctypes::{BOOL, LPCBYTE, LPVOID, POINT, SIZE, UINT};
 use std::ptr::null_mut;
@@ -12,6 +11,7 @@ use value::{FromValue, Value};
 use _GAPI;
 
 pub use capi::scgraphics::GRAPHIN_RESULT;
+pub use capi::scgraphics::{DRAW_PATH, LINE_CAP, LINE_JOIN};
 
 /// Supported image encodings for [`Image.save`](struct.Image.html#method.save).
 #[derive(Debug, PartialEq)]
@@ -63,10 +63,18 @@ pub struct Path(HPATH);
 /// Graphics object. Represents graphic surface of the element.
 pub struct Graphics(HGFX);
 
-/// Construct a color value (in `RGBA` form) from the `red`, `green`, `blue` and `opacity` components.
-pub fn color(red: u8, green: u8, blue: u8, opacity: Option<u8>) -> Color {
-  (_GAPI.RGBA)(u32::from(red), u32::from(green), u32::from(blue), u32::from(opacity.unwrap_or(255)))
+/// Construct a color value (in `RGBA` form) from the `red`, `green` and `blue` components.
+pub fn rgb(red: u8, green: u8, blue: u8) -> Color {
+  (_GAPI.RGBA)(u32::from(red), u32::from(green), u32::from(blue), 255)
 }
+
+/// Construct a color value (in `RGBA` form) from the `red`, `green`, `blue` and `opacity` components.
+pub fn rgba((r, g, b): (u8, u8, u8), opacity: u8) -> Color {
+	let color = rgb(r, g, b);
+  u32::from(opacity) | color << 24
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // Image
 
@@ -148,7 +156,7 @@ impl Image {
         dst.extend_from_slice(src);
       }
     }
-    use capi::scgraphics::SCITER_IMAGE_ENCODING::*;
+    use capi::scgraphics::IMAGE_ENCODING::*;
     let (enc, q) = match encoding {
       SaveImageEncoding::Raw => (RAW, 0),
       SaveImageEncoding::Png => (PNG, 0),
@@ -449,13 +457,13 @@ impl Graphics {
 	}
 
   /// Manually save the current graphics attributes on top of the internal state stack.
-  pub fn push_state(&mut self) -> Result<&mut Self> {
+  fn push_state(&mut self) -> Result<&mut Self> {
     let ok = (_GAPI.gStateSave)(self.0);
     ok_or!(self, ok)
   }
 
   /// Manually restore graphics attributes from top of the internal state stack.
-  pub fn pop_state(&mut self) -> Result<&mut Self> {
+  fn pop_state(&mut self) -> Result<&mut Self> {
     let ok = (_GAPI.gStateRestore)(self.0);
     ok_or!(self, ok)
   }
@@ -573,13 +581,13 @@ impl Graphics {
   }
 
   /// Set the line cap (stroke dash ending style) for subsequent drawings.
-  pub fn line_cap(&mut self, style: SCITER_LINE_CAP_TYPE) -> Result<&mut Self> {
+  pub fn line_cap(&mut self, style: LINE_CAP) -> Result<&mut Self> {
     let ok = (_GAPI.gLineCap)(self.0, style);
     ok_or!(self, ok)
   }
 
   /// Set the line width for subsequent drawings.
-  pub fn line_join(&mut self, style: SCITER_LINE_JOIN_TYPE) -> Result<&mut Self> {
+  pub fn line_join(&mut self, style: LINE_JOIN) -> Result<&mut Self> {
     let ok = (_GAPI.gLineJoin)(self.0, style);
     ok_or!(self, ok)
   }
@@ -828,7 +836,7 @@ impl Graphics {
 /// Image and path rendering.
 impl Graphics {
   /// Draw the path object using current fill and stroke brushes.
-  pub fn draw_path(&mut self, path: &Path, mode: DRAW_PATH_MODE) -> Result<&mut Self> {
+  pub fn draw_path(&mut self, path: &Path, mode: DRAW_PATH) -> Result<&mut Self> {
     let ok = (_GAPI.gDrawPath)(self.0, path.0, mode);
     ok_or!(self, ok)
   }

@@ -186,16 +186,16 @@ fn load_formats() {
 #[test]
 fn image_clear() {
   assert_eq!(OK, get().clear());
-  assert_eq!(OK, get().clear_with(color(255, 255, 255, None)));
+  assert_eq!(OK, get().clear_with(rgb(255, 255, 255)));
 }
 
 #[test]
 fn make_color() {
   // ABGR
-  assert_eq!(0xFF000000, color(0, 0, 0, None));
-  assert_eq!(0x00000000, color(0, 0, 0, Some(0)));
+  assert_eq!(0xFF000000, rgb(0, 0, 0));
+  assert_eq!(0x00000000, rgba((0, 0, 0), 0));
 
-  assert_eq!(0xFF112233, color(0x33, 0x22, 0x11, None));
+  assert_eq!(0xFF112233, rgb(0x33, 0x22, 0x11));
 }
 
 #[test]
