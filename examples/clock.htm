@@ -8,14 +8,30 @@
       behavior: rust-clock;
       display: block;
       size: *;
-      outline: 1px solid orange;
     }
   </style>
   <script type="text/tiscript">
+
+    function setIcon() {
+      var clock = $(clock);
+
+      // get clock element size
+      var (w, h) = clock.box(#dimension, #border);
+
+      // make a snapshot of it with 32x32 size
+      var img = new Image(clock, w, h, 32, 32);
+      var png = img.toBytes();
+      img.destroy();
+
+      // make an icon from the snapshot
+      var icon = Image.fromBytes(png);
+      view.windowIcon = icon;
+    }
+    self.timer(1000, setIcon);
+
   </script>
 </head>
 <body>
-  <h2>Native drawing behavior demo</h2>
   <clock></clock>
 </body>
 </html>
