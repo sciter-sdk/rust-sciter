@@ -248,7 +248,7 @@ impl Element {
 
 	//\name Creation
 
-	/// Construct Element object from HELEMENT handle.
+	/// Construct Element object from `HELEMENT` handle.
 	pub fn from(he: HELEMENT) -> Element {
 		Element { he: Element::use_or(he) }
 	}
@@ -850,7 +850,16 @@ impl Element {
 		ok_or!((), ok)
 	}
 
-	/// Start Timer for the element. Element will receive `on_timer` event.
+	/// Refresh element area in its window.
+	pub fn refresh(&self) -> Result<()> {
+		let rect = self.get_location(ELEMENT_AREAS::self_content())?;
+		let ok = (_API.SciterRefreshElementArea)(self.he, rect);
+		ok_or!((), ok)
+	}
+
+	/// Start Timer for the element.
+	///
+	/// Element will receive [`on_timer`](event/trait.EventHandler.html#method.on_timer) events.
 	///
 	/// Note that timer events are not bubbling, so you need attach handler to the target element directly.
 	pub fn start_timer(&self, period_ms: u32, timer_id: u64) -> Result<()> {
@@ -1021,7 +1030,6 @@ SciterAttachHwndToElement
 SciterCallBehaviorMethod
 SciterCombineURL
 SciterControlGetType
-SciterFireEvent
 SciterGetElementIntrinsicHeight
 SciterGetElementIntrinsicWidths
 SciterGetElementLocation
@@ -1035,12 +1043,9 @@ SciterHidePopup
 SciterHttpRequest
 SciterIsElementEnabled
 SciterIsElementVisible
-SciterPostEvent
-SciterRefreshElementArea
 SciterReleaseCapture
 SciterRequestElementData
 SciterScrollToView
-SciterSendEvent
 SciterSetCapture
 SciterSetElementState
 SciterSetHighlightedElement
@@ -1190,6 +1195,8 @@ This way you can establish interaction between scipt and native code inside your
 */
 
 	pub use capi::scbehavior::{CLICK_REASON, EVENT_GROUPS, EDIT_CHANGED_REASON, BEHAVIOR_EVENTS, PHASE_MASK};
+	pub use capi::scbehavior::{DRAW_EVENTS};
+	pub use capi::scgraphics::HGFX;
 
 	use capi::sctypes::*;
 	use capi::scdom::HELEMENT;
@@ -1266,6 +1273,9 @@ This way you can establish interaction between scipt and native code inside your
 
 		/// Timer event from attached element.
 		fn on_timer(&mut self, root: HELEMENT, timer_id: u64) -> bool { return false; }
+
+		/// Drawing event.
+		fn on_draw(&mut self, root: HELEMENT, gfx: HGFX, area: RECT, layer: DRAW_EVENTS) -> bool { return false; }
 
 	}
 

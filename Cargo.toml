@@ -76,3 +76,7 @@ path = "examples/archived.rs"
 [[example]]
 name = "video"
 path = "examples/video.rs"
+
+[[example]]
+name = "clock"
+path = "examples/clock.rs"

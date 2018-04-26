@@ -202,8 +202,7 @@ impl Image {
       assert!(!hgfx.is_null());
     	let payload = unsafe { &mut *param };
       let ok = if !hgfx.is_null() {
-      	let mut gfx = Graphics(hgfx);
-      	(_GAPI.gAddRef)(hgfx);
+      	let mut gfx = Graphics::from(hgfx);
       	(payload.painter)(&mut gfx, (width as f32, height as f32))
       } else {
       	Err(GRAPHIN_RESULT::BAD_PARAM)
@@ -364,6 +363,31 @@ impl Path {
 ///////////////////////////////////////////////////////////////////////////////
 // Graphics
 
+/// A graphics state guard.
+pub struct State<'a>(&'a mut Graphics);
+
+/// Restore graphics state.
+impl<'a> Drop for State<'a> {
+	fn drop(&mut self) {
+		self.0.pop_state().ok();
+	}
+}
+
+/// Dereference to `Graphics`.
+impl<'a> ::std::ops::Deref for State<'a> {
+	type Target = Graphics;
+	fn deref(&self) -> &Graphics {
+		self.0
+	}
+}
+
+/// Dereference to `Graphics`.
+impl<'a> ::std::ops::DerefMut for State<'a> {
+	fn deref_mut(&mut self) -> &mut Graphics {
+		self.0
+	}
+}
+
 /// Destroy pointed graphics object.
 impl Drop for Graphics {
   fn drop(&mut self) {
@@ -406,15 +430,31 @@ impl From<Graphics> for Value {
   }
 }
 
+/// Construct Graphics object from `HGFX` handle.
+impl From<HGFX> for Graphics {
+	fn from(hgfx: HGFX) -> Graphics {
+		assert!(!hgfx.is_null());
+  	(_GAPI.gAddRef)(hgfx);
+		Graphics(hgfx)
+	}
+}
+
 /// Save/restore graphics state.
 impl Graphics {
   /// Save the current graphics attributes on top of the internal state stack.
+  ///
+  /// It will be restored automatically.
+	pub fn save_state(&mut self) -> Result<State> {
+		self.push_state().map(|gfx| State(gfx))
+	}
+
+  /// Manually save the current graphics attributes on top of the internal state stack.
   pub fn push_state(&mut self) -> Result<&mut Self> {
     let ok = (_GAPI.gStateSave)(self.0);
     ok_or!(self, ok)
   }
 
-  /// Restore graphics attributes from top of the internal state stack.
+  /// Manually restore graphics attributes from top of the internal state stack.
   pub fn pop_state(&mut self) -> Result<&mut Self> {
     let ok = (_GAPI.gStateRestore)(self.0);
     ok_or!(self, ok)
