@@ -4,13 +4,13 @@ Used in custom behaviors / event handlers to draw on element's surface in native
 Essentially this mimics [`Graphics`](https://sciter.com/docs/content/sciter/Graphics.htm) scripting object as close as possible.
 
 */
-use capi::scgraphics::{HGFX, HIMG, HPATH, SC_ANGLE, SC_COLOR, SC_COLOR_STOP, SC_DIM, SC_POS};
+use capi::scgraphics::{HIMG, HPATH, SC_ANGLE, SC_COLOR, SC_COLOR_STOP, SC_DIM, SC_POS};
 use capi::sctypes::{BOOL, LPCBYTE, LPVOID, POINT, SIZE, UINT};
 use std::ptr::null_mut;
 use value::{FromValue, Value};
 use _GAPI;
 
-pub use capi::scgraphics::GRAPHIN_RESULT;
+pub use capi::scgraphics::{HGFX, GRAPHIN_RESULT};
 pub use capi::scgraphics::{DRAW_PATH, LINE_CAP, LINE_JOIN};
 
 /// Supported image encodings for [`Image.save`](struct.Image.html#method.save).

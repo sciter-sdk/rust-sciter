@@ -1,8 +1,9 @@
 #![windows_subsystem="windows"]
 extern crate sciter;
 
-use sciter::dom::{Element, HELEMENT, event::*};
-use sciter::graphics::{self, Graphics, rgb};
+use sciter::dom::{HELEMENT, Element};
+use sciter::dom::event::{EVENT_GROUPS, DRAW_EVENTS};
+use sciter::graphics::{self, HGFX, Graphics, rgb};
 use sciter::types::RECT;
 
 // 360°

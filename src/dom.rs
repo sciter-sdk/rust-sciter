@@ -1198,10 +1198,10 @@ This way you can establish interaction between scipt and native code inside your
 
 	pub use capi::scbehavior::{CLICK_REASON, EVENT_GROUPS, EDIT_CHANGED_REASON, BEHAVIOR_EVENTS, PHASE_MASK};
 	pub use capi::scbehavior::{DRAW_EVENTS};
-	pub use capi::scgraphics::HGFX;
 
 	use capi::sctypes::*;
 	use capi::scdom::HELEMENT;
+	use capi::scgraphics::HGFX;
 	use value::Value;
 
 	/// Default subscription events
