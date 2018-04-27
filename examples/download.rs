@@ -18,7 +18,7 @@ impl sciter::EventHandler for Handler {
       // eval script inside the document to receive a "user@machine" string.
       let result = host.eval_script("[Sciter.userName(), Sciter.machineName(true)].join(`@`)");
       match result {
-        Ok(mut name) => {
+        Ok(name) => {
           println!("running on {}", name);
         }
         Err(e) => {

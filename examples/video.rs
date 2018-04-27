@@ -112,7 +112,7 @@ impl sciter::EventHandler for VideoGen {
           let mut site = AssetPtr::adopt(ptr as *mut video_destination);
 
           // query a fragmented video destination interface
-          if let Ok(mut fragmented) = AssetPtr::<fragmented_video_destination>::try_from(&mut site) {
+          if let Ok(fragmented) = AssetPtr::<fragmented_video_destination>::try_from(&mut site) {
             // and use it
             println!("[video] start video thread");
 
