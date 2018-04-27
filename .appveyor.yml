@@ -19,6 +19,14 @@ environment:
     ARCH: 32
 
   - TARGET: x86_64-pc-windows-msvc
+    CHANNEL: stable
+    ARCH: 64
+
+  - TARGET: i686-pc-windows-msvc
+    CHANNEL: stable
+    ARCH: 32
+
+  - TARGET: x86_64-pc-windows-msvc
     CHANNEL: nightly
     ARCH: 64
 

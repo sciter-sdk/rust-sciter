@@ -13,6 +13,7 @@ os:
 rust:
   - stable
   - nightly
+  - 1.21.0
 
 matrix:
   include:
