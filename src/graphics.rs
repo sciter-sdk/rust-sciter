@@ -137,7 +137,7 @@ impl Image {
 
   /// Load image from memory.
   ///
-  /// Supported formats are: BMP, GIF, ICO, JPEG, PNG, WebP. On Windows also TIFF and WMP.
+  /// Supported formats are: GIF, JPEG, PNG, WebP. On Windows also are BMP, ICO, TIFF and WMP.
   pub fn load(image_data: &[u8]) -> Result<Image> {
     let mut h = null_mut();
     let ok = (_GAPI.imageLoad)(image_data.as_ptr(), image_data.len() as UINT, &mut h);
