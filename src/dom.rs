@@ -1276,10 +1276,13 @@ This way you can establish interaction between scipt and native code inside your
 		/// Timer event from attached element.
 		fn on_timer(&mut self, root: HELEMENT, timer_id: u64) -> bool { return false; }
 
-		/// Drawing event.
+		/// Drawing request event.
 		///
 		/// It allows to intercept drawing events of an `Element` and to manually draw its content, background and foreground layers.
 		fn on_draw(&mut self, root: HELEMENT, gfx: HGFX, area: &RECT, layer: DRAW_EVENTS) -> bool { return false; }
+
+		/// Size changed event.
+		fn on_size(&mut self, root: HELEMENT) {}
 
 	}
 
