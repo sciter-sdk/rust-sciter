@@ -172,7 +172,7 @@ fn make_color() {
 
 #[test]
 fn paint() {
-  let image = Image::new((100, 100), false).unwrap();
+  let mut image = Image::new((100, 100), false).unwrap();
   let ok = image.paint(|gfx, size| {
     gfx.rectangle((5.0, 5.0), (size.0 - 5.0, size.1 - 5.0))?;
     Ok(())

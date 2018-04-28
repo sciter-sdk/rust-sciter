@@ -189,13 +189,13 @@ impl Image {
   ///
   /// ```rust
   /// # use sciter::graphics::Image;
-  /// let image = Image::new((100, 100), false).unwrap();
+  /// let mut image = Image::new((100, 100), false).unwrap();
   /// image.paint(|gfx, size| {
   ///   gfx.rectangle((5.0, 5.0), (size.0 - 5.0, size.1 - 5.0))?;
   ///   Ok(())
   ///	}).unwrap();
   /// ```
-  pub fn paint<PaintFn>(&self, painter: PaintFn) -> Result<()>
+  pub fn paint<PaintFn>(&mut self, painter: PaintFn) -> Result<()>
   where
     PaintFn: Fn(&mut Graphics, (f32, f32)) -> Result<()>,
   {
