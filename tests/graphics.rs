@@ -1,8 +1,5 @@
 #![allow(unused_variables)]
 
-// Note: for some reason (hasn't been investigated yet) graphics tests fail on AppVeyor.
-// That's we use `--feature "ci"` and ignore tests on Windows.
-
 extern crate sciter;
 
 use sciter::graphics::*;
@@ -20,7 +17,6 @@ fn get() -> Image {
 }
 
 #[test]
-#[cfg_attr(all(feature = "ci", windows), ignore)]
 fn image_new() {
   let ok = Image::new((100, 100), false);
   assert_ok!(OK, ok);
@@ -30,14 +26,12 @@ fn image_new() {
 }
 
 #[test]
-#[cfg_attr(all(feature = "ci", windows), ignore)]
 fn image_dimensions() {
   let size = get().dimensions().unwrap();
   assert_eq!((100, 100), size);
 }
 
 #[test]
-#[cfg_attr(all(feature = "ci", windows), ignore)]
 fn image_save() {
   let ok = get().save(SaveImageEncoding::Raw);
   assert!(ok.is_ok());
@@ -57,7 +51,6 @@ fn image_save() {
 }
 
 #[test]
-#[cfg_attr(all(feature = "ci", windows), ignore)]
 fn image_load() {
   fn verify(image: &Image, format: SaveImageEncoding) -> Result<()> {
     let ok = image.save(format).and_then(|saved| Image::load(&saved));
@@ -81,7 +74,6 @@ fn image_load() {
 
 #[test]
 #[cfg_attr(rustfmt, rustfmt_skip)]
-#[cfg_attr(all(feature = "ci", windows), ignore)]
 fn load_formats() {
 	// The following images were taken from https://github.com/mathiasbynens/small.
 
@@ -164,7 +156,6 @@ fn load_formats() {
 }
 
 #[test]
-#[cfg_attr(all(feature = "ci", windows), ignore)]
 fn image_clear() {
   assert_eq!(OK, get().clear());
   assert_eq!(OK, get().clear_with(rgb(255, 255, 255)));

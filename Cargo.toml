@@ -31,7 +31,6 @@ crate-type = ["rlib"]
 [features]
 default = []
 nightly = []
-ci = []
 
 [dependencies]
 libc = "0.2"

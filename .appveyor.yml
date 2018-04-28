@@ -78,5 +78,5 @@ build_script:
 test_script:
   - cargo run --example first
 
-  - cargo test --all --features "ci"
-  - cargo test --all --release  --features "ci"
+  - cargo test --all
+  - cargo test --all --release

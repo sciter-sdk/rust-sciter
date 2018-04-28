@@ -87,8 +87,8 @@ script:
   - cargo build --all --release
   - cargo build --examples --release
 
-  - # can't test on Linux because of GCC Dual ABI absence on Ubuntu 14.
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then cargo test --all --features "ci"; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then cargo test --all --release --features "ci"; fi
+  - # can't test linux because of GCC Dual ABI absence on Ubuntu 14.
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then cargo test --all; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then cargo test --all --release; fi
 
 after_script: set +e
