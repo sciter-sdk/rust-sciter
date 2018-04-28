@@ -28,6 +28,7 @@ impl sciter::EventHandler for Clock {
 		// to redraw our clock
 		Element::from(root)
 			.refresh().expect("Can't refresh element");
+		unsafe { TICKS += 1; }
 		true
 	}
 
@@ -166,10 +167,7 @@ impl Clock {
 static mut TICKS: usize = 10*60*60 + 15 * 60 + 34;
 
 fn current_time() -> (u8, u8, u8) {
-	let mut t = unsafe {
-		TICKS += 1;
-		TICKS
-	};
+	let mut t = unsafe { TICKS };
 
 	let s = t % 60;
 	t /= 60;
