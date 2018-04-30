@@ -6,7 +6,7 @@
 use capi::sctypes::*;
 use capi::scdom::*;
 use capi::scvalue::{VALUE};
-
+use capi::scgraphics::{HGFX};
 
 #[repr(C)]
 pub struct BEHAVIOR_EVENT_PARAMS
@@ -52,9 +52,35 @@ pub struct TIMER_PARAMS
 }
 
 #[repr(C)]
+pub struct DRAW_PARAMS {
+	/// Element layer to draw.
+	pub layer: DRAW_EVENTS,
+
+	/// Graphics context.
+	pub gfx: HGFX,
+
+	/// Element area.
+	pub area: RECT,
+
+	/// Zero at the moment.
+	pub reserved: UINT,
+}
+
+/// Layer to draw.
+#[repr(C)]
+#[derive(Copy, Clone)]
+#[derive(Debug, PartialEq)]
+pub enum DRAW_EVENTS {
+	DRAW_BACKGROUND = 0,
+	DRAW_CONTENT,
+	DRAW_FOREGROUND,
+}
+
+
+/// Event groups for subscription.
+#[repr(C)]
 #[derive(Copy, Clone)]
 #[derive(Debug, PartialOrd, PartialEq)]
-/// Event groups for subscription.
 pub enum EVENT_GROUPS
 { /** attached/detached */
 	HANDLE_INITIALIZATION = 0x0000,

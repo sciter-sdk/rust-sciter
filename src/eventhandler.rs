@@ -207,6 +207,14 @@ fn process_events(me: &mut EventHandler, he: HELEMENT, evtg: UINT, params: LPVOI
 			handled
 		},
 
+		EVENT_GROUPS::HANDLE_DRAW => {
+			assert!(!params.is_null());
+			let scnm = params as *const DRAW_PARAMS;
+			let nm = unsafe { & *scnm };
+			let handled = me.on_draw(he, nm.gfx, &nm.area, nm.layer);
+			handled
+		},
+
 		_ => false
 	};
 	return result as BOOL;

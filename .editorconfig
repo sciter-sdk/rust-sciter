@@ -7,8 +7,8 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 
 [*.rs]
-indent_style = tab
-indent_size = tab
+indent_style = space
+indent_size = 2
 tab_width = 2
 
 [*.{yml,toml,md}]

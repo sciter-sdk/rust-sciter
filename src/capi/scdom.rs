@@ -80,6 +80,18 @@ pub enum ELEMENT_AREAS {
 	SCROLLABLE_AREA = 0x60,
 }
 
+impl ELEMENT_AREAS {
+	/// Size of content (i.e `(0, 0, width, height)`).
+	pub fn self_content() -> u32 {
+		ELEMENT_AREAS::SELF_RELATIVE as u32
+	}
+
+	/// Size of rect (i.e `(left, top, width, height)`)
+	pub fn self_rect() -> u32 {
+		ELEMENT_AREAS::ROOT_RELATIVE as u32
+	}
+}
+
 pub type SciterElementCallback = extern "system" fn (he: HELEMENT, param: LPVOID) -> BOOL;
 
 pub type ELEMENT_COMPARATOR = extern "system" fn (he1: HELEMENT, he2: HELEMENT, param: LPVOID) -> INT;

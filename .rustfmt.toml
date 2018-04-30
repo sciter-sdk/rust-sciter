@@ -2,3 +2,4 @@
 max_width = 140
 ideal_width = 120
 tab_spaces = 2
+hard_tabs = false
