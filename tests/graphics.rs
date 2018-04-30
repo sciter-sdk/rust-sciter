@@ -1,3 +1,9 @@
+// Note: there is an issue in Sciter that you can't just call its functions out of nowhere,
+// you are supposed to have a main thread.
+// Since Rust always spawns a thread per test (it does not matter, to spawn 1 or more threads),
+// so we have a problem here.
+// If I could create a dedicated "main" thread per test module, that would be fine.
+
 #![allow(unused_variables)]
 
 extern crate sciter;
@@ -17,6 +23,7 @@ fn get() -> Image {
 }
 
 #[test]
+#[ignore]
 fn image_new() {
   let ok = Image::new((100, 100), false);
   assert_ok!(OK, ok);
@@ -26,12 +33,14 @@ fn image_new() {
 }
 
 #[test]
+#[ignore]
 fn image_dimensions() {
   let size = get().dimensions().unwrap();
   assert_eq!((100, 100), size);
 }
 
 #[test]
+#[ignore]
 fn image_save() {
   let ok = get().save(SaveImageEncoding::Raw);
   assert!(ok.is_ok());
@@ -51,6 +60,7 @@ fn image_save() {
 }
 
 #[test]
+#[ignore]
 fn image_load() {
   fn verify(image: &Image, format: SaveImageEncoding) -> Result<()> {
     let ok = image.save(format).and_then(|saved| Image::load(&saved));
@@ -73,6 +83,7 @@ fn image_load() {
 }
 
 #[test]
+#[ignore]
 #[cfg_attr(rustfmt, rustfmt_skip)]
 fn load_formats() {
 	// The following images were taken from https://github.com/mathiasbynens/small.
@@ -156,12 +167,14 @@ fn load_formats() {
 }
 
 #[test]
+#[ignore]
 fn image_clear() {
   assert_eq!(OK, get().clear());
   assert_eq!(OK, get().clear_with(rgb(255, 255, 255)));
 }
 
 #[test]
+#[ignore]
 fn make_color() {
   // ABGR
   assert_eq!(0xFF000000, rgb(0, 0, 0));
@@ -171,6 +184,7 @@ fn make_color() {
 }
 
 #[test]
+#[ignore]
 fn paint() {
   let mut image = Image::new((100, 100), false).unwrap();
   let ok = image.paint(|gfx, size| {
