@@ -5,6 +5,7 @@ use capi::sctypes::{UINT, LPCBYTE};
 pub type Result<T> = ::std::result::Result<T, ()>;
 
 
+/// Color space for video frame.
 #[repr(C)]
 pub enum COLOR_SPACE {
 	Unknown,
@@ -54,7 +55,7 @@ macro_rules! cppresult {
 	}
 }
 
-
+#[doc(hidden)]
 pub trait NamedInterface {
 	fn get_interface_name() -> &'static [u8];
 

@@ -53,7 +53,7 @@ callback handler registered with `sciter::Window.sciter_handler()` function.
 Your application can provide your own data for such resources (for example from resource section, DB or other storage of your choice)
 or delegate resource loading to built-in HTTP client and file loader or discard loading at all.
 
-Note: This handler should be registere before any `load_html` call in order to send notifications while loading.
+Note: This handler should be registere before any [`load_html()`](struct.Host.html#method.load_html) call in order to send notifications while loading.
 
 */
 #[allow(unused_variables)]
@@ -88,11 +88,10 @@ pub trait HostHandler {
 		}
 	}
 
-	/// This function is used as response to `on_data_load` request.
+	/// This function is used as response to [`on_data_load`](#method.on_data_load) request.
 	///
 	/// Parameters here must be taken from `SCN_LOAD_DATA` structure. You can store them for later usage,
-	/// but you must answer as `LOAD_RESULT::LOAD_DELAYED` code and provide an `request_id` here.
-	///
+	/// but you must answer as [`LOAD_DELAYED`](enum.LOAD_RESULT.html#variant.LOAD_DELAYED) code and provide an `request_id` here.
 	fn data_ready(&self, hwnd: HWINDOW, uri: &str, data: &[u8], request_id: Option<HREQUEST>) {
 		let (s,_) = s2w!(uri);
 		match request_id {
@@ -105,6 +104,8 @@ pub trait HostHandler {
 		};
 	}
 
+  /// This function is used as a response to the [`on_attach_behavior`](#method.on_attach_behavior) request
+  /// to attach a newly created behavior `handler` to the requested element.
 	fn attach_behavior<Handler: EventHandler>(&self, pnm: &mut SCN_ATTACH_BEHAVIOR, handler: Handler) {
 		// make native handler
 		let boxed = Box::new(handler);
@@ -112,7 +113,6 @@ pub trait HostHandler {
 		pnm.elementProc = ::eventhandler::_event_handler_proc::<Handler>;
 		pnm.elementTag = ptr as LPVOID;
 	}
-
 }
 
 
