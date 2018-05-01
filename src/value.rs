@@ -137,7 +137,7 @@ assert!(v.get_item("one").is_int());
 
 use ::{_API};
 use capi::sctypes::*;
-use capi::scvalue::{VALUE, VALUE_UNIT_TYPE_STRING};
+use capi::scvalue::{VALUE, VALUE_UNIT_TYPE_STRING, VALUE_UNIT_TYPE_OBJECT};
 pub use capi::scvalue::{VALUE_RESULT, VALUE_STRING_CVT_TYPE, VALUE_TYPE};
 
 
@@ -618,10 +618,54 @@ impl Value {
 	pub fn is_object(&self) -> bool {
 		self.data.t == VALUE_TYPE::T_OBJECT
 	}
+
+  // script types:
+  #[allow(missing_docs)]
+  pub fn is_object_array(&self) -> bool {
+    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::ARRAY as UINT
+  }
+  #[allow(missing_docs)]
+  pub fn is_object_map(&self) -> bool {
+    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::OBJECT as UINT
+  }
+  #[allow(missing_docs)]
+  pub fn is_object_class(&self) -> bool {
+    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::OBJECT as UINT
+  }
+  #[allow(missing_docs)]
+  pub fn is_object_native(&self) -> bool {
+    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::NATIVE as UINT
+  }
+  #[allow(missing_docs)]
+  pub fn is_object_function(&self) -> bool {
+    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::FUNCTION as UINT
+  }
+  #[allow(missing_docs)]
+  pub fn is_object_error(&self) -> bool {
+    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::ERROR as UINT
+  }
 	#[allow(missing_docs)]
 	pub fn is_dom_element(&self) -> bool {
 		self.data.t == VALUE_TYPE::T_DOM_OBJECT
 	}
+
+  // generic check (native or object):
+  #[allow(missing_docs)]
+  pub fn is_varray(&self) -> bool {
+    self.is_array() || self.is_object()
+  }
+  #[allow(missing_docs)]
+  pub fn is_vmap(&self) -> bool {
+    self.is_map() || self.is_object_map()
+  }
+  #[allow(missing_docs)]
+  pub fn is_vfunction(&self) -> bool {
+    self.is_function() || self.is_object_function() || self.is_native_function()
+  }
+  #[allow(missing_docs)]
+  pub fn is_verror(&self) -> bool {
+    self.is_error_string() || self.is_object_error()
+  }
 
 	fn assign_str(&mut self, val: &str, unit: VALUE_UNIT_TYPE_STRING) -> VALUE_RESULT {
 		let (s,n) = s2w!(val);
@@ -771,6 +815,13 @@ impl ::std::ops::IndexMut<Value> for Value {
 		(_API.ValueSetValueToKey)(ptr, key.as_cptr(), tmp.as_ptr());
 		return tmp;
 	}
+}
+
+/// Value from native `VALUE` object.
+impl<'a> From<&'a VALUE> for Value {
+  fn from(val: &'a VALUE) -> Self {
+    unsafe { Value::copy_from(val as *const _) }
+  }
 }
 
 /// Value from integer.
