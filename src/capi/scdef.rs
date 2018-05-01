@@ -302,11 +302,6 @@ pub type LPCBYTE_RECEIVER = extern "system" fn (szstr: LPCBYTE, str_length: UINT
 pub type ELEMENT_BITMAP_RECEIVER = extern "system" fn (rgba: LPCBYTE, x: INT, y: INT, width: UINT, height: UINT, param: LPVOID);
 
 #[repr(C)]
-pub struct METHOD_PARAMS {
-	methodID: UINT,
-}
-
-#[repr(C)]
 pub struct REQUEST_PARAM {
   name: LPCWSTR,
   value: LPCWSTR,

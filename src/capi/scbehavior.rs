@@ -36,6 +36,44 @@ pub struct INITIALIZATION_PARAMS
 	pub cmd: INITIALIZATION_EVENTS,
 }
 
+/// Identifiers of methods currently supported by intrinsic behaviors.
+#[repr(C)]
+#[derive(Debug)]
+pub enum BEHAVIOR_METHOD_IDENTIFIERS {
+  /// Raise a click event.
+  DO_CLICK = 1,
+
+  /// `IS_EMPTY_PARAMS::is_empty` reflects the `:empty` state of the element.
+  IS_EMPTY = 0xFC,
+
+  /// `VALUE_PARAMS`
+  GET_VALUE = 0xFD,
+  /// `VALUE_PARAMS`
+  SET_VALUE = 0xFE,
+
+  /// User method identifier used in custom behaviors.
+  FIRST_APPLICATION_METHOD_ID = 0x100,
+}
+
+/// Method arguments used in `SciterCallBehaviorMethod()` or `HANDLE_METHOD_CALL`.
+#[repr(C)]
+pub struct METHOD_PARAMS {
+  /// [`BEHAVIOR_METHOD_IDENTIFIERS`](enum.BEHAVIOR_METHOD_IDENTIFIERS.html) or user identifiers.
+  pub methodID: UINT,
+}
+
+#[repr(C)]
+pub struct IS_EMPTY_PARAMS {
+  pub method: UINT,
+  pub is_empty: UINT,
+}
+
+#[repr(C)]
+pub struct VALUE_PARAMS {
+  pub method: UINT,
+  pub value: VALUE,
+}
+
 #[repr(C)]
 pub struct SCRIPTING_METHOD_PARAMS
 {
@@ -82,45 +120,45 @@ pub enum DRAW_EVENTS {
 #[derive(Copy, Clone)]
 #[derive(Debug, PartialOrd, PartialEq)]
 pub enum EVENT_GROUPS
-{ /** attached/detached */
+{ /// Attached/detached.
 	HANDLE_INITIALIZATION = 0x0000,
-	/** mouse events */
+	/// Mouse events.
 	HANDLE_MOUSE = 0x0001,
-	/** key events */
+	/// Key events.
 	HANDLE_KEY = 0x0002,
-	/** focus events, if this flag is set it also means that element it attached to is focusable */
+	/// Focus events, if this flag is set it also means that element it attached to is focusable.
 	HANDLE_FOCUS = 0x0004,
-	/** scroll events */
+	/// Scroll events.
 	HANDLE_SCROLL = 0x0008,
-	/** timer event */
+	/// Timer event.
 	HANDLE_TIMER = 0x0010,
-	/** size changed event */
+	/// Size changed event.
 	HANDLE_SIZE = 0x0020,
-	/** drawing request (event) */
+	/// Drawing request (event).
 	HANDLE_DRAW = 0x0040,
-	/** requested data () has been delivered */
+	/// Requested data () has been delivered.
 	HANDLE_DATA_ARRIVED = 0x080,
 
-	 /** logical, synthetic events:
-	                                           BUTTON_CLICK, HYPERLINK_CLICK, etc.,
-	                                           a.k.a. notifications from intrinsic behaviors */
+	/// Logical, synthetic events:
+  /// `BUTTON_CLICK`, `HYPERLINK_CLICK`, etc.,
+	/// a.k.a. notifications from intrinsic behaviors.
 	HANDLE_BEHAVIOR_EVENT        = 0x0100,
-	 /** behavior specific methods */
+	 /// Behavior specific methods.
 	HANDLE_METHOD_CALL           = 0x0200,
-	/** behavior specific methods */
+	/// Behavior specific methods.
 	HANDLE_SCRIPTING_METHOD_CALL = 0x0400,
-	/** behavior specific methods using direct tiscript::value's */
+	/// Behavior specific methods using direct `tiscript::value`'s.
 	HANDLE_TISCRIPT_METHOD_CALL  = 0x0800,
 
-	/** system drag-n-drop */
+	/// System drag-n-drop.
 	HANDLE_EXCHANGE              = 0x1000,
-	/** touch input events */
+	/// Touch input events.
 	HANDLE_GESTURE               = 0x2000,
 
-	/** all of them */
+	/// All of them.
 	HANDLE_ALL                   = 0xFFFF,
 
-	/** special value for getting subscription flags */
+	/// Special value for getting subscription flags.
 	SUBSCRIPTIONS_REQUEST        = -1,
 }
 

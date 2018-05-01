@@ -1225,6 +1225,16 @@ This way you can establish interaction between scipt and native code inside your
 		VideoBind(LPVOID),
 	}
 
+  /// Behavior method params.
+  #[derive(Debug)]
+  pub enum MethodParams {
+    Click,
+    IsEmpty(bool),
+    GetValue(Value),
+    SetValue(Value),
+    Custom(u32, LPVOID),
+  }
+
 
 	/// DOM event handler which can be attached to any DOM element.
 	///
@@ -1239,7 +1249,7 @@ This way you can establish interaction between scipt and native code inside your
 	#[allow(unused_variables)]
 	pub trait EventHandler {
 
-		/// Return list of event groups this event_handler is subscribed to.
+		/// Return list of event groups this event handler is subscribed to.
 		///
 		/// Default is `HANDLE_BEHAVIOR_EVENT | HANDLE_SCRIPTING_METHOD_CALL`.
 		/// See also [`default_events()`](fn.default_events.html).
@@ -1248,19 +1258,31 @@ This way you can establish interaction between scipt and native code inside your
 		}
 
 		/// Called when handler was attached to element or window.
-		/// `root` is NULL if attaching to window without loaded document.
+		/// `root` is `NULL` if attaching to window without loaded document.
+    ///
+    /// **Subscription**: always.
 		fn attached(&mut self, root: HELEMENT) {}
 
 		/// Called when handler was detached from element or window.
+    ///
+    /// **Subscription**: always.
 		fn detached(&mut self, root: HELEMENT) {}
 
-		/// Notification that document finishes its loading - all requests for external resources are finished
+		/// Notification that document finishes its loading - all requests for external resources are finished.
+    ///
+    /// **Subscription**: requires [`HANDLE_BEHAVIOR_EVENT`](enum.EVENT_GROUPS.html),
+    /// but will be sent only for the root element (`<html>`).
 		fn document_complete(&mut self, root: HELEMENT, target: HELEMENT) {}
 
 		/// The last notification before document removal from the DOM.
+    ///
+    /// **Subscription**: requires [`HANDLE_BEHAVIOR_EVENT`](enum.EVENT_GROUPS.html),
+    /// but will be sent only for the root element (`<html>`).
 		fn document_close(&mut self, root: HELEMENT, target: HELEMENT) {}
 
 		/// Script calls from CSSS! script and TIScript.
+    ///
+    /// **Subscription**: requires [`HANDLE_SCRIPTING_METHOD_CALL`](enum.EVENT_GROUPS.html).
 		fn on_script_call(&mut self, root: HELEMENT, name: &str, args: &[Value]) -> Option<Value> {
 			return self.dispatch_script_call(root, name, args);
 		}
@@ -1271,21 +1293,33 @@ This way you can establish interaction between scipt and native code inside your
 		}
 
 		/// Notification event from builtin behaviors.
+    ///
+    /// **Subscription**: requires [`HANDLE_BEHAVIOR_EVENT`](enum.EVENT_GROUPS.html).
 		fn on_event(&mut self, root: HELEMENT, source: HELEMENT, target: HELEMENT, code: BEHAVIOR_EVENTS, phase: PHASE_MASK, reason: EventReason) -> bool {
 			return false;
 		}
 
 		/// Timer event from attached element.
+    ///
+    /// **Subscription**: requires [`HANDLE_TIMER`](enum.EVENT_GROUPS.html).
 		fn on_timer(&mut self, root: HELEMENT, timer_id: u64) -> bool { return false; }
 
 		/// Drawing request event.
 		///
 		/// It allows to intercept drawing events of an `Element` and to manually draw its content, background and foreground layers.
+    ///
+    /// **Subscription**: requires [`HANDLE_DRAW`](enum.EVENT_GROUPS.html).
 		fn on_draw(&mut self, root: HELEMENT, gfx: HGFX, area: &RECT, layer: DRAW_EVENTS) -> bool { return false; }
 
 		/// Size changed event.
+    ///
+    /// **Subscription**: requires [`HANDLE_SIZE`](enum.EVENT_GROUPS.html).
 		fn on_size(&mut self, root: HELEMENT) {}
 
+    /// Behavior method calls from script or other behaviors.
+    ///
+    /// **Subscription**: requires [`HANDLE_METHOD_CALL`](enum.EVENT_GROUPS.html).
+    fn on_method_call(&mut self, root: HELEMENT, params: &mut MethodParams) -> bool { return false }
 	}
 
 }

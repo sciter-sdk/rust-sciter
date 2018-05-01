@@ -2,7 +2,7 @@ use capi::sctypes::*;
 use capi::scbehavior::*;
 use capi::scdom::{HELEMENT};
 use value::Value;
-use dom::event::{EventHandler, EventReason};
+use dom::event::EventHandler;
 
 #[repr(C)]
 pub struct WindowHandler<T>
@@ -145,6 +145,7 @@ fn process_events(me: &mut EventHandler, he: HELEMENT, evtg: UINT, params: LPVOI
 			let scnm = params as *const BEHAVIOR_EVENT_PARAMS;
 			let nm = unsafe { &*scnm };
 
+      use dom::event::EventReason;
 			let code :BEHAVIOR_EVENTS = unsafe{ ::std::mem::transmute(nm.cmd & 0x0_0FFF) };
 			let phase: PHASE_MASK = unsafe { ::std::mem::transmute(nm.cmd & 0xFFFF_F000) };
 			let reason = match code {
@@ -198,6 +199,60 @@ fn process_events(me: &mut EventHandler, he: HELEMENT, evtg: UINT, params: LPVOI
 			};
 			handled
 		},
+
+    EVENT_GROUPS::HANDLE_METHOD_CALL => {
+      assert!(!params.is_null());
+      let scnm = params as *const METHOD_PARAMS;
+      let nm = unsafe { & *scnm };
+      let code: BEHAVIOR_METHOD_IDENTIFIERS = unsafe { ::std::mem::transmute((*nm).methodID) };
+
+      let mut method_value = Value::new();
+
+      use dom::event::MethodParams;
+      use capi::scbehavior::BEHAVIOR_METHOD_IDENTIFIERS::*;
+      let mut reason = match code {
+        DO_CLICK => {
+          MethodParams::Click
+        },
+        IS_EMPTY => {
+          let payload = params as *const IS_EMPTY_PARAMS;
+          let pm = unsafe { & *payload };
+          MethodParams::IsEmpty(pm.is_empty != 0)
+        },
+        GET_VALUE => {
+          // let payload = params as *mut VALUE_PARAMS;
+          // let pm = unsafe { &mut *payload };
+          MethodParams::GetValue(method_value)
+        },
+        SET_VALUE => {
+          // Value from Sciter.
+          let payload = params as *const VALUE_PARAMS;
+          let pm = unsafe { & *payload };
+          method_value = Value::from(&pm.value);
+          MethodParams::SetValue(method_value)
+        },
+
+        _ => {
+          MethodParams::Custom((*nm).methodID, params)
+        },
+      };
+
+      let handled = me.on_method_call(he, &mut reason);
+      if handled {
+        match reason {
+          // Pack value back to Sciter.
+          MethodParams::GetValue(ref value) => {
+            let payload = params as *mut VALUE_PARAMS;
+            let pm = unsafe { &mut *payload };
+            value.pack_to(&mut pm.value);
+          },
+
+          _ => {},
+        }
+      }
+
+      handled
+    },
 
 		EVENT_GROUPS::HANDLE_TIMER => {
 			assert!(!params.is_null());
