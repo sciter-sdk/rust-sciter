@@ -52,6 +52,11 @@ pub enum BEHAVIOR_METHOD_IDENTIFIERS {
   SET_VALUE = 0xFE,
 
   /// User method identifier used in custom behaviors.
+  ///
+  /// All custom event codes shall be greater than this number.
+  /// All codes below this will be used solely by application - Sciter will not intrepret it
+  /// and will do just dispatching. To send event notifications with  these codes use
+  /// `SciterCallBehaviorMethod` API.
   FIRST_APPLICATION_METHOD_ID = 0x100,
 }
 
@@ -59,7 +64,7 @@ pub enum BEHAVIOR_METHOD_IDENTIFIERS {
 #[repr(C)]
 pub struct METHOD_PARAMS {
   /// [`BEHAVIOR_METHOD_IDENTIFIERS`](enum.BEHAVIOR_METHOD_IDENTIFIERS.html) or user identifiers.
-  pub methodID: UINT,
+  pub method: UINT,
 }
 
 #[repr(C)]
@@ -136,7 +141,7 @@ pub enum EVENT_GROUPS
 	HANDLE_SIZE = 0x0020,
 	/// Drawing request (event).
 	HANDLE_DRAW = 0x0040,
-	/// Requested data () has been delivered.
+	/// Requested data has been delivered.
 	HANDLE_DATA_ARRIVED = 0x080,
 
 	/// Logical, synthetic events:
@@ -185,9 +190,13 @@ pub enum PHASE_MASK
 /// General event source triggers
 pub enum CLICK_REASON
 {
+  /// By mouse button.
 	BY_MOUSE_CLICK,
+  /// By keyboard (e.g. spacebar).
 	BY_KEY_CLICK,
-	SYNTHESIZED, // synthesized, programmatically generated.
+  /// Synthesized, by code.
+	SYNTHESIZED,
+  /// Icon click, e.g. arrow icon on drop-down select.
 	BY_MOUSE_ON_ICON,
 }
 
@@ -203,9 +212,9 @@ pub enum EDIT_CHANGED_REASON
 	BY_INS_CHARS,
 	/// Single char deletion.
 	BY_DEL_CHAR,
-	/// character range deletion (selection).
+	/// Character range (selection) deletion.
 	BY_DEL_CHARS,
-	/// undo/redo
+	/// Undo/redo.
 	BY_UNDO_REDO
 }
 

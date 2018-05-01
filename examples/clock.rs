@@ -12,6 +12,21 @@ use sciter::Value;
 // 24:60:60, will be drawn as analog clock
 type Time = [u8; 3usize];
 
+/// Clock native behavior.
+///
+/// ## Behavior-specific HTML attributes:
+///
+/// * `utc="integer"` - time zone offset, positive or negative.
+/// * `frosen` - time is not updated automtically.
+///
+/// ## Value
+///
+/// *read/write* Current time value in `HH::MM::SS` or `[HH, MM, SS]` form.
+///
+/// ## Events
+///
+/// N/A - this element does not generate any specific events.
+///
 #[derive(Default)]
 struct Clock {
   element: Option<Element>,
@@ -55,19 +70,18 @@ impl sciter::EventHandler for Clock {
   }
 
   /// Our behavior methods.
-  fn on_method_call(&mut self, _root: HELEMENT, params: &mut MethodParams) -> bool {
+  fn on_method_call(&mut self, _root: HELEMENT, params: MethodParams) -> bool {
     match params {
-      &mut MethodParams::GetValue(ref mut val) => {
+      MethodParams::GetValue(retval) => {
         // engine wants out current value (e.g. `current = element.value`)
         let v: Value = self.now.iter().map(|v| i32::from(*v)).collect();
         println!("return current time as {:?}", v);
-        *val = v;
+        *retval = v;
       }
 
-      &mut MethodParams::SetValue(ref val) => {
+      MethodParams::SetValue(v) => {
         // engine sets our value (e.g. `element.value = new`)
-        let v = val;
-        println!("set current time from {:?}", val);
+        println!("set current time from {:?}", v);
 
         // "10:20:30"
         if v.is_string() {
@@ -290,7 +304,7 @@ impl Clock {
 }
 
 fn main() {
-  let mut frame = sciter::WindowBuilder::main_window().with_size((500, 500)).create();
+  let mut frame = sciter::WindowBuilder::main_window().with_size((800, 600)).create();
   frame.register_behavior("native-clock", || Box::new(Clock::default()));
   frame.load_html(include_bytes!("clock.htm"), Some("example://clock.htm"));
   frame.run_app();

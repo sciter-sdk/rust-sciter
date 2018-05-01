@@ -500,6 +500,61 @@ impl Element {
 		return ok_or!(rv, ok, SCDOM_RESULT::OPERATION_FAILED);
 	}
 
+  /// Call behavior specific method.
+  pub fn call_behavior_method(&self, params: event::MethodParams) -> Result<()> {
+    let call = |p| {
+      (_API.SciterCallBehaviorMethod)(self.he, p)
+    };
+    use capi::scbehavior::{METHOD_PARAMS, VALUE_PARAMS, IS_EMPTY_PARAMS};
+    use capi::scbehavior::BEHAVIOR_METHOD_IDENTIFIERS::*;
+    let ok = match params {
+      event::MethodParams::Click => {
+        let mut p = METHOD_PARAMS {
+          method: DO_CLICK as u32,
+        };
+        call(&mut p as *mut _)
+      },
+      event::MethodParams::SetValue(v) => {
+        let mut p = VALUE_PARAMS {
+          method: SET_VALUE as u32,
+          value: Default::default(),
+        };
+        v.pack_to(&mut p.value);
+        call(&mut p as *mut _ as *mut METHOD_PARAMS)
+      },
+      event::MethodParams::GetValue(retv) => {
+        let mut p = VALUE_PARAMS {
+          method: SET_VALUE as u32,
+          value: Default::default(),
+        };
+        let ok = call(&mut p as *mut _ as *mut METHOD_PARAMS);
+        if ok != SCDOM_RESULT::OK {
+          return Err(ok);
+        }
+        *retv = Value::from(&p.value);
+        ok
+      },
+      event::MethodParams::IsEmpty(retv) => {
+        let mut p = IS_EMPTY_PARAMS {
+          method: IS_EMPTY as u32,
+          is_empty: Default::default(),
+        };
+        let ok = call(&mut p as *mut _ as *mut METHOD_PARAMS);
+        if ok != SCDOM_RESULT::OK {
+          return Err(ok);
+        }
+        *retv = p.is_empty != 0;
+        ok
+      },
+
+      _ => {
+        // Can't handle `MethodParams::Custom` yet.
+        SCDOM_RESULT::INVALID_PARAMETER
+      },
+    };
+    ok_or!((), ok)
+  }
+
 
 	//\name Attributes
 	/// Get number of the attributes.
@@ -1226,12 +1281,24 @@ This way you can establish interaction between scipt and native code inside your
 	}
 
   /// Behavior method params.
+  ///
+  /// Sciter sends these events to native behaviors.
   #[derive(Debug)]
-  pub enum MethodParams {
+  pub enum MethodParams<'a> {
+    /// Click event (either from mouse or code).
     Click,
-    IsEmpty(bool),
-    GetValue(Value),
+
+    /// Get current [`:empty`](https://sciter.com/docs/content/sciter/States.htm) state,
+    /// i.e. if behavior has no children and no text.
+    IsEmpty(&'a mut bool),
+
+    /// Get the current value of the behavior.
+    GetValue(&'a mut Value),
+
+    /// Set the current value of the behavior.
     SetValue(Value),
+
+    /// Custom methods, unknown for engine. Sciter will not intrepret it and will do just dispatching.
     Custom(u32, LPVOID),
   }
 
@@ -1280,6 +1347,13 @@ This way you can establish interaction between scipt and native code inside your
     /// but will be sent only for the root element (`<html>`).
 		fn document_close(&mut self, root: HELEMENT, target: HELEMENT) {}
 
+    /// Behavior method calls from script or other behaviors.
+    ///
+    /// Return `false` to skip this event.
+    ///
+    /// **Subscription**: requires [`HANDLE_METHOD_CALL`](enum.EVENT_GROUPS.html).
+    fn on_method_call(&mut self, root: HELEMENT, params: MethodParams) -> bool { return false }
+
 		/// Script calls from CSSS! script and TIScript.
     ///
     /// **Subscription**: requires [`HANDLE_SCRIPTING_METHOD_CALL`](enum.EVENT_GROUPS.html).
@@ -1315,11 +1389,6 @@ This way you can establish interaction between scipt and native code inside your
     ///
     /// **Subscription**: requires [`HANDLE_SIZE`](enum.EVENT_GROUPS.html).
 		fn on_size(&mut self, root: HELEMENT) {}
-
-    /// Behavior method calls from script or other behaviors.
-    ///
-    /// **Subscription**: requires [`HANDLE_METHOD_CALL`](enum.EVENT_GROUPS.html).
-    fn on_method_call(&mut self, root: HELEMENT, params: &mut MethodParams) -> bool { return false }
 	}
 
 }
