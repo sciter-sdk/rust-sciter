@@ -1,188 +1,297 @@
-#![windows_subsystem="windows"]
+#![windows_subsystem = "windows"]
+
+#[macro_use]
 extern crate sciter;
 
-use sciter::dom::{HELEMENT, Element};
-use sciter::dom::event::{EVENT_GROUPS, DRAW_EVENTS};
-use sciter::graphics::{self, HGFX, Graphics, rgb};
+use sciter::dom::event::{MethodParams, DRAW_EVENTS, EVENT_GROUPS};
+use sciter::dom::{Element, HELEMENT};
+use sciter::graphics::{self, rgb, Graphics, HGFX};
 use sciter::types::RECT;
+use sciter::Value;
+
+// 24:60:60, will be drawn as analog clock
+type Time = [u8; 3usize];
+
+#[derive(Default)]
+struct Clock {
+  element: Option<Element>,
+  now: Time,
+  gmt: i8,
+  is_frosen: bool,
+}
+
+impl sciter::EventHandler for Clock {
+  /// Claim what kind of events we want to receive.
+  fn get_subscription(&mut self) -> Option<EVENT_GROUPS> {
+    // we need timer and draw events
+    // also behavior method calls
+    Some(EVENT_GROUPS::HANDLE_TIMER
+      | EVENT_GROUPS::HANDLE_DRAW
+      | EVENT_GROUPS::HANDLE_METHOD_CALL
+    )
+  }
+
+  /// Our element is constructed. But scripts in HTML are not loaded yet.
+  fn attached(&mut self, root: HELEMENT) {
+    self.element = Some(Element::from(root));
+    let me = self.element.as_ref().unwrap();
+
+    // get attributes to initialize our clock
+    if let Some(attr) = me.get_attribute("utc") {
+      if let Ok(v) = attr.parse::<i8>() {
+        self.gmt = v;
+      }
+    }
+
+    // we don't update frosen clocks
+    if let Some(_attr) = me.get_attribute("frosen") {
+      self.is_frosen = true;
+    }
+
+    // timer to redraw our clock
+    if !self.is_frosen {
+      me.start_timer(300, 1).expect("Can't set timer");
+    }
+  }
+
+  /// Our behavior methods.
+  fn on_method_call(&mut self, _root: HELEMENT, params: &mut MethodParams) -> bool {
+    match params {
+      &mut MethodParams::GetValue(ref mut val) => {
+        // engine wants out current value (e.g. `current = element.value`)
+        let v: Value = self.now.iter().map(|v| i32::from(*v)).collect();
+        println!("return current time as {:?}", v);
+        *val = v;
+      }
+
+      &mut MethodParams::SetValue(ref val) => {
+        // engine sets our value (e.g. `element.value = new`)
+        let v = val;
+        println!("set current time from {:?}", val);
+
+        // "10:20:30"
+        if v.is_string() {
+          let s = v.as_string().unwrap();
+          let t = s.split(':').take(3).map(|n| n.parse::<u8>());
+          let mut new_time = Time::default();
+          for (i, n) in t.enumerate() {
+            if let Err(_) = n {
+              eprintln!("clock::set_value({:?}) is invalid", v);
+              return true; // consume this event anyway
+            }
+            new_time[i] = n.unwrap();
+          }
+          // use it as a new time
+          self.set_time(new_time);
+
+        // [10, 20, 30]
+        } else if v.is_varray() {
+          let mut new_time = Time::default();
+          for (i, n) in v.values().take(3).map(|n| n.to_int()).enumerate() {
+            if n.is_none() {
+              eprintln!("clock::set_value({:?}) is invalid", v);
+              return true;
+            }
+            new_time[i] = n.unwrap() as u8
+          }
+          // use it as a new time
+          self.set_time(new_time);
+        } else {
+          // unknown format
+          eprintln!("clock::set_value({:?}) is unsupported", v);
+          return true;
+        }
+      }
+
+      _ => {
+        // unsupported event, skip it
+        return false;
+      }
+    }
+
+    // mark this event as handled (consume it)
+    return true;
+  }
+
+  /// Redraw our element on each tick.
+  fn on_timer(&mut self, root: HELEMENT, _timer_id: u64) -> bool {
+    if self.update_time() {
+      // redraw our clock
+      Element::from(root).refresh().expect("Can't refresh element");
+    }
+    true
+  }
+
+  /// Request to draw our element.
+  fn on_draw(&mut self, _root: HELEMENT, gfx: HGFX, area: &RECT, layer: DRAW_EVENTS) -> bool {
+    if layer == DRAW_EVENTS::DRAW_CONTENT {
+      // draw content only
+      // leave the back- and foreground to be default
+      let mut gfx = Graphics::from(gfx);
+      let ok = self.draw_clock(&mut gfx, &area);
+      if let Err(err) = ok {
+        println!("error in draw_clock: {:?}", err);
+      }
+    }
+    // allow default drawing anyway
+    return false;
+  }
+}
 
 // 360°
 const PI2: f32 = 2.0 * std::f32::consts::PI;
 
-
-struct Clock;
-
-impl sciter::EventHandler for Clock {
-	fn get_subscription(&mut self) -> Option<EVENT_GROUPS> {
-		// we need timer and draw events
-		Some(EVENT_GROUPS::HANDLE_TIMER | EVENT_GROUPS::HANDLE_DRAW)
-	}
-
-	fn attached(&mut self, root: HELEMENT) {
-		// timer for every second
-		Element::from(root)
-			.start_timer(1000, 1).expect("Can't set timer");
-	}
-
-	fn on_timer(&mut self, root: HELEMENT, _timer_id: u64) -> bool {
-		// to redraw our clock
-		Element::from(root)
-			.refresh().expect("Can't refresh element");
-		unsafe { TICKS += 1; }
-		true
-	}
-
-	fn on_draw(&mut self, _root: HELEMENT, gfx: HGFX, area: &RECT, layer: DRAW_EVENTS) -> bool {
-
-		if layer == DRAW_EVENTS::DRAW_CONTENT {
-			// draw content only
-			// leave the back- and foreground to be default
-			let mut gfx = Graphics::from(gfx);
-			let ok = self.draw_clock(&mut gfx, &area);
-			if let Err(err) = ok {
-				println!("oops: {:?}", err);
-			}
-		}
-
-		// allow default drawing anyway
-		return false;
-	}
-}
-
 impl Clock {
+  /// Update current time and say if changed.
+  fn update_time(&mut self) -> bool {
+    if self.is_frosen {
+      return false;
+    }
 
-	fn draw_clock(&mut self, gfx: &mut Graphics, area: &RECT) -> graphics::Result<()> {
+    // ask our script for the current time
+    if let Some(now) = self.get_time() {
+      let update = self.now != now;
+      self.now = now;
+      update
+    } else {
+      false
+    }
+  }
 
-		// save previous state
-		let mut gfx = gfx.save_state()?;
+  /// Set the new time and redraw our element.
+  fn set_time(&mut self, new_time: Time) {
+    // set new time and redraw our clock
+    self.now = new_time;
+    if let Some(el) = self.element.as_ref() {
+      el.refresh().ok();
+    }
+  }
 
-		// setup our attributes
-		let left = area.left as f32;
-		let top = area.top as f32;
-		let width = area.width() as f32;
-		let height = area.height() as f32;
+  /// Get current time from script.
+  fn get_time(&self) -> Option<Time> {
+    let el = self.element.as_ref().unwrap();
+    let script_func = if self.is_frosen { "getLocalTime" } else { "getUtcTime" };
+    if let Ok(time) = el.call_function(script_func, &make_args!(self.gmt as i32)) {
+      assert_eq!(time.len(), 3);
+      let mut now = Time::default();
+      for (i, n) in time.values().take(3).map(|n| n.to_int()).enumerate() {
+        now[i] = n.unwrap() as u8;
+      }
+      Some(now)
+    } else {
+      eprintln!("error: can't eval get time script");
+      None
+    }
+  }
 
-		let scale = if width < height { width / 300.0 } else { height / 300.0 };
+  /// Draw our element.
+  fn draw_clock(&mut self, gfx: &mut Graphics, area: &RECT) -> graphics::Result<()> {
+    // save previous state
+    let mut gfx = gfx.save_state()?;
 
-		// translate to its center and rotate 45° left.
-		gfx
-			.translate((left + width / 2.0, top + height / 2.0))?
-			.scale((scale, scale))?
-			.rotate(-PI2 / 4.)?
-			;
+    // setup our attributes
+    let left = area.left as f32;
+    let top = area.top as f32;
+    let width = area.width() as f32;
+    let height = area.height() as f32;
 
-		gfx
-			.line_color(0)?
-			.line_cap(graphics::LINE_CAP::ROUND)?;
+    let scale = if width < height { width / 300.0 } else { height / 300.0 };
 
-		// draw clock background
-		self.draw_outline(&mut *gfx)?;
+    // translate to its center and rotate 45° left.
+    gfx
+      .translate((left + width / 2.0, top + height / 2.0))?
+      .scale((scale, scale))?
+      .rotate(-PI2 / 4.)?;
 
-		// draw clock sticks
-		self.draw_time(&mut *gfx)?;
+    gfx.line_color(0)?.line_cap(graphics::LINE_CAP::ROUND)?;
 
-		Ok(())
-	}
+    // draw clock background
+    self.draw_outline(&mut *gfx)?;
 
-	fn draw_outline(&mut self, gfx: &mut Graphics) -> graphics::Result<()> {
-		// hour marks (every 5 ticks)
-		{
-			let mut gfx = gfx.save_state()?;
-			gfx
-				.line_width(8.0)?
-				.line_color(rgb(0x32, 0x5F, 0xA2))?;
+    // draw clock sticks
+    self.draw_time(&mut *gfx)?;
 
-			for _ in 0..12 {
-				gfx
-					.rotate(PI2/12.)?
-					.line((137., 0.), (144., 0.))?;
-			}
-		}
+    Ok(())
+  }
 
-		// minute marks (every but 5th tick)
-		{
-			let mut gfx = gfx.save_state()?;
-			gfx
-				.line_width(3.0)?
-				.line_color(rgb(0xA5, 0x2A, 0x2A))?;
+  /// Draw clock static area (hour/minute marks).
+  fn draw_outline(&mut self, gfx: &mut Graphics) -> graphics::Result<()> {
+    // hour marks (every 5 ticks)
+    {
+      let mut gfx = gfx.save_state()?;
+      gfx.line_width(8.0)?.line_color(rgb(0x32, 0x5F, 0xA2))?;
 
-			for i in 0..60 {
-				if i % 5 != 0 {	// skip hours
-					gfx.line((143., 0.), (146., 0.))?;
-				}
-				gfx.rotate(PI2/60.)?;
-			}
-		}
-		Ok(())
-	}
+      for _ in 0..12 {
+        gfx.rotate(PI2 / 12.)?.line((137., 0.), (144., 0.))?;
+      }
+    }
 
-	fn draw_time(&mut self, gfx: &mut Graphics) -> graphics::Result<()> {
+    // minute marks (every but 5th tick)
+    {
+      let mut gfx = gfx.save_state()?;
+      gfx.line_width(3.0)?.line_color(rgb(0xA5, 0x2A, 0x2A))?;
 
-		let time = current_time();
-		let hours = time.0 as f32;
-		let minutes = time.1 as f32;
-		let seconds = time.2 as f32;
+      for i in 0..60 {
+        if i % 5 != 0 {
+          // skip hours
+          gfx.line((143., 0.), (146., 0.))?;
+        }
+        gfx.rotate(PI2 / 60.)?;
+      }
+    }
+    Ok(())
+  }
 
-		{
-			// hours
-			let mut gfx = gfx.save_state()?;
+  /// Draw clock arrows.
+  fn draw_time(&mut self, gfx: &mut Graphics) -> graphics::Result<()> {
+    let time = &self.now;
+    let hours = f32::from(time[0]);
+    let minutes = f32::from(time[1]);
+    let seconds = f32::from(time[2]);
 
-			// 2PI*/12, 2PI/720,
-			gfx.rotate(hours  * (PI2/12 as f32) + minutes * (PI2/(12*60) as f32) + seconds * (PI2/(12*60*60) as f32))?;
+    {
+      // hours
+      let mut gfx = gfx.save_state()?;
 
-			gfx
-				.line_width(14.0)?
-				.line_color(rgb(0x32, 0x5F, 0xA2))?
-				.line((-20., 0.), (70., 0.))?;
-		}
-		{
-			// minutes
-			let mut gfx = gfx.save_state()?;
+      // 2PI*/12, 2PI/720,
+      gfx.rotate(hours * (PI2 / 12 as f32) + minutes * (PI2 / (12 * 60) as f32) + seconds * (PI2 / (12 * 60 * 60) as f32))?;
 
-			gfx.rotate(minutes * (PI2/60 as f32) + seconds * (PI2/(60*60) as f32))?;
+      gfx
+        .line_width(14.0)?
+        .line_color(rgb(0x32, 0x5F, 0xA2))?
+        .line((-20., 0.), (70., 0.))?;
+    }
+    {
+      // minutes
+      let mut gfx = gfx.save_state()?;
 
-			gfx
-				.line_width(10.0)?
-				.line_color(rgb(0x32, 0x5F, 0xA2))?
-				.line((-28., 0.), (100., 0.))?;
-		}
-		{
-			// seconds
-			let mut gfx = gfx.save_state()?;
+      gfx.rotate(minutes * (PI2 / 60 as f32) + seconds * (PI2 / (60 * 60) as f32))?;
 
-			gfx.rotate(seconds * (PI2/60 as f32))?;
+      gfx
+        .line_width(10.0)?
+        .line_color(rgb(0x32, 0x5F, 0xA2))?
+        .line((-28., 0.), (100., 0.))?;
+    }
+    {
+      // seconds
+      let mut gfx = gfx.save_state()?;
 
-			gfx
-				.line_width(6.0)?
-				.line_color(rgb(0xD4, 0, 0))?
-				.fill_color(rgb(0xD4, 0, 0))?
-				.line((-30., 0.), (83., 0.))?
-				.circle((0., 0.), 10.)?;
-		}
-		Ok(())
-	}
+      gfx.rotate(seconds * (PI2 / 60 as f32))?;
+
+      gfx
+        .line_width(6.0)?
+        .line_color(rgb(0xD4, 0, 0))?
+        .fill_color(rgb(0xD4, 0, 0))?
+        .line((-30., 0.), (83., 0.))?
+        .circle((0., 0.), 10.)?;
+    }
+    Ok(())
+  }
 }
-
-// Emulating a system clock here (don't want to pull a half of the Universe with `chrono` crate)
-static mut TICKS: usize = 10*60*60 + 15 * 60 + 34;
-
-fn current_time() -> (u8, u8, u8) {
-	let mut t = unsafe { TICKS };
-
-	let s = t % 60;
-	t /= 60;
-	let m = t % 60;
-	t /= 60;
-	let h = t % 12;
-	(h as u8, m as u8, s as u8)
-}
-
 
 fn main() {
-	let mut frame = sciter::WindowBuilder::main_window()
-		.with_size((500, 500))
-		.create();
-	frame.register_behavior("rust-clock", || Box::new(Clock));
-	frame.load_html(include_bytes!("clock.htm"), Some("example://clock.htm"));
-	frame.run_app();
+  let mut frame = sciter::WindowBuilder::main_window().with_size((500, 500)).create();
+  frame.register_behavior("native-clock", || Box::new(Clock::default()));
+  frame.load_html(include_bytes!("clock.htm"), Some("example://clock.htm"));
+  frame.run_app();
 }
