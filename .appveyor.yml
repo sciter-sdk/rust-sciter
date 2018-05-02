@@ -45,15 +45,15 @@ environment:
     ARCH: 32
 
   - TARGET: x86_64-pc-windows-msvc
-    CHANNEL: 1.21.0
+    CHANNEL: 1.22.0
     ARCH: 64
 
   - TARGET: i686-pc-windows-msvc
-    CHANNEL: 1.21.0
+    CHANNEL: 1.22.0
     ARCH: 32
 
   - TARGET: x86_64-pc-windows-msvc
-    CHANNEL: 1.21.0
+    CHANNEL: 1.22.0
     ARCH: 64
     APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
 
