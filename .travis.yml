@@ -82,6 +82,7 @@ script:
 
   - cargo build --example first --verbose
   - cargo run --example first
+  - cargo run --example first --features shared
 
   - cargo build --all
   - cargo build --all --release

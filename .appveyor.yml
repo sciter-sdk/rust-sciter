@@ -27,6 +27,16 @@ environment:
     ARCH: skia32
 
   - TARGET: x86_64-pc-windows-msvc
+    CHANNEL: stable
+    ARCH: 64
+    FEATURES: --features "shared"
+
+  - TARGET: i686-pc-windows-msvc
+    CHANNEL: stable
+    ARCH: 32
+    FEATURES: --features "shared"
+
+  - TARGET: x86_64-pc-windows-msvc
     CHANNEL: nightly
     ARCH: 64
 
@@ -69,14 +79,14 @@ before_build:
 
 build_script:
   - cmd: echo Building library
-  - cargo build --release --all
+  - cargo build --release --all %FEATURES%
 
   - cmd: echo Building examples
   - cargo build --example first --verbose
-  - cargo build --release --examples
+  - cargo build --release --examples %FEATURES%
 
 test_script:
-  - cargo run --example first
+  - cargo run --example first %FEATURES%
 
-  - cargo test --all
-  - cargo test --all --release
+  - cargo test --all %FEATURES%
+  - cargo test --all %FEATURES% --release
