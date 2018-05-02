@@ -119,38 +119,205 @@ mod ext {
 	// Note:
 	// Sciter 4.x shipped with universal "sciter.dll" library for different builds:
 	// bin/32, bin/64, bin/skia32, bin/skia64
-	// However it is quiet unconvenient now (e.g. we can not put x64 and x86 builds in %PATH%)
+	// However it is quite inconvenient now (e.g. we can not put x64 and x86 builds in %PATH%)
 	//
 	#![allow(non_snake_case, non_camel_case_types)]
 	use capi::scapi::{ISciterAPI};
-	use capi::sctypes::{LPCSTR, LPCVOID, UINT};
+	use capi::sctypes::{LPCSTR, LPCVOID, BOOL};
 
-	type SciterAPI_ptr = extern "system" fn () -> *const ISciterAPI;
+  type ApiType = *const ISciterAPI;
+	type FuncType = extern "system" fn () -> *const ISciterAPI;
+
+  pub static mut CUSTOM_DLL_PATH: Option<String> = None;
 
 	extern "system"
 	{
 		fn LoadLibraryA(lpFileName: LPCSTR) -> LPCVOID;
+    fn FreeLibrary(dll: LPCVOID) -> BOOL;
 		fn GetProcAddress(hModule: LPCVOID, lpProcName: LPCSTR) -> LPCVOID;
-		fn GetLastError() -> UINT;
 	}
 
+  pub fn try_load_library(permanent: bool) -> ::std::result::Result<ApiType, String> {
+    use ::std;
+    use std::ffi::CString;
+    use std::path::Path;
+
+    fn try_load(path: &Path) -> Option<LPCVOID> {
+      let path = CString::new(format!("{}", path.display())).expect("invalid library path");
+      let dll = unsafe { LoadLibraryA(path.as_ptr()) };
+      if !dll.is_null() {
+        Some(dll)
+      } else {
+        None
+      }
+    }
+
+    fn in_global() -> Option<LPCVOID> {
+      // modern dll name
+      let mut dll = unsafe { LoadLibraryA(b"sciter.dll\0".as_ptr() as LPCSTR) };
+      if dll.is_null() {
+        // try to load with old names
+        let alternate = if cfg!(target_arch="x86_64") { b"sciter64.dll\0" } else { b"sciter32.dll\0" };
+        dll = unsafe { LoadLibraryA(alternate.as_ptr() as LPCSTR) };
+      }
+      if !dll.is_null() {
+        Some(dll)
+      } else {
+        None
+      }
+    }
+
+    // try specified path first (and only if present)
+    // and several paths to lookup then
+    let dll = if let Some(path) = unsafe { CUSTOM_DLL_PATH.as_ref() } {
+      try_load(Path::new(path))
+    } else {
+      in_global()
+    };
+
+    if let Some(dll) = dll {
+      // get the "SciterAPI" exported symbol
+      let sym = unsafe { GetProcAddress(dll, b"SciterAPI\0".as_ptr() as LPCSTR) };
+      if sym.is_null() {
+        return Err("\"SciterAPI\" function was expected in the loaded library.".to_owned());
+      }
+
+      if !permanent {
+        unsafe { FreeLibrary(dll) };
+        return Ok(0 as ApiType);
+      }
+
+      let get_api: FuncType = unsafe { std::mem::transmute(sym) };
+      return Ok(get_api());
+    }
+    let sdkbin = if cfg!(target_arch="x86_64") { "bin/64" } else { "bin/32" };
+    let msg = format!("Please verify that Sciter SDK is installed and its binaries (from SDK/{}) are available in PATH.", sdkbin);
+    Err(format!("error: '{}' was not found neither in PATH nor near the current executable.\n  {}", "sciter.dll", msg))
+  }
+
 	pub unsafe fn SciterAPI() -> *const ISciterAPI {
-		let dll = LoadLibraryA(b"sciter.dll\0".as_ptr() as LPCSTR);
-		let err = GetLastError();
-		if dll.is_null() {
-			let msg = "Please verify that Sciter SDK is installed and its binaries (SDK/bin, bin.osx or bin.gtk) available in the PATH.";
-			panic!("fatal: '{}' was not found in PATH (Error {})\n  {}", "sciter.dll", err, msg);
-		}
-		let func = GetProcAddress(dll, b"SciterAPI\0".as_ptr() as LPCSTR);
-		if func.is_null() {
-			panic!("Where is \"SciterAPI\"? It is expected to be in sciter.dll.");
-		}
-		let get_api: SciterAPI_ptr = ::std::mem::transmute(func);
-		return get_api();
+    match try_load_library(true) {
+      Ok(api) => api,
+      Err(error) => panic!(error),
+    }
 	}
 }
 
-#[cfg(target_os="linux")]
+#[cfg(all(feature = "shared", unix))]
+mod ext {
+  #![allow(non_snake_case, non_camel_case_types)]
+  extern crate libc;
+
+  pub static mut CUSTOM_DLL_PATH: Option<String> = None;
+
+  #[cfg(target_os="linux")]
+  const DLL_NAMES: &'static [&'static str] = &[ "libsciter-gtk.so" ];
+
+  #[cfg(all(target_os="macos", target_arch="x86_64"))]
+  const DLL_NAMES: &'static [&'static str] = &[ "sciter-osx-64.dylib" ];
+
+  use capi::scapi::ISciterAPI;
+  use capi::sctypes::{LPVOID, LPCSTR};
+
+  type FuncType = extern "system" fn () -> *const ISciterAPI;
+  type ApiType = *const ISciterAPI;
+
+
+  pub fn try_load_library(permanent: bool) -> ::std::result::Result<ApiType, String> {
+    use ::std;
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+    use std::path::{Path, PathBuf};
+
+
+    fn try_load(path: &Path) -> Option<LPVOID> {
+      let bytes = path.as_os_str().as_bytes();
+      if let Ok(cstr) = CString::new(bytes) {
+        let dll = unsafe { libc::dlopen(cstr.as_ptr(), libc::RTLD_LOCAL | libc::RTLD_LAZY) };
+        if !dll.is_null() {
+          return Some(dll)
+        }
+      }
+      None
+    }
+
+    fn try_load_from(dir: Option<&Path>) -> Option<LPVOID> {
+
+      let dll = DLL_NAMES.iter()
+        .map(|name| {
+          let mut path = dir.map(Path::to_owned).unwrap_or(PathBuf::new());
+          path.push(name);
+          path
+        })
+        .map(|path| try_load(&path))
+        .filter(|dll| dll.is_some())
+        .nth(0)
+        .map(|o| o.unwrap());
+
+      if dll.is_some() {
+        return dll;
+      }
+
+      if cfg!(target_os="macos") && dir.is_some() {
+        // "(bundle folder)/Contents/Frameworks/"
+        let mut path = dir.unwrap().to_owned();
+        path.push("../Frameworks/sciter-osx-64.dylib");
+        return try_load(&path);
+      }
+      None
+    }
+
+    fn in_current_dir() -> Option<LPVOID> {
+      if let Ok(dir) = ::std::env::current_exe() {
+        if let Some(dir) = dir.parent() {
+          return try_load_from(Some(dir));
+        }
+      }
+      None
+    }
+
+    fn in_global() -> Option<LPVOID> {
+      try_load_from(None)
+    }
+
+    // try specified path first (and only if present)
+    // and several paths to lookup then
+    let dll = if let Some(path) = unsafe { CUSTOM_DLL_PATH.as_ref() } {
+      try_load(Path::new(path))
+    } else {
+      in_current_dir().or(in_global())
+    };
+
+    if let Some(dll) = dll {
+      // get the "SciterAPI" exported symbol
+      let sym = unsafe { libc::dlsym(dll, b"SciterAPI\0".as_ptr() as LPCSTR) };
+      if sym.is_null() {
+        return Err("\"SciterAPI\" function was expected in the loaded library.".to_owned());
+      }
+
+      if !permanent {
+        unsafe { libc::dlclose(dll) };
+        return Ok(0 as ApiType);
+      }
+
+      let get_api: FuncType = unsafe { std::mem::transmute(sym) };
+      return Ok(get_api());
+    }
+    let sdkbin = if cfg!(target_os="macos") { "bin.osx" } else { "bin.gtk" };
+    let msg = format!("Please verify that Sciter SDK is installed and its binaries (from {}) are available in PATH.", sdkbin);
+    Err(format!("error: '{}' was not found neither in PATH nor near the current executable.\n  {}", DLL_NAMES[0], msg))
+  }
+
+  pub fn SciterAPI() -> *const ISciterAPI {
+    match try_load_library(true) {
+      Ok(api) => api,
+      Err(error) => panic!(error),
+    }
+  }
+}
+
+
+#[cfg(all(target_os="linux", not(feature = "shared")))]
 mod ext {
 	// Note:
 	// Since 4.1.4 library name has been changed to "libsciter-gtk" (without 32/64 suffix).
@@ -160,15 +327,15 @@ mod ext {
 	extern "system" { pub fn SciterAPI() -> *const ::capi::scapi::ISciterAPI;	}
 }
 
-#[cfg(all(target_os="macos", target_arch="x86_64"))]
+#[cfg(all(target_os="macos", target_arch="x86_64", not(feature = "shared")))]
 mod ext {
 	#[link(name="sciter-osx-64", kind = "dylib")]
 	extern "system" { pub fn SciterAPI() -> *const ::capi::scapi::ISciterAPI;	}
 }
 
+/// Getting ISciterAPI reference, can be used for manual API calling.
 #[doc(hidden)]
 #[allow(non_snake_case)]
-/// Getting ISciterAPI reference, can be used for manual API calling.
 pub fn SciterAPI<'a>() -> &'a ISciterAPI {
 	let ap = unsafe {
 		let p = ext::SciterAPI();
@@ -183,6 +350,36 @@ lazy_static! {
 	static ref _GAPI: &'static SciterGraphicsAPI = { unsafe { &*(SciterAPI().GetSciterGraphicsAPI)() } };
 	static ref _RAPI: &'static SciterRequestAPI = { unsafe { &*(SciterAPI().GetSciterRequestAPI)() } };
 }
+
+/// Set the custom path to the Sciter dynamic library.
+///
+/// Must be called first before any other functions.
+/// Returns `false` if library can not be loaded.
+///
+/// # Example
+///
+/// ```rust
+/// if sciter::set_dll_path("~/lib/sciter/bin.gtk/x64/libsciter-gtk.so").is_ok() {
+///   println!("loaded Sciter version {}", sciter::version());
+/// }
+/// ```
+pub fn set_dll_path(custom_path: &str) -> ::std::result::Result<(), String> {
+  #[cfg(not(feature="shared"))]
+  fn set_impl(_: &str) -> ::std::result::Result<(), String> {
+    Err("Don't use `sciter::set_dll_path` in static builds.\n  Build with feature \"shared\" instead.".to_owned())
+  }
+
+  #[cfg(feature="shared")]
+  fn set_impl(path: &str) -> ::std::result::Result<(), String> {
+    unsafe {
+      ext::CUSTOM_DLL_PATH = Some(path.to_owned());
+    }
+    ext::try_load_library(false).map(|_| ())
+  }
+
+  set_impl(custom_path)
+}
+
 
 /// Sciter engine version number (e.g. `0x03030200`).
 pub fn version_num() -> u32 {
