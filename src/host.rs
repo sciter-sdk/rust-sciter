@@ -8,7 +8,6 @@ use dom::event::EventHandler;
 use eventhandler::*;
 use value::{Value};
 
-pub use capi::scdef::{SCITER_RT_OPTIONS, SCRIPT_RUNTIME_FEATURES, GFX_LAYER};
 pub use capi::scdef::{LOAD_RESULT, SCN_LOAD_DATA, SCN_DATA_LOADED, SCN_ATTACH_BEHAVIOR, OUTPUT_SUBSYTEMS, OUTPUT_SEVERITY};
 
 
@@ -273,13 +272,6 @@ impl Host {
 		let argv = Value::pack_args(args);
 		let ok = (_API.SciterCall)(self.hwnd, s.as_ptr(), argv.len() as UINT, argv.as_ptr(), rv.as_ptr());
 		ok_or!(ok, rv, rv)
-	}
-
-	/// Set various sciter engine options, see the [`SCITER_RT_OPTIONS`](../enum.SCITER_RT_OPTIONS.html).
-	#[deprecated(since="0.5.40", note="please use `Window::set_options()` instead.")]
-	pub fn set_option(&self, option: SCITER_RT_OPTIONS, value: usize) -> Result<()> {
-		let ok = (_API.SciterSetOption)(self.hwnd, option, value as UINT_PTR);
-		ok_or!(ok)
 	}
 
 	/// Set home url for sciter resources.

@@ -439,14 +439,3 @@ pub fn set_options(options: RuntimeOptions) -> std::result::Result<(), ()> {
 		Err(())
 	}
 }
-
-/// Set various sciter engine global options, see the [`SCITER_RT_OPTIONS`](enum.SCITER_RT_OPTIONS.html).
-#[deprecated(since = "0.5.40", note = "please use `sciter::set_options()` instead.")]
-pub fn set_option(option: SCITER_RT_OPTIONS, value: usize) -> std::result::Result<(), ()> {
-	let ok = (_API.SciterSetOption)(std::ptr::null_mut(), option, value);
-	if ok != 0 {
-		Ok(())
-	} else {
-		Err(())
-	}
-}
