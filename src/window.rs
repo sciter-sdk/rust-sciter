@@ -42,12 +42,16 @@ pub use capi::scdef::{SCITER_CREATE_WINDOW_FLAGS};
 
 
 /// Per-window sciter engine options.
+///
+/// Used by [`Window::set_options()`](struct.Window.html#method.set_options).
+///
+/// See also [global options](../enum.RuntimeOptions.html).
 #[derive(Copy, Clone)]
 pub enum Options {
-	/// value: `true` to enable, `false` to disable, enabled by default.
+	/// Enable smooth scrolling, enabled by default.
 	SmoothScroll(bool),
 
-	/// value: `0` - system default, `1` - no smoothing, `2` - standard smoothing, `3` - clear type.
+	/// Font rendering, value: `0` - system default, `1` - no smoothing, `2` - standard smoothing, `3` - ClearType.
 	FontSmoothing(u8),
 
 	/// Windows Aero support, value: `false` - normal drawing, `true` - window has transparent background after calls
@@ -55,8 +59,15 @@ pub enum Options {
 	/// or [`DwmEnableBlurBehindWindow()`](https://msdn.microsoft.com/en-us/library/windows/desktop/aa969508(v=vs.85).aspx).
 	TransparentWindow(bool),
 
-	///value - TRUE/FALSE - window uses per pixel alpha (e.g. WS_EX_LAYERED/UpdateLayeredWindow() window).
+	/// Transparent windows support. When enabled, window uses per pixel alpha
+  /// (e.g. [`WS_EX_LAYERED`](https://msdn.microsoft.com/en-us/library/ms997507.aspx?f=255&MSPPError=-2147217396) window).
 	AlphaWindow(bool),
+
+  /// global or per-window; enables Sciter Inspector for all windows, must be called before loading HTML.
+  DebugMode(bool),
+
+  /// global or per-window; value: combination of [`SCRIPT_RUNTIME_FEATURES`](../enum.SCRIPT_RUNTIME_FEATURES.html) flags.
+  ScriptFeatures(u8),
 }
 
 
@@ -200,6 +211,8 @@ impl Window {
 			FontSmoothing(technology) => (SCITER_FONT_SMOOTHING, technology as usize),
 			TransparentWindow(enable) => (SCITER_TRANSPARENT_WINDOW, enable as usize),
 			AlphaWindow(enable) => (SCITER_ALPHA_WINDOW, enable as usize),
+      DebugMode(enable) => (SCITER_SET_DEBUG_MODE, enable as usize),
+      ScriptFeatures(mask) => (SCITER_SET_SCRIPT_RUNTIME_FEATURES, mask as usize),
 		};
 		let ok = (_API.SciterSetOption)(self.get_hwnd(), option, value);
 		if ok != 0 {

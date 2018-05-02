@@ -5,8 +5,8 @@ extern crate sciter;
 fn main() {
   // can be called as `examples/first ~/lib/libsciter.so`
   if let Some(arg) = std::env::args().nth(1) {
-    if let Err(e) = sciter::set_dll_path(&arg) {
-      panic!("Invalid library path specified.\n  {}", e);
+    if let Err(_) = sciter::set_options(sciter::RuntimeOptions::LibraryPath(&arg)) {
+      panic!("Invalid library path specified.");
     }
   }
 

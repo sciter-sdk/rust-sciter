@@ -1,6 +1,7 @@
 //! Sciter host application helpers.
 
 use ::{_API};
+use capi::scdef::SCITER_RT_OPTIONS;
 use capi::sctypes::*;
 use capi::screquest::HREQUEST;
 use capi::schandler::NativeHandler;

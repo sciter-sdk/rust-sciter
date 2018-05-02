@@ -74,7 +74,7 @@ and module-level sections for the guides about:
 
 mod capi;
 pub use capi::scdom::{HELEMENT};
-pub use capi::scdef::{SCITER_RT_OPTIONS, GFX_LAYER};
+pub use capi::scdef::{GFX_LAYER, SCRIPT_RUNTIME_FEATURES};
 
 /* Rust interface */
 mod platform;
@@ -351,22 +351,22 @@ lazy_static! {
 	static ref _RAPI: &'static SciterRequestAPI = { unsafe { &*(SciterAPI().GetSciterRequestAPI)() } };
 }
 
-/// Set the custom path to the Sciter dynamic library.
+/// Set a custom path to the Sciter dynamic library.
 ///
 /// Must be called first before any other functions.
-/// Returns `false` if library can not be loaded.
+/// Returns error if library can not be loaded.
 ///
 /// # Example
 ///
 /// ```rust
-/// if sciter::set_dll_path("~/lib/sciter/bin.gtk/x64/libsciter-gtk.so").is_ok() {
+/// if sciter::set_library("~/lib/sciter/bin.gtk/x64/libsciter-gtk.so").is_ok() {
 ///   println!("loaded Sciter version {}", sciter::version());
 /// }
 /// ```
-pub fn set_dll_path(custom_path: &str) -> ::std::result::Result<(), String> {
+pub fn set_library(custom_path: &str) -> ::std::result::Result<(), String> {
   #[cfg(not(feature="shared"))]
   fn set_impl(_: &str) -> ::std::result::Result<(), String> {
-    Err("Don't use `sciter::set_dll_path` in static builds.\n  Build with feature \"shared\" instead.".to_owned())
+    Err("Don't use `sciter::set_library()` in static builds.\n  Build with feature \"shared\" instead.".to_owned())
   }
 
   #[cfg(feature="shared")]
@@ -399,30 +399,37 @@ pub fn version() -> String {
 }
 
 /// Various global sciter engine options.
+///
+/// Used by [`sciter::set_options()`](fn.set_options.html).
+///
+/// See also [per-window options](window/enum.Options.html).
 #[derive(Copy, Clone)]
 pub enum RuntimeOptions<'a> {
+
+  /// global; value: a full path to Sciter dynamic library (dll/dylib/so), must be called before any other Sciter function.
+  LibraryPath(&'a str),
+  /// global; value: [`GFX_LAYER`](enum.GFX_LAYER.html), must be called before any window creation.
+  GfxLayer(GFX_LAYER),
+  /// global; value: `bool`, `true` - the engine will use a "unisex" theme that is common for all platforms.
+  /// That UX theme is not using OS primitives for rendering input elements.
+  /// Use it if you want exactly the same (modulo fonts) look-n-feel on all platforms.
+  UxTheming(bool),
+  /// global or per-window; enables Sciter Inspector for all windows, must be called before loading HTML.
+  DebugMode(bool),
+  /// global or per-window; value: combination of [`SCRIPT_RUNTIME_FEATURES`](enum.SCRIPT_RUNTIME_FEATURES.html) flags.
+  ScriptFeatures(u8),
 	/// global; value: milliseconds, connection timeout of http client.
 	ConnectionTimeout(u32),
-	/// global; value: 0 - drop connection, 1 - use builtin dialog, 2 - accept connection silently.
+	/// global; value: `0` - drop connection, `1` - use builtin dialog, `2` - accept connection silently.
 	OnHttpsError(u8),
-	/// global; value = LPCBYTE, json - GPU black list, see: gpu-blacklist.json resource.
+	/// global; value: json with GPU black list, see the `gpu-blacklist.json` resource.
 	GpuBlacklist(&'a str),
-	/// global or per-window; value - combination of [SCRIPT_RUNTIME_FEATURES](enum.SCRIPT_RUNTIME_FEATURES.html) flags.
-	ScriptFeatures(u8),
-	/// global (must be called before any window creation); value - [GFX_LAYER](enum.GFX_LAYER.html).
-	GfxLayer(GFX_LAYER),
-	/// global or per-window; value - TRUE/FALSE
-	DebugMode(bool),
-	/// global; value - BOOL, TRUE - the engine will use "unisex" theme that is common for all platforms.
-	/// That UX theme is not using OS primitives for rendering input elements.
-	/// Use it if you want exactly the same (modulo fonts) look-n-feel on all platforms.
-	UxTheming(bool),
 }
 
 /// Set various sciter engine global options, see the [`RuntimeOptions`](enum.RuntimeOptions.html).
 pub fn set_options(options: RuntimeOptions) -> std::result::Result<(), ()> {
 	use RuntimeOptions::*;
-	use SCITER_RT_OPTIONS::*;
+	use capi::scdef::SCITER_RT_OPTIONS::*;
 	let (option, value) = match options {
 		ConnectionTimeout(ms) => (SCITER_CONNECTION_TIMEOUT, ms as usize),
 		OnHttpsError(behavior) => (SCITER_HTTPS_ERROR, behavior as usize),
@@ -431,6 +438,9 @@ pub fn set_options(options: RuntimeOptions) -> std::result::Result<(), ()> {
 		GfxLayer(backend) => (SCITER_SET_GFX_LAYER, backend as usize),
 		DebugMode(enable) => (SCITER_SET_DEBUG_MODE, enable as usize),
 		UxTheming(enable) => (SCITER_SET_UX_THEMING, enable as usize),
+    LibraryPath(path) => {
+      return set_library(path).map_err(|_|());
+    }
 	};
 	let ok = (_API.SciterSetOption)(std::ptr::null_mut(), option, value);
 	if ok != 0 {
