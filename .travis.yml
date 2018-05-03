@@ -58,6 +58,9 @@ before_install:
 install:
   - source ~/.cargo/env || true
   - export SDK_PATH=https://raw.githubusercontent.com/c-smile/sciter-sdk/master
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export SDK_DLL="$TRAVIS_BUILD_DIR/sciter-osx-64.dylib"; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export SDK_DLL="$TRAVIS_BUILD_DIR/libsciter-gtk.so"; fi
+
   - if [ "$TRAVIS_OS_NAME" = "osx"   ]; then curl -so "$TRAVIS_BUILD_DIR/sciter-osx-64.dylib" $SDK_PATH/bin.osx/sciter-osx-64.dylib; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl -so "$TRAVIS_BUILD_DIR/libsciter-gtk.so" $SDK_PATH/bin.gtk/x64/libsciter-gtk.so; fi
 
@@ -83,6 +86,7 @@ script:
   - cargo build --example first --verbose
   - cargo run --example first
   - cargo run --example first --features shared
+  - cargo run --example first --features shared -- "$SDK_DLL"
 
   - cargo build --all
   - cargo build --all --release

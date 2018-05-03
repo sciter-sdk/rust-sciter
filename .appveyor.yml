@@ -87,6 +87,8 @@ build_script:
 
 test_script:
   - cargo run --example first %FEATURES%
+  - cargo run --example first %FEATURES%
+  - cargo run --example first %FEATURES% -- C:/projects/deps/sciter.dll
 
   - cargo test --all %FEATURES%
   - cargo test --all %FEATURES% --release
