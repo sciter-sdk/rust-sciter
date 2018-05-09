@@ -17,7 +17,7 @@ type Time = [u8; 3usize];
 /// ## Behavior-specific HTML attributes:
 ///
 /// * `utc="integer"` - time zone offset, positive or negative.
-/// * `frosen` - time is not updated automtically.
+/// * `frozen` - time is not updated automtically.
 ///
 /// ## Value
 ///
@@ -32,7 +32,7 @@ struct Clock {
   element: Option<Element>,
   now: Time,
   gmt: i8,
-  is_frosen: bool,
+  is_frozen: bool,
 }
 
 impl sciter::EventHandler for Clock {
@@ -58,13 +58,13 @@ impl sciter::EventHandler for Clock {
       }
     }
 
-    // we don't update frosen clocks
-    if let Some(_attr) = me.get_attribute("frosen") {
-      self.is_frosen = true;
+    // we don't update frozen clocks
+    if let Some(_attr) = me.get_attribute("frozen") {
+      self.is_frozen = true;
     }
 
     // timer to redraw our clock
-    if !self.is_frosen {
+    if !self.is_frozen {
       me.start_timer(300, 1).expect("Can't set timer");
     }
   }
@@ -158,7 +158,7 @@ const PI2: f32 = 2.0 * std::f32::consts::PI;
 impl Clock {
   /// Update current time and say if changed.
   fn update_time(&mut self) -> bool {
-    if self.is_frosen {
+    if self.is_frozen {
       return false;
     }
 
@@ -184,7 +184,7 @@ impl Clock {
   /// Get current time from script.
   fn get_time(&self) -> Option<Time> {
     let el = self.element.as_ref().unwrap();
-    let script_func = if self.is_frosen { "getLocalTime" } else { "getUtcTime" };
+    let script_func = if self.is_frozen { "getLocalTime" } else { "getUtcTime" };
     if let Ok(time) = el.call_function(script_func, &make_args!(self.gmt as i32)) {
       assert_eq!(time.len(), 3);
       let mut now = Time::default();
