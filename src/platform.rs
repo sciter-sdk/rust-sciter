@@ -294,6 +294,25 @@ mod windows {
 	use objc::runtime::{Class, Object};
 	use self::objc_foundation::{NSString, INSString};
 
+
+	/// Activation policies that control whether and how an app may be activated.
+	#[repr(C)]
+	#[allow(dead_code)]
+	enum NSApplicationActivationPolicy {
+		Regular = 0,
+		Accessory,
+		Prohibited,
+	}
+
+
+	// Note: Starting some OSX version (perhaps, 10.13),
+	// the AppKit framework isn't loaded implicitly.
+	#[link(name="CoreFoundation", kind="framework")]
+	extern {}
+
+	#[link(name="AppKit", kind="framework")]
+	extern {}
+
 	use ::{_API};
 	use capi::sctypes::*;
 	use capi::scdef::*;
@@ -316,26 +335,26 @@ mod windows {
 		}
 
 		fn get_app() -> *mut Object {
-			let cls = Class::get("NSApplication").unwrap();
+			let cls = Class::get("NSApplication").expect("`NSApplication` is not registered.");
 			let obj = unsafe { msg_send!(cls, sharedApplication) };
 			return obj;
 		}
 
 		fn init_app() {
-			let _ = OsWindow::get_app();
+			// By default, unbundled apps start with `NSApplicationActivationPolicyProhibited` (no dock, no menu).
+			let app = OsWindow::get_app();
+			unsafe { msg_send!(app, setActivationPolicy:NSApplicationActivationPolicy::Regular) };
 		}
 
 		fn view(&self) -> *mut Object {
 			let hwnd = self.get_hwnd();
 			let hwnd: *mut Object = unsafe { ::std::mem::transmute(hwnd) };
-			println!("view {:?}", hwnd);
 			return hwnd;
 		}
 
 		fn window(&self) -> *mut Object {
 			let hwnd = self.view();
 			let obj: *mut Object = unsafe { msg_send!(hwnd, window) };
-			println!("view {:?} -> window {:?}", hwnd, obj);
 			assert!(!obj.is_null());
 			return obj;
 		}
@@ -355,8 +374,6 @@ mod windows {
 				OsWindow::init_app();
 			}
 
-			println!("window::create(rect {:?}, flags {:X}, parent {:?}", rect, flags, parent);
-
 			let (x,y,w,h) = rect;
 			let rc = RECT { left: x, top: y, right: x + w, bottom: y + h };
 			let prc: *const RECT = if w > 0 && h > 0 {
@@ -364,8 +381,6 @@ mod windows {
 			} else {
 				0 as *const RECT
 			};
-
-			println!("window::create with flags {:X}", flags);
 
 			let cb = 0 as *const SciterWindowDelegate;
 			self.flags = flags;
@@ -424,6 +439,7 @@ mod windows {
 		/// Run the main app message loop until window been closed.
 		fn run_app(&self) {
 			let app = OsWindow::get_app();
+			unsafe { msg_send!(app, finishLaunching) };
 			unsafe { msg_send!(app, run) };
 		}
 
