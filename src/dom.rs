@@ -107,7 +107,7 @@ To change runtime state flags of a DOM element we do something like this:
 
 ```rust,ignore
 # let mut el = sciter::dom::Element::from(::std::ptr::null_mut());
-el.set_state(STATE_VISITED);
+el.set_state(ELEMENT_STATE_BITS::STATE_VISITED);
 ```
 
 And in script:
@@ -161,7 +161,7 @@ use value::Value;
 
 use capi::scbehavior::{CLICK_REASON, BEHAVIOR_EVENTS, BEHAVIOR_EVENT_PARAMS};
 
-pub use capi::scdom::{SCDOM_RESULT, HELEMENT, SET_ELEMENT_HTML, ELEMENT_AREAS};
+pub use capi::scdom::{SCDOM_RESULT, HELEMENT, SET_ELEMENT_HTML, ELEMENT_AREAS, ELEMENT_STATE_BITS};
 pub use dom::event::{EventHandler, EventReason};
 
 
@@ -406,6 +406,21 @@ impl Element {
 	/// Set value of the element.
 	pub fn set_value<T: Into<Value>>(&mut self, val: T) -> Result<()> {
 		let ok = (_API.SciterSetValue)(self.he, val.into().as_cptr());
+		ok_or!((), ok)
+	}
+
+	/// Checks if particular UI state bits are set in the element.
+	pub fn get_state(&self) -> ELEMENT_STATE_BITS {
+		let mut rv = 0u32;
+		(_API.SciterGetElementState)(self.he, &mut rv as *mut _);
+		let state = unsafe { ::std::mem::transmute(rv) };
+		return state;
+	}
+
+	/// Set UI state of the element with optional view update.
+	pub fn set_state(&mut self, set: ELEMENT_STATE_BITS, clear: Option<ELEMENT_STATE_BITS>, update: bool) -> Result<()> {
+		let clear = clear.unwrap_or(ELEMENT_STATE_BITS::STATE_NONE);
+		let ok = (_API.SciterSetElementState)(self.he, set as UINT, clear as UINT, update as BOOL);
 		ok_or!((), ok)
 	}
 
@@ -996,11 +1011,72 @@ impl ::std::fmt::Display for Element {
 	}
 }
 
-/// Machine-like element visualization.
+/// Machine-like element visualization (`{:?}` and `{:#?}`).
 impl ::std::fmt::Debug for Element {
 	fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-		// "tag#id.class(name):0xdfdfdf"
-		write!(f, "{{{}:{:?}}}", self, self.he)
+		if f.alternate() {
+			use self::ELEMENT_STATE_BITS;
+			use ::std::mem::transmute;
+
+			fn state_name(value: ELEMENT_STATE_BITS) -> &'static str {
+				match value {
+					ELEMENT_STATE_BITS::STATE_LINK => "link",
+					ELEMENT_STATE_BITS::STATE_HOVER => "hover",
+					ELEMENT_STATE_BITS::STATE_ACTIVE => "active",
+					ELEMENT_STATE_BITS::STATE_VISITED => "visited",
+					ELEMENT_STATE_BITS::STATE_FOCUS => "focus",
+					ELEMENT_STATE_BITS::STATE_POPUP => "popup",
+					ELEMENT_STATE_BITS::STATE_CURRENT => "current",
+					ELEMENT_STATE_BITS::STATE_CHECKED => "checked",
+					ELEMENT_STATE_BITS::STATE_EXPANDED => "expanded",
+					ELEMENT_STATE_BITS::STATE_COLLAPSED => "collapsed",
+					ELEMENT_STATE_BITS::STATE_DISABLED => "disabled",
+					ELEMENT_STATE_BITS::STATE_INCOMPLETE => "incomplete",
+					ELEMENT_STATE_BITS::STATE_BUSY => "busy",
+					ELEMENT_STATE_BITS::STATE_ANIMATING => "animating",
+					ELEMENT_STATE_BITS::STATE_FOCUSABLE => "",
+					ELEMENT_STATE_BITS::STATE_READONLY => "readonly",
+					ELEMENT_STATE_BITS::STATE_EMPTY => "empty",
+					ELEMENT_STATE_BITS::STATE_ANCHOR => "anchor",
+					ELEMENT_STATE_BITS::STATE_SYNTHETIC => "synthetic",
+					ELEMENT_STATE_BITS::STATE_OWNS_POPUP => "owns_popup",
+					ELEMENT_STATE_BITS::STATE_TABFOCUS => "tabfocus",
+					ELEMENT_STATE_BITS::STATE_IS_RTL => "is_rtl",
+					ELEMENT_STATE_BITS::STATE_IS_LTR => "is_ltr",
+					ELEMENT_STATE_BITS::STATE_DRAG_OVER => "drag_over",
+					ELEMENT_STATE_BITS::STATE_DROP_TARGET => "drop_target",
+					ELEMENT_STATE_BITS::STATE_MOVING => "moving",
+					ELEMENT_STATE_BITS::STATE_COPYING => "copying",
+					ELEMENT_STATE_BITS::STATE_DRAG_SOURCE => "drag_source",
+					ELEMENT_STATE_BITS::STATE_DROP_MARKER => "drop_marker",
+
+					ELEMENT_STATE_BITS::STATE_READY => "",
+					ELEMENT_STATE_BITS::STATE_PRESSED => "pressed",
+
+					ELEMENT_STATE_BITS::STATE_NONE => "",
+				}
+			}
+
+			// "tag#id.class:state1:state2..."
+			let state = self.get_state() as u32;
+
+			write!(f, "{{{}", self)?;
+			for i in 0..31 {
+				let bit = state & (1 << i);
+				if bit != 0 {
+					let state_bit: ELEMENT_STATE_BITS = unsafe { transmute(bit) };
+					let name = state_name(state_bit);
+					if !name.is_empty() {
+						write!(f, ":{}", name)?;
+					}
+				}
+			}
+			write!(f, "}}")
+
+		} else {
+			// "tag#id.class(name):0xdfdfdf"
+			write!(f, "{{{}:{:?}}}", self, self.he)
+		}
 	}
 }
 
@@ -1093,7 +1169,6 @@ SciterGetElementIntrinsicHeight
 SciterGetElementIntrinsicWidths
 SciterGetElementLocation
 SciterGetElementNamespace
-SciterGetElementState
 SciterGetElementType
 SciterGetExpando
 SciterGetObject
@@ -1106,7 +1181,6 @@ SciterReleaseCapture
 SciterRequestElementData
 SciterScrollToView
 SciterSetCapture
-SciterSetElementState
 SciterSetHighlightedElement
 SciterSetScrollPos
 SciterShowPopup
