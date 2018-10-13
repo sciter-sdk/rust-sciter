@@ -133,6 +133,8 @@ impl sciter::EventHandler for EventHandler {
 }
 
 fn check_options() {
+	sciter::set_options(sciter::RuntimeOptions::ScriptFeatures(0x08)).ok();
+
 	for arg in std::env::args() {
 		if arg.starts_with("--sciter-gfx=") {
 			use sciter::GFX_LAYER;

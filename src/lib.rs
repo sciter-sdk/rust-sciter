@@ -445,6 +445,9 @@ pub enum RuntimeOptions<'a> {
   /// global or per-window; enables Sciter Inspector for all windows, must be called before loading HTML.
   DebugMode(bool),
   /// global or per-window; value: combination of [`SCRIPT_RUNTIME_FEATURES`](enum.SCRIPT_RUNTIME_FEATURES.html) flags.
+  ///
+  /// Note that these features have been disabled by default
+  /// since [4.2.5.0](https://rawgit.com/c-smile/sciter-sdk/7036a9c7912ac30d9f369d9abb87b278d2d54c6d/logfile.htm).
   ScriptFeatures(u8),
 	/// global; value: milliseconds, connection timeout of http client.
 	ConnectionTimeout(u32),
