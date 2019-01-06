@@ -7,27 +7,28 @@
 extern crate sciter;
 
 fn main() {
-	sciter::set_options(sciter::RuntimeOptions::ScriptFeatures(
-		sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_SYSINFO as u8 | // Enables Sciter.machineName()
-		sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_FILE_IO as u8 | // Enables opening file dialog
-		sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_SOCKET_IO as u8)).unwrap(); // Enables connecting to inspector
-
 	// Step 1: Include the 'minimal.html' file as a byte array.
 	// Hint: Take a look into 'minimal.html' which contains some tiscript code.
 	let html = include_bytes!("minimal.htm");
 
-	// Step 2: Create a new main sciter window of type `sciter::Window`.
+	// Step 2: Enable the features we need in our tiscript code.
+	sciter::set_options(sciter::RuntimeOptions::ScriptFeatures(
+		sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_SYSINFO as u8 | // Enables Sciter.machineName()
+			sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_FILE_IO as u8 | // Enables opening file dialog (view.selectFile())
+			sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_SOCKET_IO as u8)).unwrap(); // Enables connecting to the inspector via Ctrl+Shift+I
+
+	// Step 3: Create a new main sciter window of type `sciter::Window`.
 	// Hint: The sciter Window wrapper (src/window.rs) contains more
 	// interesting functions to open or attach to another existing window.
 	let mut frame = sciter::Window::new();
 
-	// Step 3: Load HTML byte array from memory to `sciter::Window`.
+	// Step 4: Load HTML byte array from memory to `sciter::Window`.
 	// Hint: second parameter is an optional uri, it can be `None` in simple cases,
 	// but it is useful for debugging purposes (check the Inspector tool from the Sciter SDK).
 	// Also you can use a `load_file` method, but it requires an absolute path
 	// of the main document to resolve HTML resources properly.
 	frame.load_html(html, Some("example://minimal.htm"));
 
-	// Step 4: Show window and run the main app message loop until window been closed.
+	// Step 5: Show window and run the main app message loop until window been closed.
 	frame.run_app();
 }
