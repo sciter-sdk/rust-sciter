@@ -7,6 +7,11 @@
 extern crate sciter;
 
 fn main() {
+	sciter::set_options(sciter::RuntimeOptions::ScriptFeatures(
+		sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_SYSINFO as u8 | // Enables Sciter.machineName()
+		sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_FILE_IO as u8 | // Enables opening file dialog
+		sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_SOCKET_IO as u8)).unwrap(); // Enables connecting to inspector
+
 	// Step 1: Include the 'minimal.html' file as a byte array.
 	// Hint: Take a look into 'minimal.html' which contains some tiscript code.
 	let html = include_bytes!("minimal.htm");
