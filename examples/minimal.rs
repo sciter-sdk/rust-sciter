@@ -21,6 +21,7 @@ fn main() {
 	// Hint: The sciter Window wrapper (src/window.rs) contains more
 	// interesting functions to open or attach to another existing window.
 	let mut frame = sciter::Window::new();
+	frame.set_options(sciter::window::Options::DebugMode(true)).unwrap();
 
 	// Step 4: Load HTML byte array from memory to `sciter::Window`.
 	// Hint: second parameter is an optional uri, it can be `None` in simple cases,
