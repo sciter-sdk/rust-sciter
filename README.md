@@ -132,7 +132,7 @@ _Check [rust-sciter/examples](https://github.com/sciter-sdk/rust-sciter/tree/mas
 
 * [x] [sciter::window](https://github.com/c-smile/sciter-sdk/blob/master/include/sciter-x-window.hpp) which brings together window creation, host and event handlers
 * [x] [sciter::host](https://github.com/c-smile/sciter-sdk/blob/master/include/sciter-x-host-callback.h) with basic event handling, needs to be redesigned
-* [x] [sciter::event_handler](https://github.com/c-smile/sciter-sdk/blob/master/include/sciter-x-behavior.h) with event handling and auto dispatching script calls to naive code
+* [x] [sciter::event_handler](https://github.com/c-smile/sciter-sdk/blob/master/include/sciter-x-behavior.h) with event handling and auto dispatching script calls to native code
 * [x] [sciter::dom](https://github.com/c-smile/sciter-sdk/blob/master/include/sciter-x-dom.hpp) for HTML DOM access and manipulation methods
 * [x] [sciter::value](https://github.com/c-smile/sciter-sdk/blob/master/include/value.hpp) Rust wrapper with sciter::script_error and sciter::native_function support
 * [x] [sciter::behavior_factory](https://github.com/c-smile/sciter-sdk/blob/master/include/sciter-x-behavior.h) - global factory for native behaviors
