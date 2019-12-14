@@ -90,8 +90,8 @@ impl Window {
 		Builder::main_window().create()
 	}
 
-	/// Create a new window with the specified position as `rect(x, y, width, height)`, flags and an optional parent window.
-	pub fn create(rect: (i32, i32, i32, i32), flags: SCITER_CREATE_WINDOW_FLAGS, parent: Option<HWINDOW>) -> Window {
+	/// Create a new window with the specified position as `rect(left, top, right, bottom)`, flags and an optional parent window.
+	pub fn create(rect: RECT, flags: SCITER_CREATE_WINDOW_FLAGS, parent: Option<HWINDOW>) -> Window {
 		let mut base = OsWindow::new();
 		let hwnd = base.create(rect, flags as UINT, parent.unwrap_or(0 as HWINDOW));
 		assert!(!hwnd.is_null());
@@ -256,6 +256,17 @@ impl Window {
 }
 
 
+/// Generic rectangle struct.
+/// NOTE that this is different from RECT type as it specifies width and height.
+#[derive(Clone, Copy)]
+pub struct Rectangle {
+	pub x: i32,
+	pub y: i32,
+	pub width: i32,
+	pub height: i32
+}
+
+
 /// Builder pattern for window creation.
 ///
 /// For example,
@@ -350,12 +361,12 @@ impl Builder {
 	}
 
 	/// Specify the exact window rectangle in `(X, Y, W, H)` form.
-	pub fn with_rect(mut self, rect: (i32, i32, i32, i32)) -> Self {
+	pub fn with_rect(mut self, rect: Rectangle) -> Self {
 		self.rect = RECT {
-			left: rect.0,
-			top: rect.1,
-			right: rect.2,
-			bottom: rect.3,
+			left: rect.x,
+			top: rect.y,
+			right: rect.x + rect.width,
+			bottom: rect.y + rect.height,
 		};
 		self
 	}
@@ -403,7 +414,6 @@ impl Builder {
 
 	/// Consume the builder and call [`Window::create()`](struct.Window.html#method.create) with built parameters.
 	pub fn create(self) -> Window {
-		let r = self.rect;
-		Window::create((r.left, r.top, r.right, r.bottom), self.flags, self.parent)
+		Window::create(self.rect, self.flags, self.parent)
 	}
 }

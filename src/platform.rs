@@ -5,7 +5,7 @@ use capi::sctypes::*;
 
 pub trait BaseWindow {
 
-	fn create(&mut self, rect: (i32,i32,i32,i32), flags: UINT, parent: HWINDOW) -> HWINDOW;
+	fn create(&mut self, rc: RECT, flags: UINT, parent: HWINDOW) -> HWINDOW;
 
 	fn get_hwnd(&self) -> HWINDOW;
 
@@ -78,14 +78,11 @@ mod windows {
 		}
 
 		/// Create a new native window.
-		fn create(&mut self, rect: (i32,i32,i32,i32), flags: UINT, parent: HWINDOW) -> HWINDOW {
+		fn create(&mut self, rc: RECT, flags: UINT, parent: HWINDOW) -> HWINDOW {
 
 			if (flags & SCITER_CREATE_WINDOW_FLAGS::SW_MAIN as u32) != 0 {
 				OsWindow::init_app();
 			}
-
-			let (x,y,w,h) = rect;
-			let rc = RECT { left: x, top: y, right: x + w, bottom: y + h };
 
 			let cb = ::std::ptr::null();
 			self.flags = flags;
@@ -215,14 +212,11 @@ mod windows {
 		}
 
 		/// Create a new native window.
-		fn create(&mut self, rect: (i32,i32,i32,i32), flags: UINT, parent: HWINDOW) -> HWINDOW {
+		fn create(&mut self, rc: RECT, flags: UINT, parent: HWINDOW) -> HWINDOW {
 
 			if (flags & SCITER_CREATE_WINDOW_FLAGS::SW_MAIN as u32) != 0 {
 				OsWindow::init_app();
 			}
-
-			let (x,y,w,h) = rect;
-			let rc = RECT { left: x, top: y, right: x + w, bottom: y + h };
 
 			let cb = ptr::null();
 			self.flags = flags;
@@ -368,15 +362,13 @@ mod windows {
 		}
 
 		/// Create a new native window.
-		fn create(&mut self, rect: (i32,i32,i32,i32), flags: UINT, parent: HWINDOW) -> HWINDOW {
+		fn create(&mut self, rc: RECT, flags: UINT, parent: HWINDOW) -> HWINDOW {
 
 			if (flags & SCITER_CREATE_WINDOW_FLAGS::SW_MAIN as u32) != 0 {
 				OsWindow::init_app();
 			}
 
-			let (x,y,w,h) = rect;
-			let rc = RECT { left: x, top: y, right: x + w, bottom: y + h };
-			let prc: *const RECT = if w > 0 && h > 0 {
+			let prc: *const RECT = if rc.width() > 0 && rc.height() > 0 {
 				&rc
 			} else {
 				0 as *const RECT
