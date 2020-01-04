@@ -210,6 +210,19 @@ fn from_function_works() {
 }
 
 #[test]
+fn from_result_works() {
+	// create Err variant
+	let result: Result<i32, String> = Err("unknown error".to_string());
+	let v = Value::from(result);
+	assert_eq!(v.as_string().unwrap(), "unknown error");
+
+	// create Ok variant
+	let result: Result<i32, String> = Ok(100);
+	let v = Value::from(result);
+	assert_eq!(v.to_int().unwrap(), 100);
+}
+
+#[test]
 fn parse_works() {
 	let items = ["", "null", "1", "\"2\"", "2.0", "true", "[3, 4]", r##"{"5": 5, "6": 6, seven: "seven"}"##];
 	for item in &items {

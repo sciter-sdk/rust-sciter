@@ -922,6 +922,15 @@ impl<'a> From<&'a [u8]> for Value {
 	}
 }
 
+impl<R, E> From<Result<R, E>> for Value where R: Into<Value>, E: Into<Box<dyn std::error::Error>> {
+	fn from(val: Result<R, E>) -> Self {
+		match val {
+			Ok(r) => r.into(),
+			Err(e) => Value::error(&e.into().to_string()),
+		}
+	}
+}
+
 // /// Value from sequence of items satisfying `Into<Value>`.
 // impl ::std::iter::FromIterator<Into<Value>> for Value {
 //   fn from_iter<I: IntoIterator<Item=Into<Value>>>(iterator: I) -> Self {
