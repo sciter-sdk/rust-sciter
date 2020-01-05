@@ -922,11 +922,11 @@ impl<'a> From<&'a [u8]> for Value {
 	}
 }
 
-impl<R, E> From<Result<R, E>> for Value where R: Into<Value>, E: Into<Box<dyn std::error::Error>> {
-	fn from(val: Result<R, E>) -> Self {
+impl<T, E> From<Result<T, E>> for Value where T: Into<Value>, E: std::fmt::Display {
+	fn from(val: Result<T, E>) -> Self {
 		match val {
-			Ok(r) => r.into(),
-			Err(e) => Value::error(&e.into().to_string()),
+			Ok(v) => v.into(),
+			Err(e) => Value::error(&e.to_string()),
 		}
 	}
 }
