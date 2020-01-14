@@ -1,0 +1,49 @@
+name: Build-n-Test
+
+on:
+  push:
+    branches:
+    - master
+    - travis
+
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  fetch:
+    name: Fetch dependencies
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Windows deps
+        if: runner.os == 'Windows'
+        run: curl -sSLo "%GITHUB_WORKSPACE%/sciter.dll" "https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.win/x64/sciter.dll" 
+      
+      - name: Linux deps
+        if: runner.os == 'Linux'
+        run: curl -so "$GITHUB_WORKSPACE/libsciter-gtk.so" "https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.lnx/x64/libsciter-gtk.so"
+        
+      - name: macOS deps
+        if: runner.os == 'macOS'
+        run: curl -so "$GITHUB_WORKSPACE/sciter-osx-64.dylib" "https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.osx/sciter-osx-64.dylib"
+    
+  build:
+    needs: [fetch]
+    runs-on: [macos-latest, ubuntu-latest, windows-latest]
+    name: Build and test
+    
+    steps:
+    - uses: actions/checkout@v1
+   
+    - name: Build
+      run: |
+        cargo build --release --all
+        cargo build --release --examples
+        
+    - name: Tests
+      run: cargo test --all
