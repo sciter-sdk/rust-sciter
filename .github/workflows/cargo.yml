@@ -17,6 +17,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        # macOS doesn't have Rust installed
+        # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners#macos-1015
         os: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
@@ -55,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v2
