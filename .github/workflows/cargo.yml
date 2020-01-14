@@ -49,7 +49,11 @@ jobs:
 
       - name: macOS deps
         if: runner.os == 'macOS'
-        run: curl -so "$GITHUB_WORKSPACE/sciter-osx-64.dylib" "https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.osx/sciter-osx-64.dylib"
+        run: |
+          curl -so "$GITHUB_WORKSPACE/sciter-osx-64.dylib" "https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.osx/sciter-osx-64.dylib"
+          brew install rustup
+          echo cargo is at `which cargo`
+          echo rustc is at `which rustc`
 
   build:
     needs: [fetch]
