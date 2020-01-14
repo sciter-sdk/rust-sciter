@@ -51,7 +51,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           curl -so "$GITHUB_WORKSPACE/sciter-osx-64.dylib" "https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.osx/sciter-osx-64.dylib"
-          brew install rustup
+          curl https://sh.rustup.rs -sSf | sh -s -- --profile minimal
           echo cargo is at `which cargo`
           echo rustc is at `which rustc`
 
