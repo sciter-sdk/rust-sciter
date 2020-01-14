@@ -81,7 +81,9 @@ jobs:
         SCITER_DEPS: ${{ runner.workspace }}
 
     - name: Build
+      shell: bash
       run: |
+        test -f $HOME/.cargo/env && source $HOME/.cargo/env
         cargo build --all
         cargo build --examples
 
