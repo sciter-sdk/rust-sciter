@@ -41,12 +41,16 @@ jobs:
         if: runner.os == 'Windows'
         run: curl -sSLo "%SCITER_DEPS%/sciter.dll" "https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.win/x64/sciter.dll"
         shell: cmd
+        env:
+          SCITER_DEPS: ${{ runner.workspace }}
 
       - name: Linux deps
         if: runner.os == 'Linux'
         run: |
           curl -so "$SCITER_DEPS/libsciter-gtk.so" "https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.lnx/x64/libsciter-gtk.so"
           sudo apt-get install libgtk-3-dev libgtk-3-0 libstdc++-6-pic -y
+        env:
+          SCITER_DEPS: ${{ runner.workspace }}
 
       - name: macOS deps
         if: runner.os == 'macOS'
@@ -56,6 +60,8 @@ jobs:
           source $HOME/.cargo/env
           echo cargo is at `which cargo`
           echo rustc is at `which rustc`
+        env:
+          SCITER_DEPS: ${{ runner.workspace }}
 
   build:
     needs: [fetch]
