@@ -29,6 +29,9 @@ jobs:
           echo workspace is "$GITHUB_WORKSPACE"
           echo temp is "$TEMP"
           echo runner is "$RUNNER_CONTEXT"
+          echo cargo is at `which cargo`
+          echo rustc is at `which rustc`
+          rustc -vV
           echo done
 
       - name: Windows deps
@@ -50,11 +53,12 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
     - name: Build
       run: |
