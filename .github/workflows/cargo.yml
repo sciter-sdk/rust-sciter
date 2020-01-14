@@ -67,9 +67,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
 
-    env:
-      SCITER_DEPS: ${{ runner.workspace }}
-
     steps:
     - uses: actions/checkout@v2
 
@@ -84,6 +81,8 @@ jobs:
 
     - name: Tests
       shell: bash
+      env:
+        SCITER_DEPS: ${{ runner.workspace }}
       run: |
         export PATH="$PATH:$SCITER_DEPS"
         echo workspace is "$SCITER_DEPS"
