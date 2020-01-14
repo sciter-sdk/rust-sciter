@@ -72,16 +72,19 @@ jobs:
     - name: Ensure Linux deps
       if: runner.os == 'Linux'
       run: sudo apt-get install libgtk-3-dev libgtk-3-0 libstdc++-6-pic -y
-      env:
-        RUSTFLAGS: '-C link-arg=-Wl,--unresolved-symbols=ignore-in-shared-libs'
 
     - name: Build
       run: |
-        echo rustflags is "$RUSTFLAGS"
         cargo build --all
         cargo build --examples
 
     - name: Tests
+      shell: bash
       run: |
+        export PATH="$PATH:$GITHUB_WORKSPACE"
+        echo workspace is "$GITHUB_WORKSPACE"
+        echo workspace contents is
+        ls $GITHUB_WORKSPACE
+        echo run an example
         cargo run --example first
         cargo test --all
