@@ -46,8 +46,12 @@ jobs:
 
   build:
     needs: [fetch]
-    runs-on: [macos-latest, ubuntu-latest, windows-latest]
     name: Build and test
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
     - uses: actions/checkout@v1
