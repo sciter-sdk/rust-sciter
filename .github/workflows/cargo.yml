@@ -10,6 +10,22 @@ on:
     branches:
     - master
 
+# Look:
+# https://github.com/actions/starter-workflows/blob/master/ci/rust.yml
+#
+# Simple, right? Right.
+# But we need to:
+# * download a specific Sciter library matching the running OS
+# * figure out where to save it
+# * add it to the $PATH
+#
+# yet,
+# * in case of macOS realize that it doesn't have Rust installed, so
+# * install it manually and don't forget to add cargo and rustc to the $PATH on each step
+# * and in case of Linux install additional packages for GTK3
+#
+# Now we have this ugly script
+
 jobs:
   fetch:
     name: Fetch dependencies
@@ -73,8 +89,8 @@ jobs:
       # OSX: download sciter library && install rustup
       run: |
         curl -so "$SCITER_DEPS/sciter-osx-64.dylib" "https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.osx/sciter-osx-64.dylib"
-        curl https://sh.rustup.rs -sSf | sh -s -- --profile minimal -y
-        source $HOME/.cargo/env
+        command -v cargo || { curl https://sh.rustup.rs -sSf | sh -s -- --profile minimal -y }
+        test -f $HOME/.cargo/env && source $HOME/.cargo/env
         echo cargo is at `which cargo`
         echo rustc is at `which rustc`
       env:
@@ -89,13 +105,10 @@ jobs:
 
     - name: Tests
       shell: bash
-      env:
-        SCITER_DEPS: ${{ runner.workspace }}
       run: |
+        test -f $HOME/.cargo/env && source $HOME/.cargo/env
         export PATH="$PATH:$SCITER_DEPS"
-        echo workspace is "$SCITER_DEPS"
-        echo workspace contents is
-        ls $SCITER_DEPS
-        echo run an example
         cargo run --example first
         cargo test --all
+      env:
+        SCITER_DEPS: ${{ runner.workspace }}
