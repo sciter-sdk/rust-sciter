@@ -31,7 +31,7 @@ jobs:
           echo runner is "$RUNNER_CONTEXT"
           echo cargo is at `which cargo`
           echo rustc is at `which rustc`
-          rustc -vV
+          command -v cargo && rustc -vV
           echo done
 
       - name: Windows deps
