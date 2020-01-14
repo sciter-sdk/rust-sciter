@@ -24,7 +24,7 @@ on:
 # * install it manually and don't forget to add cargo and rustc to the $PATH on each step
 # * and in case of Linux install additional packages for GTK3
 #
-# Now we have this ugly script
+# So, now we're ended up with this ugly script.
 
 jobs:
   fetch:
