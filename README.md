@@ -143,6 +143,7 @@ _Check [rust-sciter/examples](https://github.com/sciter-sdk/rust-sciter/tree/mas
 * [x] [sciter::video](https://github.com/c-smile/sciter-sdk/blob/master/include/sciter-x-video-api.h) - custom video rendering.
 * [x] [sciter::archive](https://github.com/c-smile/sciter-sdk/blob/master/include/sciter-x-host-callback.h) - Sciter's compressed archive produced by `sdk/bin/packfolder` tool.
 * [x] [sciter::msg](https://github.com/c-smile/sciter-sdk/blob/master/include/sciter-x-msg.h) - backend-independent input event processing.
+* [ ] [sciter::om](https://github.com/c-smile/sciter-sdk/blob/master/include/sciter-om.h) - Sciter Object Model, extending Sciter by native code.
 
 
 ### Platforms:

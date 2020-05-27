@@ -1,0 +1,61 @@
+<html>
+	<head>
+		<title>SOM test</title>
+		<style type="text/css">
+
+		</style>
+		<script type="text/tiscript">
+			if(1) {
+				debug(asset traits);
+				debug: Asset.typeOf(TestGlobal);
+				debug: Asset.hasProperty(TestGlobal, #age);
+				debug: Asset.hasMethod(TestGlobal, #print);
+
+				debug(asset globals);
+				debug: view.TestGlobal;
+				debug: TestGlobal;
+
+				debug(asset properties);
+				debug: TestGlobal.age;
+
+				TestGlobal.age = 17;
+				debug: TestGlobal.age;
+
+				TestGlobal.name = "Demogor";
+				debug: TestGlobal.name;
+
+				debug: TestGlobal.print();
+			}
+
+			/////////////////////////
+			if(1) {
+				debug(event handler);
+
+				debug(implicit access);
+				var prop = view.Handler;
+				debug: prop;
+
+				var int_prop = prop.prop_int;
+				debug: int_prop;
+
+				debug(explicit access);
+				var val = view.Handler.prop_int;
+				debug: val;
+
+				debug: view.Handler.prop_int;
+
+				view.Handler.prop_int = 12;
+				debug: view.Handler.prop_int;
+
+				debug: view.Handler.method("hello");
+			}
+
+
+		</script>
+	</head>
+	<body>
+		<div>Hello, body</div>
+		<p>but open Inspector to see the logs</p>
+
+	</body>
+</html>

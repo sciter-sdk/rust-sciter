@@ -1529,6 +1529,11 @@ This way you can establish interaction between scipt and native code inside your
 			return None;
 		}
 
+		#[doc(hidden)]
+		fn get_passport(&mut self) -> Option<&'static crate::capi::scom::som_passport_t> {
+			return None;
+		}
+
 		/// Notification event from builtin behaviors.
     ///
     /// Return `false` to skip this event.

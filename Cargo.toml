@@ -1,6 +1,6 @@
 [package]
 name = "sciter-rs"
-version = "0.5.51"
+version = "0.5.52"
 description = "Rust bindings for Sciter - Embeddable HTML/CSS/script engine (cross-platform desktop GUI toolkit). Also capable with DirectX / OpenGL."
 keywords = ["gui", "gtk", "cocoa", "opengl", "skia"]
 categories = ["gui", "web-programming", "rendering::graphics-api", "api-bindings"]
@@ -104,3 +104,7 @@ path = "examples/clock.rs"
 [[example]]
 name = "windowless"
 path = "examples/windowless.rs"
+
+[[example]]
+name = "som"
+path = "examples/som.rs"

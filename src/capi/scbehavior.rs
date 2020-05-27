@@ -7,6 +7,7 @@ use capi::sctypes::*;
 use capi::scdom::*;
 use capi::scvalue::{VALUE};
 use capi::scgraphics::{HGFX};
+use capi::scom::{som_passport_t};
 
 #[repr(C)]
 pub struct BEHAVIOR_EVENT_PARAMS
@@ -45,6 +46,7 @@ pub enum INITIALIZATION_EVENTS
 pub struct INITIALIZATION_PARAMS
 {
 	pub cmd: INITIALIZATION_EVENTS,
+	pub passport: *const som_passport_t,
 }
 
 /// Identifiers of methods currently supported by intrinsic behaviors.
@@ -496,6 +498,9 @@ pub enum BEHAVIOR_EVENTS
 	/// event with custom name.
 	/// Since 4.2.8.
 	CUSTOM						 = 0xF0,
+
+	/// SSX, delayed mount_component
+	MOUNT_COMPONENT    = 0xF1,
 
 	/// all custom event codes shall be greater than this number. All codes below this will be used
 	/// solely by application - Sciter will not intrepret it and will do just dispatching.

@@ -208,6 +208,8 @@ impl Host {
 		let hwnd = self.get_hwnd();
 		let boxed = Box::new( WindowHandler { hwnd, handler } );
 		let ptr = Box::into_raw(boxed);	// dropped in `_event_handler_window_proc`
+		// eprintln!("{}: {:?}", std::any::type_name::<Handler>(), ptr);
+
 		let func = _event_handler_window_proc::<Handler>;
 		let flags = ::dom::event::default_events();
 		(_API.SciterWindowAttachEventHandler)(hwnd, func, ptr as LPVOID, flags as UINT);

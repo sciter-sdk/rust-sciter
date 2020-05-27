@@ -159,8 +159,10 @@ assert!(v.get_item("one").is_int());
 
 use ::{_API};
 use capi::sctypes::*;
-use capi::scvalue::{VALUE, VALUE_UNIT_TYPE_STRING, VALUE_UNIT_TYPE_OBJECT};
+use capi::scvalue::{VALUE_UNIT_TYPE_STRING, VALUE_UNIT_TYPE_OBJECT, VALUE_UNIT_UNDEFINED};
 pub use capi::scvalue::{VALUE_RESULT, VALUE_STRING_CVT_TYPE, VALUE_TYPE};
+use capi::scvalue::VALUE;
+use ::om::IAsset;
 
 
 // TODO: `get`, `get_item` methods should return `Option<Value>`
@@ -202,6 +204,13 @@ impl Value {
 	pub fn null() -> Value {
 		let mut me = Value::new();
 		me.data.t = VALUE_TYPE::T_NULL;
+		return me;
+	}
+	/// Make an explicit `nothing` (where did it come from?).
+	pub fn nothing() -> Value {
+		let mut me = Value::new();
+		me.data.t = VALUE_TYPE::T_UNDEFINED;
+		me.data.u = VALUE_UNIT_UNDEFINED::UT_NOTHING as UINT;
 		return me;
 	}
 
@@ -255,6 +264,19 @@ impl Value {
 		} else {
 			Err(ok as usize)
 		}
+	}
+
+	/// Value to asset.
+	pub fn to_asset<T>(&self) -> Option<&mut IAsset<T>> {
+		if self.is_asset() {
+			let mut val = 0_i64;
+			if (_API.ValueInt64Data)(self.as_cptr(), &mut val)  == VALUE_RESULT::OK {
+				let ptr = val as usize as *mut IAsset<T>;
+				let asset = unsafe { &mut *ptr };
+				return Some(asset);
+			}
+		}
+		return None;
 	}
 
 	#[doc(hidden)]
@@ -381,25 +403,24 @@ impl Value {
   ///
 	/// The iterator element type is `(Value, Value)`.
 	pub fn items(&self) -> Vec<(Value, Value)> {
-		type Pair = Vec<(Value, Value)>;
-		let result = Box::new(Vec::with_capacity(self.len()));
+		type VecType = Vec<(Value, Value)>;
+		let mut result = Vec::with_capacity(self.len());
 
 		extern "system" fn on_pair(param: LPVOID, pkey: *const VALUE, pval: *const VALUE) -> BOOL {
 			assert!(!param.is_null());
 			unsafe {
-				let result = param as *mut Pair;
+				let result = param as *mut VecType;
 				let result = &mut *result;
-				let src = (Value::copy_from(pkey), Value::copy_from(pval));
-				result.push(src);
+				let item = (Value::copy_from(pkey), Value::copy_from(pval));
+				result.push(item);
 			}
 			return true as BOOL;
 		}
 
-		let ptr = Box::into_raw(result);
+		let ptr = &mut result as *mut VecType;
 		(_API.ValueEnumElements)(self.as_cptr(), on_pair, ptr as LPVOID);
 
-		let result = unsafe { Box::from_raw(ptr) };
-		return *result;
+		return result;
 	}
 
 	/// Value to integer.
@@ -541,6 +562,7 @@ impl Value {
 
 	#[doc(hidden)]
 	unsafe fn copy_from(ptr: *const VALUE) -> Value {
+		assert!(!ptr.is_null());
 		let mut v = Value::new();
 		(_API.ValueCopy)(v.as_ptr(), ptr);
 		return v;
@@ -569,11 +591,15 @@ impl Value {
 
 	#[allow(missing_docs)]
 	pub fn is_undefined(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_UNDEFINED
+		self.data.t == VALUE_TYPE::T_UNDEFINED && self.data.u == 0
 	}
 	#[allow(missing_docs)]
 	pub fn is_null(&self) -> bool {
 		self.data.t == VALUE_TYPE::T_NULL
+	}
+	#[allow(missing_docs)]
+	pub fn is_nothing(&self) -> bool {
+		self.data.t == VALUE_TYPE::T_UNDEFINED && self.data.u == VALUE_UNIT_UNDEFINED::UT_NOTHING as UINT
 	}
 	#[allow(missing_docs)]
 	pub fn is_bool(&self) -> bool {
@@ -642,6 +668,10 @@ impl Value {
 	#[allow(missing_docs)]
 	pub fn is_object(&self) -> bool {
 		self.data.t == VALUE_TYPE::T_OBJECT
+	}
+	#[allow(missing_docs)]
+	pub fn is_asset(&self) -> bool {
+		self.data.t == VALUE_TYPE::T_ASSET
 	}
 
   // script types:
@@ -717,9 +747,16 @@ impl ::std::fmt::Debug for Value {
 		if self.is_undefined() || self.is_null() {
 			return f.write_str(&tname[2..].to_lowercase());
 
+		} else if self.is_nothing() {
+			return f.write_str("nothing");
+
 		} else if self.is_string() && self.data.u != 0 {
 			// VALUE_UNIT_TYPE_STRING
-			let units = [("file", 0xfffe), ("symbol", 0xffff), ("string", 0), ("error", 1), ("secure", 2)];
+			let units = [
+				("file", 0xfffe), ("symbol", 0xffff),
+				("string", 0), ("error", 1), ("secure", 2),
+				("url", 3), ("selector", 4),
+				];
 
 			tname.push_str(":");
 			if let Some(name) = units.iter().find(|&&x| x.1 == self.data.u) {
@@ -861,10 +898,21 @@ impl<'a> From<&'a VALUE> for Value {
 /// Value from integer.
 impl From<i32> for Value {
 	// Note that there is no generic 64-bit integers at Sciter, only Date/Currency types.
-	// There is a double (f64) for large numbers as workaround.
+	// There is a double (f64) for large numbers as a workaround.
 	fn from(val: i32) -> Self {
 		let mut me = Value::new();
-		(_API.ValueIntDataSet)(me.as_ptr(), val as i32, VALUE_TYPE::T_INT as UINT, 0);
+		(_API.ValueIntDataSet)(me.as_ptr(), val, VALUE_TYPE::T_INT as UINT, 0);
+		return me;
+	}
+}
+
+/// Value from integer.
+impl From<&i32> for Value {
+	// Note that there is no generic 64-bit integers at Sciter, only Date/Currency types.
+	// There is a double (f64) for large numbers as a workaround.
+	fn from(val: &i32) -> Self {
+		let mut me = Value::new();
+		(_API.ValueIntDataSet)(me.as_ptr(), *val, VALUE_TYPE::T_INT as UINT, 0);
 		return me;
 	}
 }
@@ -873,7 +921,16 @@ impl From<i32> for Value {
 impl From<f64> for Value {
 	fn from(val: f64) -> Self {
 		let mut me = Value::new();
-		(_API.ValueFloatDataSet)(me.as_ptr(), val as f64, VALUE_TYPE::T_FLOAT as UINT, 0);
+		(_API.ValueFloatDataSet)(me.as_ptr(), val, VALUE_TYPE::T_FLOAT as UINT, 0);
+		return me;
+	}
+}
+
+/// Value from float.
+impl From<&f64> for Value {
+	fn from(val: &f64) -> Self {
+		let mut me = Value::new();
+		(_API.ValueFloatDataSet)(me.as_ptr(), *val, VALUE_TYPE::T_FLOAT as UINT, 0);
 		return me;
 	}
 }
@@ -883,6 +940,15 @@ impl From<bool> for Value {
 	fn from(val: bool) -> Self {
 		let mut me = Value::new();
 		(_API.ValueIntDataSet)(me.as_ptr(), val as INT, VALUE_TYPE::T_BOOL as UINT, 0);
+		return me;
+	}
+}
+
+/// Value from bool.
+impl From<&bool> for Value {
+	fn from(val: &bool) -> Self {
+		let mut me = Value::new();
+		(_API.ValueIntDataSet)(me.as_ptr(), *val as INT, VALUE_TYPE::T_BOOL as UINT, 0);
 		return me;
 	}
 }
@@ -901,6 +967,14 @@ impl From<String> for Value {
 	fn from(val: String) -> Self {
 		let mut me = Value::new();
 		me.assign_str(&val, VALUE_UNIT_TYPE_STRING::STRING);
+		return me;
+	}
+}
+
+impl<'a> From<&'a String> for Value {
+	fn from(val: &'a String) -> Self {
+		let mut me = Value::new();
+		me.assign_str(val, VALUE_UNIT_TYPE_STRING::STRING);
 		return me;
 	}
 }
@@ -1019,6 +1093,16 @@ impl<F> From<F> for Value
 		let ptr = Box::into_raw(boxed);	// dropped in `_functor_release`
 		(_API.ValueNativeFunctorSet)(v.as_ptr(), _functor_invoke::<F>, _functor_release::<F>, ptr as LPVOID);
 		return v;
+	}
+}
+
+/// Value from asset.
+impl<T> From<Box<IAsset<T>>> for Value {
+	fn from(ptr: Box<IAsset<T>>) -> Value {
+		let ptr = Box::into_raw(ptr);
+		let mut me = Value::new();
+		(_API.ValueInt64DataSet)(me.as_ptr(), ptr as usize as i64, VALUE_TYPE::T_ASSET as u32, 0);
+		return me;
 	}
 }
 

@@ -5,12 +5,16 @@
 
 use capi::sctypes::*;
 
+/// Opaque union type that holds a superset of JSON objects.
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct VALUE
 {
+	/// Type identifier.
 	pub t: VALUE_TYPE,
+	/// Unit identifier (subtype).
 	pub u: UINT,
+	/// Opaque data.
 	pub d: UINT64,
 }
 
@@ -49,6 +53,7 @@ pub enum VALUE_STRING_CVT_TYPE {
 }
 
 
+/// Type identifier of the value.
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum VALUE_TYPE {
@@ -72,8 +77,17 @@ pub enum VALUE_TYPE {
 	T_DURATION,
 	T_ANGLE,
 	T_COLOR,
+	T_ENUM,
+	T_ASSET,
 
 	T_UNKNOWN,
+}
+
+#[repr(C)]
+#[derive(Debug, PartialOrd, PartialEq)]
+pub enum VALUE_UNIT_UNDEFINED
+{
+	UT_NOTHING = 1,
 }
 
 #[repr(C)]
@@ -83,6 +97,8 @@ pub enum VALUE_UNIT_TYPE_STRING
 	STRING = 0,        // string
 	ERROR  = 1,        // is an error string
 	SECURE = 2,        // secure string ("wiped" on destroy)
+	URL 	 = 3,				 // url(...)
+	SELECTOR = 4,			 // selector(...)
 	FILE = 0xfffe,     // file name
 	SYMBOL = 0xffff,   // symbol in tiscript sense
 }

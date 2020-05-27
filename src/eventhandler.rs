@@ -5,14 +5,14 @@ use value::Value;
 use dom::event::EventHandler;
 
 #[repr(C)]
-pub struct WindowHandler<T>
+pub(crate) struct WindowHandler<T>
 {
 	pub hwnd: HWINDOW,
 	pub handler: T,
 }
 
 #[repr(C)]
-pub struct BoxedHandler {
+pub(crate) struct BoxedHandler {
 	pub handler: Box<dyn EventHandler>,
 }
 
@@ -29,7 +29,7 @@ fn is_detach_event(evtg: UINT, params: LPVOID) -> bool {
 	false
 }
 
-pub extern "system" fn _event_handler_window_proc<T: EventHandler>(tag: LPVOID, _he: ::capi::scdom::HELEMENT, evtg: UINT, params: LPVOID) -> BOOL
+pub(crate) extern "system" fn _event_handler_window_proc<T: EventHandler>(tag: LPVOID, _he: ::capi::scdom::HELEMENT, evtg: UINT, params: LPVOID) -> BOOL
 {
 	let boxed = tag as *mut WindowHandler<T>;
 	let tuple: &mut WindowHandler<T> = unsafe { &mut *boxed };
@@ -41,30 +41,20 @@ pub extern "system" fn _event_handler_window_proc<T: EventHandler>(tag: LPVOID, 
 	};
 
 	// custom initialization (because there is no DOM in plain window)
-	let group : EVENT_GROUPS = unsafe { ::std::mem::transmute(evtg) };
-	if group == EVENT_GROUPS::HANDLE_INITIALIZATION {
-		assert!(!params.is_null());
-		let scnm = params as *const INITIALIZATION_EVENTS;
-		let cmd = unsafe { *scnm };
-		match cmd {
-			INITIALIZATION_EVENTS::BEHAVIOR_ATTACH => {
-				tuple.handler.attached(hroot);
-			},
-			INITIALIZATION_EVENTS::BEHAVIOR_DETACH => {
-				tuple.handler.detached(hroot);
+	if is_detach_event(evtg, params) {
+		tuple.handler.detached(hroot);
 
-				// here we dropping our tuple
-				let ptr = unsafe { Box::from_raw(boxed) };
-				drop(ptr);
-			},
-		};
+		// here we drop our tuple
+		let ptr = unsafe { Box::from_raw(boxed) };
+		drop(ptr);
+
 		return true as BOOL;
 	}
 
 	process_events(&mut tuple.handler, hroot, evtg, params)
 }
 
-pub extern "system" fn _event_handler_behavior_proc(tag: LPVOID, he: HELEMENT, evtg: UINT, params: LPVOID) -> BOOL {
+pub(crate) extern "system" fn _event_handler_behavior_proc(tag: LPVOID, he: HELEMENT, evtg: UINT, params: LPVOID) -> BOOL {
 	// reconstruct pointer to Handler
 	let boxed = tag as *mut BoxedHandler;
 	let me = unsafe { &mut *boxed };
@@ -73,16 +63,17 @@ pub extern "system" fn _event_handler_behavior_proc(tag: LPVOID, he: HELEMENT, e
 	if is_detach_event(evtg, params) {
 		me.detached(he);
 
-		// here we dropping our handler
+		// here we drop our handler
 		let ptr = unsafe { Box::from_raw(boxed) };
 		drop(ptr);
+
 		return true as BOOL;
 	}
 
 	process_events(me, he, evtg, params)
 }
 
-pub extern "system" fn _event_handler_proc<T: EventHandler>(tag: LPVOID, he: HELEMENT, evtg: UINT, params: LPVOID) -> BOOL
+pub(crate) extern "system" fn _event_handler_proc<T: EventHandler>(tag: LPVOID, he: HELEMENT, evtg: UINT, params: LPVOID) -> BOOL
 {
 	// reconstruct pointer to Handler
 	let boxed = tag as *mut T;
@@ -91,9 +82,10 @@ pub extern "system" fn _event_handler_proc<T: EventHandler>(tag: LPVOID, he: HEL
 	if is_detach_event(evtg, params) {
 		me.detached(he);
 
-		// here we dropping our handler
+		// here we drop our handler
 		let ptr = unsafe { Box::from_raw(boxed) };
 		drop(ptr);
+
 		return true as BOOL;
 	}
 
@@ -106,6 +98,7 @@ fn process_events(me: &mut dyn EventHandler, he: HELEMENT, evtg: UINT, params: L
 	if he.is_null()
 		&& evtg != EVENT_GROUPS::SUBSCRIPTIONS_REQUEST
 		&& evtg != EVENT_GROUPS::HANDLE_BEHAVIOR_EVENT
+		&& evtg != EVENT_GROUPS::HANDLE_INITIALIZATION
 	{
 		eprintln!("[sciter] warning! null element for {:04X}", evtg as u32);
 	}
@@ -125,14 +118,17 @@ fn process_events(me: &mut dyn EventHandler, he: HELEMENT, evtg: UINT, params: L
 
 		EVENT_GROUPS::HANDLE_INITIALIZATION => {
 			assert!(!params.is_null());
-			let scnm = params as *const INITIALIZATION_EVENTS;
-			let cmd = unsafe { *scnm };
-			match cmd {
+			let scnm = params as *mut INITIALIZATION_PARAMS;
+			let nm = unsafe { &mut *scnm };
+			match nm.cmd {
 				INITIALIZATION_EVENTS::BEHAVIOR_DETACH => {
 					me.detached(he);
 				},
 
 				INITIALIZATION_EVENTS::BEHAVIOR_ATTACH => {
+					if let Some(ptr) = me.get_passport() {
+						nm.passport = ptr;
+					}
 					me.attached(he);
 				},
 			};

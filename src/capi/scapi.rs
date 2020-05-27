@@ -11,6 +11,8 @@ use capi::scbehavior::*;
 use capi::scgraphics::SciterGraphicsAPI;
 use capi::screquest::{SciterRequestAPI, HREQUEST, REQUEST_PARAM};
 use capi::scmsg::{SCITER_X_MSG};
+use capi::scom::som_asset_t;
+
 
 /// Sciter API functions.
 #[repr(C)]
@@ -266,6 +268,12 @@ pub struct ISciterAPI
   // #endif
 
   // since 4.0.0.0
-  pub SciterProcX: extern "system" fn(hwnd: HWINDOW, msg: * const SCITER_X_MSG) -> BOOL,
+	pub SciterProcX: extern "system" fn(hwnd: HWINDOW, msg: * const SCITER_X_MSG) -> BOOL,
 
+	// since 4.4.2.14
+	pub SciterAtomValue: extern "system" fn(name: LPCSTR) -> UINT64,
+	pub SciterAtomNameCB: extern "system" fn(atomv: UINT64, rcv: LPCSTR_RECEIVER, rcv_param: LPVOID) -> BOOL,
+
+	// since 4.4.2.16
+	pub SciterSetGlobalAsset: extern "system" fn(pass: *mut som_asset_t) -> BOOL,
 }

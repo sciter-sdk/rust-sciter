@@ -91,6 +91,7 @@ mod eventhandler;
 pub mod dom;
 pub mod graphics;
 pub mod host;
+pub mod om;
 pub mod request;
 pub mod types;
 pub mod utf;
@@ -104,6 +105,7 @@ pub use dom::event::EventHandler;
 pub use host::{Archive, Host, HostHandler};
 pub use value::{Value, FromValue};
 pub use window::Window;
+
 
 /// Builder pattern for window creation. See [`window::Builder`](window/struct.Builder.html) documentation.
 ///
