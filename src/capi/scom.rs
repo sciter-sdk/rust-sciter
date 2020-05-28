@@ -22,6 +22,12 @@ pub struct som_asset_t {
 	pub(crate) isa: &'static som_asset_class_t,
 }
 
+impl som_asset_t {
+	pub(crate) fn get_passport(&self) -> *const som_passport_t {
+		(self.isa.get_passport)(self as *const _ as *mut _)
+	}
+}
+
 /// Is a pack of 4 pointers to functions that define the life time of an asset.
 #[repr(C)]
 #[derive(Debug)]

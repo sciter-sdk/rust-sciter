@@ -1476,7 +1476,7 @@ This way you can establish interaction between scipt and native code inside your
 	#[allow(unused_variables)]
 	pub trait EventHandler {
 
-		/// Return list of event groups this event handler is subscribed to.
+		/// Return a list of event groups this event handler is subscribed to.
 		///
 		/// Default is `HANDLE_BEHAVIOR_EVENT | HANDLE_SCRIPTING_METHOD_CALL`.
 		/// See also [`default_events()`](fn.default_events.html).
@@ -1529,8 +1529,10 @@ This way you can establish interaction between scipt and native code inside your
 			return None;
 		}
 
+		/// Return the reference to a native asset assotiated with behavior.
 		#[doc(hidden)]
-		fn get_passport(&mut self) -> Option<&'static crate::capi::scom::som_passport_t> {
+		fn get_asset(&mut self) -> Option<&crate::capi::scom::som_asset_t> {
+			// TODO: is this good?
 			return None;
 		}
 

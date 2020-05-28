@@ -2,7 +2,7 @@
 // #![windows_subsystem="windows"]
 extern crate sciter;
 
-use sciter::{HELEMENT, Value, types::{BOOL, VALUE}};
+use sciter::{HELEMENT, types::{BOOL, VALUE}};
 
 #[derive(Default)]
 pub struct Object {
@@ -12,7 +12,12 @@ pub struct Object {
 
 impl Object {
 	pub fn print(&self) -> String {
-		format!("Name: {}, Age: {}", self.name, self.age)
+		format!("name: {}, age: {}", self.name, self.age)
+	}
+
+	pub fn add_year(&mut self, v: i32) -> i32 {
+		self.age += v;
+		self.age
 	}
 }
 
@@ -26,6 +31,34 @@ impl sciter::om::Passport for Object {
 		{
 			let me = IAsset::<Object>::from_raw(&thing);
 			let r = me.print();
+			let r: sciter::Value = r.into();
+			r.pack_to(p_result);
+			return true as BOOL;
+		}
+		extern "C" fn on_add_year(thing: *mut som_asset_t, argc: u32, argv: *const VALUE, p_result: &mut VALUE) -> BOOL
+		{
+			let me = IAsset::<Object>::from_raw(&thing);
+
+			let args = unsafe { sciter::Value::unpack_from(argv, argc) };
+			let required = 1;
+			if args.len() != required {
+				let r = sciter::Value::error(&format!("{} error: {} of {} arguments provided.", "Object::add_year", args.len(), required));
+				r.pack_to(p_result);
+				return true as BOOL;
+			}
+
+			let r = me.add_year(
+				match sciter::FromValue::from_value(&args[0]) {
+					Some(arg) => arg,
+					None => {
+							let r = sciter::Value::error(&format!("{} error: invalid type of {} argument ({} expected, {:?} provided).",
+								"Object::add_year", 0, "i32", &args[0]
+						));
+						r.pack_to(p_result);
+						return true as BOOL;
+					}
+				},
+			);
 			let r: sciter::Value = r.into();
 			r.pack_to(p_result);
 			return true as BOOL;
@@ -71,14 +104,24 @@ impl sciter::om::Passport for Object {
 			}
 		}
 
-		let mut method = Box::new(som_method_def_t::default());
+		type ObjectMethods = [som_method_def_t; 2];
+
+		let mut methods = Box::new(ObjectMethods::default());
+
+		let mut method = &mut methods[0];
 		method.name = atom("print");
 		method.func = Some(on_print);
 		method.params = 0;
 
+		let mut method = &mut methods[1];
+		method.name = atom("add_year");
+		method.func = Some(on_add_year);
+		method.params = 1;
+
 		type ObjectProps = [som_property_def_t; 2];
 
 		let mut props = Box::new(ObjectProps::default());
+
 		let mut prop = &mut props[0];
 		prop.name = atom("age");
 		prop.getter = Some(on_get_age);
@@ -92,8 +135,8 @@ impl sciter::om::Passport for Object {
 		let mut pst = Box::new(som_passport_t::default());
 		pst.name = atom("TestGlobal");
 
-		pst.n_methods = 1;
-		pst.methods = Box::into_raw(method);
+		pst.n_methods = 2;
+		pst.methods = Box::into_raw(methods) as *const _;
 
 		pst.n_properties = 2;
 		pst.properties = Box::into_raw(props) as *const _;
@@ -103,10 +146,9 @@ impl sciter::om::Passport for Object {
 }
 
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 struct Handler {
-	#[allow(dead_code)]
-	prop: i32,
+	asset: sciter::om::IAssetRef<Object>,
 }
 
 impl sciter::EventHandler for Handler {
@@ -120,74 +162,9 @@ impl sciter::EventHandler for Handler {
 		println!("loaded");
 	}
 
-	// SOM Passport of the event handler.
-	// TODO: should be auto-generated.
-	fn get_passport(&mut self) -> Option<&'static sciter::om::som_passport_t> {
-		use sciter::om::*;
-
-		extern "C" fn int_getter(thing: *mut som_asset_t, p_value: &mut VALUE) -> BOOL
-		{
-			let r = Value::from(17);
-			r.pack_to(p_value);
-			println!("int_getter({:?}) -> {:?}", thing, r);
-
-			return true as BOOL;
-		}
-		extern "C" fn int_setter(thing: *mut som_asset_t, p_value: &VALUE) -> BOOL
-		{
-			let v = Value::from(p_value);
-			println!("int_setter({:?}) <- {:?}", thing, v);
-			return true as BOOL;
-		}
-
-		extern "C" fn method(thing: *mut som_asset_t, argc: u32, argv: *const VALUE, p_result: &mut VALUE) -> BOOL
-		{
-			let args = unsafe { Value::unpack_from(argv, argc) };
-
-			let sargs = args.iter().map(|v| v.to_string()).collect::<Vec<_>>();
-			println!("int_method({:?}) <- {}", thing, sargs.join(", "));
-
-			let r = Value::from("success");
-			r.pack_to(p_result);
-			return true as BOOL;
-		}
-
-		let mut prop = Box::new(som_property_def_t::default());
-		prop.name = atom("prop_int");
-		prop.getter = Some(int_getter);
-		prop.setter = Some(int_setter);
-
-		let mut func = Box::new(som_method_def_t::default());
-		func.name = atom("method");
-		func.params = 1;
-		func.func = Some(method);
-
-		let mut pst = Box::new(som_passport_t::default());
-		pst.name = atom("Handler");
-		pst.properties = Box::into_raw(prop);
-		pst.n_properties = 1;
-		pst.methods = Box::into_raw(func);
-		pst.n_methods = 1;
-
-
-		return Some(Box::leak(pst));
+	fn get_asset(&mut self) -> Option<&sciter::om::som_asset_t> {
+		Some(self.asset.as_ref())
 	}
-}
-
-// #[cfg(test)]
-#[allow(dead_code)]
-#[allow(unused_variables)]
-fn test() {
-	// use sciter::Value;
-
-	let i = 17_i32;
-	let s = String::from("17");
-
-	let r = Value::from(&i);
-	let r = Value::from(&s);
-
-	let r = Value::from(i);
-	let r = Value::from(s);
 }
 
 fn main() {
@@ -197,9 +174,17 @@ fn main() {
 
 	let object = Object::default();
 	let object = sciter::om::IAsset::new(object);
-	sciter::om::set_global(object);
+	sciter::om::into_global(object);
 
-	let handler = Handler { prop: 17, };
+	let object2 = Object::default();
+	let object2 = sciter::om::IAsset::new(object2);
+	let object2 = sciter::om::IAssetRef::from(object2);
+	let ptr = object2.as_ptr();
+	let psp = object2.get_passport();
+	println!{"asset {:?} psp {:?}", ptr, psp as *const _};
+	println!("asset: {:?}", object2);
+
+	let handler = Handler { asset: object2 };
 	frame.event_handler(handler);
 
 	let html = include_bytes!("som.htm");

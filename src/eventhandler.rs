@@ -99,6 +99,7 @@ fn process_events(me: &mut dyn EventHandler, he: HELEMENT, evtg: UINT, params: L
 		&& evtg != EVENT_GROUPS::SUBSCRIPTIONS_REQUEST
 		&& evtg != EVENT_GROUPS::HANDLE_BEHAVIOR_EVENT
 		&& evtg != EVENT_GROUPS::HANDLE_INITIALIZATION
+		&& evtg != EVENT_GROUPS::HANDLE_SOM
 	{
 		eprintln!("[sciter] warning! null element for {:04X}", evtg as u32);
 	}
@@ -126,14 +127,34 @@ fn process_events(me: &mut dyn EventHandler, he: HELEMENT, evtg: UINT, params: L
 				},
 
 				INITIALIZATION_EVENTS::BEHAVIOR_ATTACH => {
-					if let Some(ptr) = me.get_passport() {
-						nm.passport = ptr;
-					}
 					me.attached(he);
 				},
 			};
 			true
 		},
+
+		EVENT_GROUPS::HANDLE_SOM => {
+			assert!(!params.is_null());
+			let scnm = params as *mut SOM_PARAMS;
+			let nm = unsafe { &mut *scnm };
+			match nm.cmd {
+				SOM_EVENTS::SOM_GET_PASSPORT => {
+					if let Some(asset) = me.get_asset() {
+						nm.result.passport = asset.get_passport();
+						return true as BOOL;
+					}
+				},
+
+				SOM_EVENTS::SOM_GET_ASSET => {
+					if let Some(asset) = me.get_asset() {
+						nm.result.asset = asset;
+						return true as BOOL;
+					}
+				},
+			};
+			false
+		},
+
 
 		EVENT_GROUPS::HANDLE_BEHAVIOR_EVENT => {
 			assert!(!params.is_null());

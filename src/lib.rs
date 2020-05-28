@@ -5,7 +5,7 @@
 /*!
 # Rust bindings library for Sciter engine.
 
-Sciter is an embeddable [multiplatform](https://sciter.com/sciter/crossplatform/) HTML/CSS/script engine
+[Sciter](http://sciter.com) is an embeddable [multiplatform](https://sciter.com/sciter/crossplatform/) HTML/CSS/script engine
 with GPU accelerated rendering designed to render modern desktop application UI.
 It's a compact, single dll/dylib/so file (4-8 mb) engine without any additional dependencies.
 

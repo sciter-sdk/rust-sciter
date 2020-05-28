@@ -7,7 +7,7 @@ use capi::sctypes::*;
 use capi::scdom::*;
 use capi::scvalue::{VALUE};
 use capi::scgraphics::{HGFX};
-use capi::scom::{som_passport_t};
+use capi::scom::{som_asset_t, som_passport_t};
 
 #[repr(C)]
 pub struct BEHAVIOR_EVENT_PARAMS
@@ -46,7 +46,29 @@ pub enum INITIALIZATION_EVENTS
 pub struct INITIALIZATION_PARAMS
 {
 	pub cmd: INITIALIZATION_EVENTS,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+#[derive(Debug, PartialOrd, PartialEq)]
+pub enum SOM_EVENTS
+{
+	SOM_GET_PASSPORT = 0,
+	SOM_GET_ASSET = 1,
+}
+
+#[repr(C)]
+pub union SOM_PARAMS_DATA
+{
+	pub asset: *const som_asset_t,
 	pub passport: *const som_passport_t,
+}
+
+#[repr(C)]
+pub struct SOM_PARAMS
+{
+	pub cmd: SOM_EVENTS,
+	pub result: SOM_PARAMS_DATA,
 }
 
 /// Identifiers of methods currently supported by intrinsic behaviors.
@@ -176,6 +198,8 @@ pub enum EVENT_GROUPS
 	HANDLE_EXCHANGE              = 0x1000,
 	/// Touch input events.
 	HANDLE_GESTURE               = 0x2000,
+	/// SOM passport and asset requests.
+	HANDLE_SOM                   = 0x8000,
 
 	/// All of them.
 	HANDLE_ALL                   = 0xFFFF,
