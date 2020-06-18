@@ -10,9 +10,9 @@
 
       video.generator {
         behavior: video-generator video;
+        border: 1px solid orange;
         size: *;
         foreground-size: contain;
-        border: 1px solid orange;
       }
 
     </style>
@@ -29,17 +29,17 @@
       }
 
       event click $(#snapshot) {
-        var frame = $(video).style.foregroundImage;
-        var image = frame.toBytes();
-        var fn = view.selectFile(#save, "Images|*.png;*.jpg|All files|*.*", "png");
-        if (fn) {
-          frame.toBytes().save(fn);
+        var curframe = $(video).style.foregroundImage;
+        var fname = view.selectFile(#save, "Images|*.png;*.jpg|All files|*.*", "png");
+        if (fname) {
+          var image = curframe.toBytes();
+          image.save(fname);
         }
       }
 
       var video = $(video);
       var host;
-      var body;
+      var body = $(body);
 
       event click $(#show-detached) {
 
@@ -58,9 +58,15 @@
             height: 480,
             alignment: 5,
           };
-          body = video.parent;
           video.detach();
           host.root.$(body).append(video);
+
+          host.on("closing", function(evt) {
+            // detach
+            video.detach();
+            body.append(video);
+            $(#show-detached).value = false;
+          });
 
         } else {
 
@@ -102,7 +108,7 @@
   On each frame (24 FPS) it updates another portion of the frame.</p>
 
   <div>
-    <button id="snapshot">Save current frame</button>
+    <button id="snapshot">Save the current frame</button>
     <button type=checkbox id="show-detached">Show video in a separate window</button>
   </div>
 
@@ -111,5 +117,6 @@
   </div>
 
   <video class="generator" />
+
 </body>
 </html>
