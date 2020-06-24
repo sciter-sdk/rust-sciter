@@ -1083,15 +1083,30 @@ impl ::std::iter::FromIterator<String> for Value {
 	}
 }
 
+// /// Value from function.
+// impl<F> From<F> for Value
+// 	where F: Fn(&[Value]) -> Value
+// {
+// 	fn from(f: F) -> Value {
+// 		let mut v = Value::new();
+// 		let boxed = Box::new(f);
+// 		let ptr = Box::into_raw(boxed);	// dropped in `_functor_release`
+// 		(_API.ValueNativeFunctorSet)(v.as_ptr(), _functor_invoke::<F>, _functor_release::<F>, ptr as LPVOID);
+// 		return v;
+// 	}
+// }
+
 /// Value from function.
-impl<F> From<F> for Value
-	where F: Fn(&[Value]) -> Value
+impl<F, R> From<F> for Value
+where
+	F: Fn(&[Value]) -> R,
+	R: Into<Value>,
 {
 	fn from(f: F) -> Value {
 		let mut v = Value::new();
 		let boxed = Box::new(f);
 		let ptr = Box::into_raw(boxed);	// dropped in `_functor_release`
-		(_API.ValueNativeFunctorSet)(v.as_ptr(), _functor_invoke::<F>, _functor_release::<F>, ptr as LPVOID);
+		(_API.ValueNativeFunctorSet)(v.as_ptr(), _functor_invoke::<F,R>, _functor_release::<F>, ptr as LPVOID);
 		return v;
 	}
 }
@@ -1115,8 +1130,11 @@ extern "C" fn _functor_release<F>(tag: LPVOID)
 	drop(boxed);
 }
 
-extern "C" fn _functor_invoke<F>(tag: LPVOID, argc: UINT, argv: *const VALUE, retval: *mut VALUE)
-	where F: Fn(&[Value]) -> Value
+extern "C" fn _functor_invoke<F, R>(tag: LPVOID, argc: UINT, argv: *const VALUE, retval: *mut VALUE)
+where
+	F: Fn(&[Value]) -> R,
+	R: Into<Value>,
+
 {
 	// reconstruct handler from pointer
 	let ptr = tag as *mut F;
@@ -1124,6 +1142,7 @@ extern "C" fn _functor_invoke<F>(tag: LPVOID, argc: UINT, argv: *const VALUE, re
 	let retval = unsafe { &mut *retval };
 	let args = unsafe { Value::unpack_from(argv, argc) };
 	let rv = me(&args);
+	let rv: Value = rv.into();
 	rv.pack_to(retval)
 }
 

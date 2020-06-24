@@ -1,6 +1,6 @@
 [package]
 name = "sciter-rs"
-version = "0.5.52"
+version = "0.5.53"
 description = "Rust bindings for Sciter - Embeddable HTML/CSS/script engine (cross-platform desktop GUI toolkit). Also capable with DirectX / OpenGL."
 keywords = ["gui", "gtk", "cocoa", "opengl", "skia"]
 categories = ["gui", "web-programming", "rendering::graphics-api", "api-bindings"]
@@ -20,7 +20,7 @@ travis-ci = { repository = "sciter-sdk/rust-sciter" }
 maintenance = { status = "passively-maintained" }
 
 [workspace]
-members = [".", "serde"]
+members = [".", "serde", "examples/extension"]
 
 
 [lib]
@@ -33,6 +33,9 @@ default = ["dynamic"]
 
 # Enable nightly compiler features (currently doesn't use any).
 nightly = []
+
+# Build as a Sciter extension library.
+extension = []
 
 # Load Sciter DLL dynamically from the path specified by `sciter::set_library`.
 # Otherwise, links statically to `libsciter-gtk.so` or `sciter-osx-64.dylib`.

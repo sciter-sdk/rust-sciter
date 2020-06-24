@@ -1,0 +1,12 @@
+[package]
+name = "extension"
+description = "A simple Sciter extension library"
+version = "0.1.0"
+authors = ["pravic <ehysta@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+sciter-rs = { version = "0.5", path="../../", features = ["extension"] }

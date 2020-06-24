@@ -76,7 +76,7 @@ folder for more complex usage and module-level sections for the guides about:
 #[macro_use] extern crate lazy_static;
 
 
-#[macro_use] mod macros;
+#[macro_use] pub mod macros;
 
 mod capi;
 
@@ -370,19 +370,22 @@ mod ext {
 #[allow(non_snake_case)]
 pub fn SciterAPI<'a>() -> &'a ISciterAPI {
 	let ap = unsafe {
-		let p = ext::SciterAPI();
-		&*p
+		if cfg!(feature="extension") {
+			EXT_API.expect("Sciter API is not available yet, call `sciter::set_api()` first.")
+		} else {
+			&*ext::SciterAPI()
+		}
 	};
 
-	let abi = ap.version;
-
+	let abi_version = ap.version;
 
 	if cfg!(feature = "windowless") {
-		assert!(abi >= 0x0001_0001, "Incompatible Sciter build and \"windowless\" feature");
+		assert!(abi_version >= 0x0001_0001, "Incompatible Sciter build and \"windowless\" feature");
 	}
 	if cfg!(not(feature = "windowless")) {
-		assert!(abi < 0x0001_0000, "Incompatible Sciter build and \"windowless\" feature");
+		assert!(abi_version < 0x0001_0000, "Incompatible Sciter build and \"windowless\" feature");
 	}
+
 	return ap;
 }
 
@@ -393,8 +396,11 @@ pub fn SciterAPI<'a>() -> &'a ISciterAPI {
 #[allow(non_snake_case)]
 pub fn SciterAPI_unchecked<'a>() -> &'a ISciterAPI {
 	let ap = unsafe {
-		let p = ext::SciterAPI();
-		&*p
+		if cfg!(feature="extension") {
+			EXT_API.expect("Sciter API is not available yet, call `sciter::set_api()` first.")
+		} else {
+			&*ext::SciterAPI()
+		}
 	};
 
 	return ap;
@@ -414,7 +420,8 @@ lazy_static! {
 
 /// Set a custom path to the Sciter dynamic library.
 ///
-/// Must be called first before any other functions.
+/// Note: Must be called first before any other function.
+///
 /// Returns error if the specified library can not be loaded.
 ///
 /// # Example
@@ -441,6 +448,18 @@ pub fn set_library(custom_path: &str) -> ::std::result::Result<(), String> {
   set_impl(custom_path)
 }
 
+static mut EXT_API: Option<&'static ISciterAPI> = None;
+
+/// Set the Sciter API coming from `SciterLibraryInit`.
+///
+/// Note: Must be called first before any other function.
+pub fn set_api(api: &'static ISciterAPI) {
+	if cfg!(feature="extension") {
+		unsafe {
+			EXT_API.replace(api);
+		}
+	}
+}
 
 /// Sciter engine version number (e.g. `0x03030200`).
 ///

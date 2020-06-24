@@ -5,16 +5,20 @@
 
 use capi::sctypes::*;
 
-/// Opaque union type that holds a superset of JSON objects.
+/// A JSON value.
+///
+/// An opaque union that can hold different types of values: numbers, strings, arrays, objects, etc.
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct VALUE
 {
-	/// Type identifier.
+	/// Value type.
 	pub t: VALUE_TYPE,
-	/// Unit identifier (subtype).
+
+	/// Value unit type.
 	pub u: UINT,
-	/// Opaque data.
+
+	/// Value data.
 	pub d: UINT64,
 }
 

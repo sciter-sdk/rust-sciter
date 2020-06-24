@@ -7,6 +7,7 @@ use capi::sctypes::*;
 use capi::scvalue::{VALUE};
 use capi::screquest::{HREQUEST};
 use capi::scdom::{HELEMENT};
+use capi::scapi::ISciterAPI;
 
 //////////////////////////////////////////////////////////////////////////////////
 pub enum ID2D1RenderTarget {}
@@ -348,3 +349,23 @@ pub type LPCBYTE_RECEIVER = extern "system" fn (szstr: LPCBYTE, str_length: UINT
 pub type ELEMENT_BITMAP_RECEIVER = extern "system" fn (rgba: LPCBYTE, x: INT, y: INT, width: UINT, height: UINT, param: LPVOID);
 
 pub type KeyValueCallback = extern "system" fn (param: LPVOID, pkey: *const VALUE, pval: *const VALUE) -> BOOL;
+
+/// Signature of Sciter extension library entry point.
+///
+/// The library should be placed next to the "sciter.dll"
+/// and export a "SciterLibraryInit" function.
+///
+/// In script such extension library can be imported as:
+///
+/// ```javascript
+/// const exported = include library "library-name";
+/// ```
+///
+/// See the [blog post](https://sciter.com/include-library-name-native-extensions/).
+///
+/// `api` - Sciter API to be used inside the extension.
+/// `exported` - extension object, can be asset, function, or other `sciter::Value` supported type.
+///
+/// Return `true` if the `exported` object is initialized.
+///
+pub type SciterLibraryInit = extern "system" fn (api: &'static ISciterAPI, exported: &mut VALUE) -> BOOL;
