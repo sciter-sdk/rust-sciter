@@ -35,6 +35,8 @@ default = ["dynamic"]
 nightly = []
 
 # Build as a Sciter extension library.
+# see "examples/extension"
+# note: this feature can't be tested.
 extension = []
 
 # Load Sciter DLL dynamically from the path specified by `sciter::set_library`.

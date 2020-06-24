@@ -371,7 +371,19 @@ mod ext {
 pub fn SciterAPI<'a>() -> &'a ISciterAPI {
 	let ap = unsafe {
 		if cfg!(feature="extension") {
-			EXT_API.expect("Sciter API is not available yet, call `sciter::set_api()` first.")
+			// TODO: it's not good to raise a panic inside `lazy_static!`,
+			// because it wents into recursive panicing.
+
+			// Somehow, `cargo test --all` tests all the features,
+			// also sometimes it comes without `cfg!(test)`.
+			// I have to load Sciter in that case.
+			if cfg!(test) {
+				&*ext::SciterAPI()
+			} else {
+				EXT_API
+					//.or_else(|| Some(&*ext::SciterAPI()))
+					.expect("Sciter API is not available yet, call `sciter::set_api()` first.")
+			}
 		} else {
 			&*ext::SciterAPI()
 		}

@@ -91,5 +91,8 @@ test_script:
   - cargo run --example first %FEATURES%
   - cargo run --example first %FEATURES% -- C:/projects/deps/sciter.dll
 
-  - cargo test --all %FEATURES%
-  - cargo test --all %FEATURES% --release
+  - cargo test -p sciter-rs %FEATURES%
+  - cargo test -p sciter-rs %FEATURES% --release
+
+  - cargo test -p sciter-serde %FEATURES%
+  - cargo test -p sciter-serde %FEATURES% --release
