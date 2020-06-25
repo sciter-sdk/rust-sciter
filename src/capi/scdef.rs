@@ -350,10 +350,30 @@ pub type ELEMENT_BITMAP_RECEIVER = extern "system" fn (rgba: LPCBYTE, x: INT, y:
 
 pub type KeyValueCallback = extern "system" fn (param: LPVOID, pkey: *const VALUE, pval: *const VALUE) -> BOOL;
 
-/// Signature of Sciter extension library entry point.
+/// Signature of Sciter extension library.
 ///
-/// The library should be placed next to the "sciter.dll"
-/// and export a "SciterLibraryInit" function.
+/// * `api` - Sciter API to be used inside the extension.
+/// * `exported` - extension object, it can be [asset](https://sciter.com/developers/for-native-gui-programmers/sciter-object-model/),
+/// function, or other `sciter::Value` supported type.
+///
+/// Return `true` if the `exported` object was initialized.
+///
+/// The extension should be placed in the same folder as "sciter.dll"
+/// and export a `SciterLibraryInit` function:
+///
+/// ```rust,no_run
+/// use sciter::types::{BOOL, VALUE};
+/// use sciter::Value;
+///
+/// #[no_mangle]
+/// pub extern "system"
+/// fn SciterLibraryInit(api: &'static sciter::ISciterAPI, exported: &mut VALUE) -> BOOL
+/// {
+///   sciter::set_host_api(api);
+///   todo!("export some extension functions");
+///   true as BOOL
+/// }
+/// ```
 ///
 /// In script such extension library can be imported as:
 ///
@@ -361,11 +381,6 @@ pub type KeyValueCallback = extern "system" fn (param: LPVOID, pkey: *const VALU
 /// const exported = include library "library-name";
 /// ```
 ///
-/// See the [blog post](https://sciter.com/include-library-name-native-extensions/).
-///
-/// `api` - Sciter API to be used inside the extension.
-/// `exported` - extension object, can be asset, function, or other `sciter::Value` supported type.
-///
-/// Return `true` if the `exported` object is initialized.
+/// See the [blog post](https://sciter.com/include-library-name-native-extensions/) for more details.
 ///
 pub type SciterLibraryInit = extern "system" fn (api: &'static ISciterAPI, exported: &mut VALUE) -> BOOL;

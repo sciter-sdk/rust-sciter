@@ -372,11 +372,13 @@ pub fn SciterAPI<'a>() -> &'a ISciterAPI {
 	let ap = unsafe {
 		if cfg!(feature="extension") {
 			// TODO: it's not good to raise a panic inside `lazy_static!`,
-			// because it wents into recursive panicing.
-
+      // because it wents into recursive panicing.
+      //
 			// Somehow, `cargo test --all` tests all the features,
-			// also sometimes it comes without `cfg!(test)`.
-			// I have to load Sciter in that case.
+      // also sometimes it comes even without `cfg!(test)`.
+      // Well, the culprit is "examples/extensions" which uses the "extension" feature,
+      // but how on earth it builds without `cfg(test)`?
+      //
 			if cfg!(test) {
 				&*ext::SciterAPI()
 			} else {
@@ -465,7 +467,7 @@ static mut EXT_API: Option<&'static ISciterAPI> = None;
 /// Set the Sciter API coming from `SciterLibraryInit`.
 ///
 /// Note: Must be called first before any other function.
-pub fn set_api(api: &'static ISciterAPI) {
+pub fn set_host_api(api: &'static ISciterAPI) {
 	if cfg!(feature="extension") {
 		unsafe {
 			EXT_API.replace(api);
