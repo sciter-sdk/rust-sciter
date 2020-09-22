@@ -66,6 +66,7 @@ folder for more complex usage and module-level sections for the guides about:
 #![allow(clippy::needless_return, clippy::let_and_return)] // past habits
 #![allow(clippy::redundant_field_names)] // since Rust 1.17 and less readable
 #![allow(clippy::unreadable_literal)] // C++ SDK constants
+#![allow(clippy::deprecated_semver)]  // `#[deprecated(since="Sciter 4.4.3.24")]` is not a semver format.
 // #![allow(clippy::cast_ptr_alignment)] // 0.0.195 only
 
 
@@ -222,10 +223,10 @@ mod ext {
   pub static mut CUSTOM_DLL_PATH: Option<String> = None;
 
   #[cfg(target_os = "linux")]
-  const DLL_NAMES: &'static [&'static str] = &[ "libsciter-gtk.so" ];
+  const DLL_NAMES: &[&str] = &[ "libsciter-gtk.so" ];
 
   #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-  const DLL_NAMES: &'static [&'static str] = &[ "sciter-osx-64.dylib" ];
+  const DLL_NAMES: &[&str] = &[ "sciter-osx-64.dylib" ];
 
   use capi::scapi::ISciterAPI;
   use capi::sctypes::{LPVOID, LPCSTR};
@@ -237,7 +238,7 @@ mod ext {
   pub fn try_load_library(permanent: bool) -> ::std::result::Result<ApiType, String> {
     use std::ffi::CString;
     use std::os::unix::ffi::OsStrExt;
-    use std::path::{Path, PathBuf};
+    use std::path::{Path};
 
 
     // Try to load the library from a specified absolute path.
@@ -257,13 +258,12 @@ mod ext {
 
       let dll = DLL_NAMES.iter()
         .map(|name| {
-          let mut path = dir.map(Path::to_owned).unwrap_or(PathBuf::new());
+          let mut path = dir.map(Path::to_owned).unwrap_or_default();
           path.push(name);
           path
         })
         .map(|path| try_load(&path))
-        .filter(|dll| dll.is_some())
-        .nth(0)
+        .find(|dll| dll.is_some())
         .map(|o| o.unwrap());
 
       if dll.is_some() {
@@ -503,7 +503,7 @@ pub fn version() -> String {
 ///
 /// Returns:
 ///
-///	* `0x0000_0001` for regular builds, `0x0001_0001` for windowless builds.
+/// * `0x0000_0001` for regular builds, `0x0001_0001` for windowless builds.
 /// * `0x0000_0002` since 4.4.2.14 (a breaking change in assets with [SOM builds](https://sciter.com/native-code-exposure-to-script/))
 /// * `0x0000_0003` since 4.4.2.16
 /// * `0x0000_0004` since 4.4.2.17 (a breaking change in SOM passport)

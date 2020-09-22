@@ -363,7 +363,7 @@ mod windows {
 
 		fn view(&self) -> *mut Object {
 			let hwnd = self.get_hwnd();
-			let hwnd: *mut Object = unsafe { ::std::mem::transmute(hwnd) };
+			let hwnd = hwnd as *mut Object;
 			return hwnd;
 		}
 
@@ -398,10 +398,10 @@ mod windows {
 				let prc: *const RECT = if w > 0 && h > 0 {
 					&rc
 				} else {
-					0 as *const RECT
+					std::ptr::null()
 				};
 
-				let cb = 0 as *const SciterWindowDelegate;
+				let cb = std::ptr::null();
 				self.hwnd = (_API.SciterCreateWindow)(flags, prc, cb, 0 as LPVOID, parent);
 				if self.hwnd.is_null() {
 					panic!("Failed to create window!");

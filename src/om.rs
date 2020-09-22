@@ -99,7 +99,7 @@ impl<T> IAssetRef<T> {
 	/// Construct from a raw pointer, incrementing the reference count.
 	pub fn from_raw(asset: *mut som_asset_t) -> Self {
 		eprintln!("IAssetRef<{}>::from({:?})", std::any::type_name::<T>(), asset);
-		assert!(asset.is_null() == false);
+		assert!(!asset.is_null());
 		let me = Self {
 			asset,
 			ty: std::marker::PhantomData,
@@ -129,6 +129,7 @@ impl<T> IAssetRef<T> {
 	#[doc(hidden)]
 	pub fn as_ref(&self) -> &som_asset_t {
 		// TODO: do we need this?
+		// clippy complains about `std::convert::AsRef`
 		unsafe { & *self.asset }
 	}
 
@@ -195,8 +196,12 @@ impl<T> Drop for IAsset<T> {
 
 impl<T> IAsset<T> {
 	/// Cast the pointer to a managed asset reference.
+	#[allow(clippy::mut_from_ref)]
 	pub fn from_raw(thing: &*mut som_asset_t) -> &mut IAsset<T> {
-		assert!(thing.is_null() == false);
+		assert!(!thing.is_null());
+		// clippy complains about "mut_from_ref".
+		// the ref is here just to add a lifetime for our resulting reference
+		// not the best design choice though
 		unsafe { &mut *(*thing as *mut IAsset<T>) }
 	}
 
