@@ -57,7 +57,7 @@ objc = "0.2"
 objc-foundation = "0.1"
 
 [dev-dependencies]
-winit = "0.19"
+winit = "0.24"
 winapi = { version = "0.3", features = [
   "impl-default",
   "winuser",
