@@ -118,7 +118,7 @@ impl sciter::EventHandler for Handler {
 
 And we can access this function from script:
 ```js
-// `view` represents window where script is runnung.
+// `view` represents window where script is running.
 // `stdout` stream is a standard output stream (shell or debugger console, for example)
 
 stdout.printf("2 + 3 = %d\n", view.calc_sum(2, 3));
