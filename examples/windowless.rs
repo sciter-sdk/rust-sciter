@@ -4,6 +4,10 @@ extern crate winit;
 extern crate winapi;
 extern crate raw_window_handle;
 
+use winit::event::{Event, WindowEvent, ModifiersState, ElementState, MouseButton};
+use winit::event_loop::{EventLoop, ControlFlow};
+use winit::window::WindowBuilder;
+
 
 fn main() {
 	// "Windowless" Sciter builds are incompatible with the regular ones.
@@ -25,10 +29,10 @@ fn main() {
 
 	// prepare and create a new window
 	println!("create window");
-	let mut events = winit::EventsLoop::new();
+	let events = EventLoop::new();
 
 	use raw_window_handle::HasRawWindowHandle;
-	let wnd = winit::WindowBuilder::new();
+	let wnd = WindowBuilder::new();
 	let wnd = wnd.build(&events).expect("Failed to create window");
 	let window_handle = wnd.raw_window_handle();
 
@@ -88,26 +92,24 @@ fn main() {
 	let mut mouse_button = MOUSE_BUTTONS::NONE;
 	let mut mouse_pos = (0, 0);
 
-	let as_keys = |modifiers: winit::ModifiersState| {
+	let as_keys = |modifiers: ModifiersState| {
 		let mut keys = 0;
-		if modifiers.ctrl {
+		if modifiers.ctrl() {
 			keys |= 0x01;
 		}
-		if modifiers.shift {
+		if modifiers.shift() {
 			keys |= 0x02;
 		}
-		if modifiers.alt {
+		if modifiers.alt() {
 			keys |= 0x04;
 		}
 		KEYBOARD_STATES::from(keys)
 	};
 
 	println!("running...");
-	use winit::{Event, WindowEvent};
-	let skip = ();
-	let mut poll_break = false;
+
 	let startup = std::time::Instant::now();
-	loop {
+
 	// release CPU a bit, hackish
 	std::thread::sleep(std::time::Duration::from_millis(0));
 
@@ -117,105 +119,104 @@ fn main() {
 	});
 
 	// the actual event loop polling
-	events.poll_events(|event: winit::Event| {
+	#[allow(deprecated)]
+	events.run(move |event, _, control_flow| {
 		match event {
+
+			Event::RedrawRequested(_) => {
+
+				let on_render = move |bitmap_area: &sciter::types::RECT, bitmap_data: &[u8]|
+				{
+					#[cfg(unix)]
+					{
+						let _ = bitmap_area;
+						let _ = bitmap_data;
+						let _ = window_handle;
+					}
+
+					// Windows-specific bitmap rendering on the window
+					#[cfg(windows)]
+					{
+						use winapi::um::winuser::*;
+						use winapi::um::wingdi::*;
+						use winapi::shared::minwindef::LPVOID;
+
+						let hwnd = match window_handle {
+							raw_window_handle::RawWindowHandle::Windows(data) => data.hwnd as winapi::shared::windef::HWND,
+							_ => unreachable!(),
+						};
+
+						unsafe {
+							// NOTE: we use `GetDC` here instead of `BeginPaint`, because the way
+							// winit 0.19 processed the `WM_PAINT` message (it always calls `DefWindowProcW`).
+
+							// let mut ps = PAINTSTRUCT::default();
+							// let hdc = BeginPaint(hwnd, &mut ps as *mut _);
+
+							let hdc = GetDC(hwnd);
+
+							let (w, h) = (bitmap_area.width(), bitmap_area.height());
+
+							let mem_dc = CreateCompatibleDC(hdc);
+							let mem_bm = CreateCompatibleBitmap(hdc, w, h);
+
+							let mut bmi = BITMAPINFO::default();
+							{
+								let mut info = &mut bmi.bmiHeader;
+								info.biSize = std::mem::size_of::<BITMAPINFO>() as u32;
+								info.biWidth = w;
+								info.biHeight = -h;
+								info.biPlanes = 1;
+								info.biBitCount = 32;
+							}
+
+							let old_bm = SelectObject(mem_dc, mem_bm as LPVOID);
+
+							let _copied = StretchDIBits(mem_dc, 0, 0, w, h, 0, 0, w, h, bitmap_data.as_ptr() as *const _, &bmi as *const _, 0, SRCCOPY);
+							let _ok = BitBlt(hdc, 0, 0, w, h, mem_dc, 0, 0, SRCCOPY);
+
+							SelectObject(mem_dc, old_bm);
+
+							// EndPaint(hwnd, &ps as *const _);
+							ReleaseDC(hwnd, hdc);
+
+							// println!("+ {} {}", w, h);
+						}
+					}
+
+				};
+
+				let cb = RenderEvent {
+					layer: None,
+					callback: Box::new(on_render),
+				};
+
+				handle_message(scwnd, Message::RenderTo(cb));
+			},
+
 			Event::WindowEvent { event, window_id: _ } => {
 				match event {
 					WindowEvent::Destroyed => {
 						// never called due to loop break on close
 						println!("destroy");
 						handle_message(scwnd, Message::Destroy);
-						poll_break = true;
+						*control_flow = ControlFlow::Exit
 					},
 
 					WindowEvent::CloseRequested => {
 						println!("close");
-						poll_break = true;
+						*control_flow = ControlFlow::Exit
 					},
 
 					WindowEvent::Resized(size) => {
 						// println!("{:?}, size: {:?}", event, size);
 						let (width, height): (u32, u32) = size.into();
 						handle_message(scwnd, Message::Size { width, height });
-						skip
-					},
-
-					WindowEvent::Refresh => {
-
-						let on_render = move |bitmap_area: &sciter::types::RECT, bitmap_data: &[u8]|
-						{
-							#[cfg(unix)]
-							{
-								let _ = bitmap_area;
-								let _ = bitmap_data;
-								let _ = window_handle;
-							}
-
-							// Windows-specific bitmap rendering on the window
-							#[cfg(windows)]
-							{
-								use winapi::um::winuser::*;
-								use winapi::um::wingdi::*;
-								use winapi::shared::minwindef::LPVOID;
-
-								let hwnd = match window_handle {
-									raw_window_handle::RawWindowHandle::Windows(data) => data.hwnd as winapi::shared::windef::HWND,
-									_ => unreachable!(),
-								};
-
-								unsafe {
-									// NOTE: we use `GetDC` here instead of `BeginPaint`, because the way
-									// winit 0.19 processed the `WM_PAINT` message (it always calls `DefWindowProcW`).
-
-									// let mut ps = PAINTSTRUCT::default();
-									// let hdc = BeginPaint(hwnd, &mut ps as *mut _);
-
-									let hdc = GetDC(hwnd);
-
-									let (w, h) = (bitmap_area.width(), bitmap_area.height());
-
-									let mem_dc = CreateCompatibleDC(hdc);
-									let mem_bm = CreateCompatibleBitmap(hdc, w, h);
-
-									let mut bmi = BITMAPINFO::default();
-									{
-										let mut info = &mut bmi.bmiHeader;
-										info.biSize = std::mem::size_of::<BITMAPINFO>() as u32;
-										info.biWidth = w;
-										info.biHeight = -h;
-										info.biPlanes = 1;
-										info.biBitCount = 32;
-									}
-
-									let old_bm = SelectObject(mem_dc, mem_bm as LPVOID);
-
-									let _copied = StretchDIBits(mem_dc, 0, 0, w, h, 0, 0, w, h, bitmap_data.as_ptr() as *const _, &bmi as *const _, 0, SRCCOPY);
-									let _ok = BitBlt(hdc, 0, 0, w, h, mem_dc, 0, 0, SRCCOPY);
-
-									SelectObject(mem_dc, old_bm);
-
-									// EndPaint(hwnd, &ps as *const _);
-									ReleaseDC(hwnd, hdc);
-
-									// println!("+ {} {}", w, h);
-								}
-							}
-
-						};
-
-						let cb = RenderEvent {
-							layer: None,
-							callback: Box::new(on_render),
-						};
-
-						handle_message(scwnd, Message::RenderTo(cb));
-						skip
 					},
 
 					WindowEvent::Focused(enter) => {
 						println!("focus {}", enter);
 						handle_message(scwnd, Message::Focus { enter });
-						skip
 					},
 
 					WindowEvent::CursorEntered { device_id: _ } => {
@@ -231,7 +232,6 @@ fn main() {
 						};
 
 						handle_message(scwnd, Message::Mouse(event));
-						skip
 					},
 
 					WindowEvent::CursorLeft { device_id: _ } => {
@@ -247,7 +247,6 @@ fn main() {
 						};
 
 						handle_message(scwnd, Message::Mouse(event));
-						skip
 					},
 
 					WindowEvent::CursorMoved { device_id: _, position, modifiers } => {
@@ -264,20 +263,19 @@ fn main() {
 						};
 
 						handle_message(scwnd, Message::Mouse(event));
-						skip
 					},
 
 					WindowEvent::MouseInput { device_id: _, state, button, modifiers } => {
 						mouse_button = match button {
-							winit::MouseButton::Left => MOUSE_BUTTONS::MAIN,
-							winit::MouseButton::Right => MOUSE_BUTTONS::PROP,
-							winit::MouseButton::Middle => MOUSE_BUTTONS::MIDDLE,
+							MouseButton::Left => MOUSE_BUTTONS::MAIN,
+							MouseButton::Right => MOUSE_BUTTONS::PROP,
+							MouseButton::Middle => MOUSE_BUTTONS::MIDDLE,
 							_ => MOUSE_BUTTONS::NONE,
 						};
 						println!("mouse {:?} as {:?}", mouse_button, mouse_pos);
 
 						let event = MouseEvent {
-							event: if state == winit::ElementState::Pressed { MOUSE_EVENTS::MOUSE_DOWN } else { MOUSE_EVENTS::MOUSE_UP },
+							event: if state == ElementState::Pressed { MOUSE_EVENTS::MOUSE_DOWN } else { MOUSE_EVENTS::MOUSE_UP },
 							button: mouse_button,
 							modifiers: as_keys(modifiers),
 							pos: sciter::types::POINT {
@@ -287,34 +285,24 @@ fn main() {
 						};
 
 						handle_message(scwnd, Message::Mouse(event));
-						skip
 					},
 
-					WindowEvent::KeyboardInput { device_id: _, input } => {
-						println!("key {} {}", input.scancode, if input.state == winit::ElementState::Pressed { "down" } else { "up" });
+					WindowEvent::KeyboardInput { input, .. } => {
+						println!("key {} {}", input.scancode, if input.state == ElementState::Pressed { "down" } else { "up" });
 
 						let event = KeyboardEvent {
-							event: if input.state == winit::ElementState::Pressed { KEY_EVENTS::KEY_DOWN } else { KEY_EVENTS::KEY_UP },
+							event: if input.state == ElementState::Pressed { KEY_EVENTS::KEY_DOWN } else { KEY_EVENTS::KEY_UP },
 							code: input.scancode,
 							modifiers: as_keys(input.modifiers),
 						};
 
 						handle_message(scwnd, Message::Keyboard(event));
-						skip
 					},
 
 					_	=> (),
 				}
 			},
-
 			_ => (),
 		}
 	});
-
-	if poll_break {
-		break;
-	}
-	}
-
-	println!("done, quit");
 }
