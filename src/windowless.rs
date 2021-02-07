@@ -216,7 +216,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 
 				event: params.event,
 				button: params.button,
-				modifiers: params.modifiers as u32,
+				modifiers: params.modifiers,
 				pos: params.pos,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
@@ -228,7 +228,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 
 				event: params.event,
 				code: params.code,
-				modifiers: params.modifiers as u32,
+				modifiers: params.modifiers,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
 		},

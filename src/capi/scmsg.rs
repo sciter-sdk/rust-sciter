@@ -6,7 +6,7 @@
 use capi::sctypes::*;
 use capi::scdef::{GFX_LAYER, ELEMENT_BITMAP_RECEIVER};
 use capi::scdom::HELEMENT;
-use capi::scbehavior::{MOUSE_BUTTONS, MOUSE_EVENTS, KEY_EVENTS};
+use capi::scbehavior::{MOUSE_BUTTONS, MOUSE_EVENTS, KEY_EVENTS, KEYBOARD_STATES};
 
 
 #[repr(C)]
@@ -87,7 +87,7 @@ pub struct SCITER_X_MSG_MOUSE
 
 	pub event: MOUSE_EVENTS,
 	pub button: MOUSE_BUTTONS,
-	pub modifiers: UINT,
+	pub modifiers: KEYBOARD_STATES,
 	pub pos: POINT,
 }
 
@@ -100,7 +100,7 @@ pub struct SCITER_X_MSG_KEY
 
 	pub event: KEY_EVENTS,
 	pub code: UINT,
-	pub modifiers: UINT,
+	pub modifiers: KEYBOARD_STATES,
 }
 
 #[repr(C)]

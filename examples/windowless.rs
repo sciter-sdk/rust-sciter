@@ -4,7 +4,7 @@ extern crate winit;
 extern crate winapi;
 extern crate raw_window_handle;
 
-use winit::event::{Event, WindowEvent, ModifiersState, ElementState, MouseButton};
+use winit::event::{Event, WindowEvent, ElementState, MouseButton};
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::window::WindowBuilder;
 
@@ -91,20 +91,7 @@ fn main() {
 
 	let mut mouse_button = MOUSE_BUTTONS::NONE;
 	let mut mouse_pos = (0, 0);
-
-	let as_keys = |modifiers: ModifiersState| {
-		let mut keys = 0;
-		if modifiers.ctrl() {
-			keys |= 0x01;
-		}
-		if modifiers.shift() {
-			keys |= 0x02;
-		}
-		if modifiers.alt() {
-			keys |= 0x04;
-		}
-		KEYBOARD_STATES::from(keys)
-	};
+	let mut current_modifiers = KEYBOARD_STATES::default();
 
 	println!("running...");
 
@@ -119,7 +106,7 @@ fn main() {
 	});
 
 	// the actual event loop polling
-	#[allow(deprecated)]
+
 	events.run(move |event, _, control_flow| {
 		match event {
 
@@ -219,6 +206,20 @@ fn main() {
 						handle_message(scwnd, Message::Focus { enter });
 					},
 
+					WindowEvent::ModifiersChanged(modifiers) => {
+						let mut keys = 0;
+						if modifiers.ctrl() {
+							keys |= KEYBOARD_STATES::CONTROL_KEY_PRESSED;
+						}
+						if modifiers.shift() {
+							keys |= KEYBOARD_STATES::SHIFT_KEY_PRESSED;
+						}
+						if modifiers.alt() {
+							keys |= KEYBOARD_STATES::ALT_KEY_PRESSED;
+						}
+						current_modifiers = keys.into();
+					},
+
 					WindowEvent::CursorEntered { device_id: _ } => {
 						println!("mouse enter");
 						let event = MouseEvent {
@@ -249,13 +250,13 @@ fn main() {
 						handle_message(scwnd, Message::Mouse(event));
 					},
 
-					WindowEvent::CursorMoved { device_id: _, position, modifiers } => {
+					WindowEvent::CursorMoved { position, .. } => {
 						mouse_pos = position.into();
 
 						let event = MouseEvent {
 							event: MOUSE_EVENTS::MOUSE_MOVE,
 							button: mouse_button,
-							modifiers: as_keys(modifiers),
+							modifiers: current_modifiers.clone(),
 							pos: sciter::types::POINT {
 								x: mouse_pos.0,
 								y: mouse_pos.1,
@@ -265,7 +266,7 @@ fn main() {
 						handle_message(scwnd, Message::Mouse(event));
 					},
 
-					WindowEvent::MouseInput { device_id: _, state, button, modifiers } => {
+					WindowEvent::MouseInput { state, button, .. } => {
 						mouse_button = match button {
 							MouseButton::Left => MOUSE_BUTTONS::MAIN,
 							MouseButton::Right => MOUSE_BUTTONS::PROP,
@@ -277,7 +278,7 @@ fn main() {
 						let event = MouseEvent {
 							event: if state == ElementState::Pressed { MOUSE_EVENTS::MOUSE_DOWN } else { MOUSE_EVENTS::MOUSE_UP },
 							button: mouse_button,
-							modifiers: as_keys(modifiers),
+							modifiers: current_modifiers.clone(),
 							pos: sciter::types::POINT {
 								x: mouse_pos.0,
 								y: mouse_pos.1,
@@ -293,7 +294,7 @@ fn main() {
 						let event = KeyboardEvent {
 							event: if input.state == ElementState::Pressed { KEY_EVENTS::KEY_DOWN } else { KEY_EVENTS::KEY_UP },
 							code: input.scancode,
-							modifiers: as_keys(input.modifiers),
+							modifiers: current_modifiers.clone(),
 						};
 
 						handle_message(scwnd, Message::Keyboard(event));
