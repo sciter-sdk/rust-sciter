@@ -242,18 +242,19 @@ pub enum MOUSE_BUTTONS
 
 #[repr(C)]
 #[derive(Copy, Clone)]
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, Default, PartialOrd, PartialEq)]
 /// Keyboard modifier buttons state.
-pub enum KEYBOARD_STATES
-{
-	CONTROL_KEY_PRESSED = 0x01,
-	SHIFT_KEY_PRESSED = 0x02,
-	ALT_KEY_PRESSED = 0x04,
+pub struct KEYBOARD_STATES(u32);
+
+impl KEYBOARD_STATES {
+	pub const CONTROL_KEY_PRESSED: u32 = 0x01;
+	pub const SHIFT_KEY_PRESSED: u32 = 0x02;
+	pub const ALT_KEY_PRESSED: u32 = 0x04;
 }
 
 impl std::convert::From<u32> for KEYBOARD_STATES {
 	fn from(u: u32) -> Self {
-		unsafe { std::mem::transmute(u) }
+		Self(u)
 	}
 }
 
