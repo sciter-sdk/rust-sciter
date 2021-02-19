@@ -1466,7 +1466,8 @@ This way you can establish interaction between scipt and native code inside your
 	/// Default is `HANDLE_BEHAVIOR_EVENT | HANDLE_SCRIPTING_METHOD_CALL` which covers behavior events
 	/// (like `document_complete` or `button_click`) and script calls to native window.
 	pub fn default_events() -> EVENT_GROUPS {
-		return EVENT_GROUPS::HANDLE_BEHAVIOR_EVENT | EVENT_GROUPS::HANDLE_SCRIPTING_METHOD_CALL;
+		return EVENT_GROUPS::HANDLE_BEHAVIOR_EVENT | EVENT_GROUPS::HANDLE_SCRIPTING_METHOD_CALL
+		| EVENT_GROUPS::HANDLE_METHOD_CALL;
 	}
 
 	/// UI action causing change.
