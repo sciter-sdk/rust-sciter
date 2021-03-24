@@ -54,15 +54,15 @@ before_install:
 install:
   - source ~/.cargo/env || true
   - export SDK_URL=https://raw.githubusercontent.com/c-smile/sciter-sdk/master
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export SDK_DLL="$TRAVIS_BUILD_DIR/sciter-osx-64.dylib"; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export SDK_DLL="$TRAVIS_BUILD_DIR/libsciter.dylib"; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export SDK_DLL="$TRAVIS_BUILD_DIR/libsciter-gtk.so"; fi
 
-  - if [ "$TRAVIS_OS_NAME" = "osx"   ]; then curl -so "$SDK_DLL" $SDK_URL/bin.osx/sciter-osx-64.dylib; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx"   ]; then curl -so "$SDK_DLL" $SDK_URL/bin.osx/libsciter.dylib; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then curl -so "$SDK_DLL" $SDK_URL/bin.lnx/x64/libsciter-gtk.so; fi
 
 before_script:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$TRAVIS_BUILD_DIR"; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then cp "$TRAVIS_BUILD_DIR/sciter-osx-64.dylib" "$TRAVIS_BUILD_DIR/libsciter-osx-64.dylib"; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then cp "$TRAVIS_BUILD_DIR/libsciter.dylib" "$TRAVIS_BUILD_DIR/liblibsciter.dylib"; fi
 
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$TRAVIS_BUILD_DIR"; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export RUSTFLAGS='-C link-arg=-Wl,--unresolved-symbols=ignore-in-shared-libs'; fi
