@@ -40,7 +40,7 @@ nightly = []
 extension = []
 
 # Load Sciter DLL dynamically from the path specified by `sciter::set_library`.
-# Otherwise, links statically to `libsciter-gtk.so` or `sciter-osx-64.dylib`.
+# Otherwise, links statically to `libsciter-gtk.so` or `libsciter.dylib`.
 dynamic = []
 
 # Build this crate specifically for Sciter.Lite versions

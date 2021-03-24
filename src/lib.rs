@@ -225,8 +225,9 @@ mod ext {
   #[cfg(target_os = "linux")]
   const DLL_NAMES: &[&str] = &[ "libsciter-gtk.so" ];
 
-  #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-  const DLL_NAMES: &[&str] = &[ "sciter-osx-64.dylib" ];
+	// "libsciter.dylib" since Sciter 4.4.6.3.
+  #[cfg(target_os = "macos")]
+  const DLL_NAMES: &[&str] = &[ "libsciter.dylib", "sciter-osx-64.dylib" ];
 
   use capi::scapi::ISciterAPI;
   use capi::sctypes::{LPVOID, LPCSTR};
@@ -285,8 +286,18 @@ mod ext {
           if cfg!(target_os = "macos") {
             // "(bundle folder)/Contents/Frameworks/"
             let mut path = dir.to_owned();
+            path.push("../Frameworks/libsciter.dylib");
+            let dll = try_load(&path);
+						if dll.is_some() {
+							return dll;
+						}
+
+            let mut path = dir.to_owned();
             path.push("../Frameworks/sciter-osx-64.dylib");
-            return try_load(&path);
+            let dll = try_load(&path);
+						if dll.is_some() {
+							return dll;
+						}
           }
         }
       }
@@ -361,7 +372,7 @@ mod ext {
 
 #[cfg(all(target_os = "macos", target_arch = "x86_64", not(feature = "dynamic")))]
 mod ext {
-	#[link(name = "sciter-osx-64", kind = "dylib")]
+	#[link(name = "libsciter", kind = "dylib")]
 	extern "system" { pub fn SciterAPI() -> *const ::capi::scapi::ISciterAPI;	}
 }
 
