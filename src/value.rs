@@ -182,8 +182,8 @@ unsafe impl Send for Value {}
 impl Value {
 
 	/// Return a new Sciter value object ([`undefined`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined)).
-	pub fn new() -> Value {
-		Value { data: VALUE::default(), tmp: ::std::ptr::null_mut() }
+	pub const fn new() -> Value {
+		Value { data: VALUE::new(), tmp: ::std::ptr::null_mut() }
 	}
 
 	/// Make an explicit [array](https://sciter.com/docs/content/script/Array.htm) value with the given length.

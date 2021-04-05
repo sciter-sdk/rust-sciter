@@ -9,7 +9,7 @@ use capi::sctypes::*;
 ///
 /// An opaque union that can hold different types of values: numbers, strings, arrays, objects, etc.
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct VALUE
 {
 	/// Value type.
@@ -22,9 +22,13 @@ pub struct VALUE
 	pub d: UINT64,
 }
 
-impl Default for VALUE {
-	fn default() -> Self {
-		VALUE { t: VALUE_TYPE::T_UNDEFINED, u: 0, d: 0 }
+impl VALUE {
+	pub(crate) const fn new() -> Self {
+		Self {
+			t: VALUE_TYPE::T_UNDEFINED,
+			u: 0,
+			d: 0,
+		}
 	}
 }
 
