@@ -158,6 +158,8 @@ assert!(v.get_item("one").is_int());
 */
 
 use ::{_API};
+use std::convert::TryFrom;
+
 use capi::sctypes::*;
 use capi::scvalue::{VALUE_UNIT_TYPE_STRING, VALUE_UNIT_TYPE_OBJECT, VALUE_UNIT_UNDEFINED};
 pub use capi::scvalue::{VALUE_RESULT, VALUE_STRING_CVT_TYPE, VALUE_TYPE};
@@ -1021,6 +1023,24 @@ impl<'a> From<&'a [u8]> for Value {
 	}
 }
 
+/// Value from time/date.
+impl From<std::time::SystemTime> for Value {
+	/// See the [VALUE_TIME::T_DATE].
+	fn from(val: std::time::SystemTime) -> Self {
+		let mut me = Value::new();
+		if let Ok(epoch) = val.duration_since(std::time::UNIX_EPOCH) {
+			// in 100ns from epoch
+			let ns = epoch.as_nanos() / 100;
+
+			// does not fail because does not check the input
+			// TODO: is SystemTime UTC or not?
+			(_API.ValueInt64DataSet)(me.as_ptr(), ns as i64, VALUE_TYPE::T_DATE as u32, 0);
+		}
+		me
+	}
+}
+
+/// Value from [`Result`].
 impl<T, E> From<Result<T, E>> for Value where T: Into<Value>, E: std::fmt::Display {
 	fn from(val: Result<T, E>) -> Self {
 		match val {
