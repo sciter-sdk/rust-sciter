@@ -23,6 +23,7 @@ pub struct VALUE
 }
 
 impl VALUE {
+	/// `undefined`
 	pub(crate) const fn new() -> Self {
 		Self {
 			t: VALUE_TYPE::T_UNDEFINED,
@@ -69,33 +70,46 @@ pub enum VALUE_TYPE {
 	T_UNDEFINED = 0,
 	/// Explicit `null` type, the rest fields are zero.
 	T_NULL = 1,
-	/// Data is `1` or `0`; units are used but unknown.
+	/// Data is `1` or `0`; units can be used but unknown.
 	T_BOOL,
-	/// Data is integer.
+	/// Data is an integer; units can be used but unknown.
 	T_INT,
-	/// Data is float.
+	/// Data is a double float; units can be used but unknown.
 	T_FLOAT,
 	/// Data is a Sciter internal string, unit is [`VALUE_UNIT_TYPE_STRING`].
 	T_STRING,
 	/// Data is `FILETIME` (64-bit value in 100ns since the unix epoch).
+	/// No unit is stored but `is_utc` boolean is used during creation.
 	T_DATE,
-	/// Data is a 64-bit number; no unit is stored but `is_utc` boolean is used during creation.
+	/// Data is a 64-bit number, no units.
 	T_CURRENCY,
-	/// Data is a 32-bit number, unit is [`VALUE_UNIT_TYPE_LENGTH`].
+	/// Data is a float (but can be constructed from an int), unit is [`VALUE_UNIT_TYPE_LENGTH`].
 	T_LENGTH,
-	/// Data is a Sciter internal array, unit is
+	/// Sciter internal array, unit is [`VALUE_UNIT_TYPE_ARRAY`].
 	T_ARRAY,
+	/// Sciter internal array of key-value pairs.
 	T_MAP,
+	/// Sciter internal function, holds its name and params.
 	T_FUNCTION,
+	/// Sciter internal array of bytes.
 	T_BYTES,
+	/// Sciter internal object, unit is `[VALUE_UNIT_TYPE_OBJECT`].
 	T_OBJECT,
+	/// Sciter internal object.
 	T_DOM_OBJECT,
+	/// Sciter-managed resource object.
 	T_RESOURCE,
+	/// `N..M` range as a 32-bit integer pair, units are zero.
 	T_RANGE,
+	/// Time duration as a float, in seconds or milliseconds (depends on the unit).
 	T_DURATION,
+	/// Angle radians as a float, unit is [`VALUE_UNIT_TYPE_ANGLE`].
 	T_ANGLE,
+	/// Color in ARGB format as a 32-bit number.
 	T_COLOR,
+	/// Sciter internal array of value-name pairs.
 	T_ENUM,
+	/// Sciter asset.
 	T_ASSET,
 
 	T_UNKNOWN,
@@ -147,6 +161,19 @@ pub enum VALUE_UNIT_TYPE_LENGTH
 	PC = 12, //picas (1 pica = 12 points).
 	DIP = 13,
 	URL   = 16,  // url in string
+}
+
+/// Array sub-types.
+#[repr(C)]
+#[derive(Debug, PartialOrd, PartialEq)]
+pub enum VALUE_UNIT_TYPE_ARRAY
+{
+	/// White space separated list.
+	WT_LIST = 1,
+	/// Comma separated list.
+	CS_LIST,
+	/// Slash separated pair.
+	PAIR,
 }
 
 // Sciter or TIScript specific
