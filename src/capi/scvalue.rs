@@ -65,15 +65,25 @@ pub enum VALUE_STRING_CVT_TYPE {
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum VALUE_TYPE {
+	/// Just undefined, the data is zero, the unit can be [`UT_NOTHING`](VALUE_UNIT_UNDEFINED::UT_NOTHING).
 	T_UNDEFINED = 0,
+	/// Explicit `null` type, the rest fields are zero.
 	T_NULL = 1,
+	/// Data is `1` or `0`; units are used but unknown.
 	T_BOOL,
+	/// Data is integer.
 	T_INT,
+	/// Data is float.
 	T_FLOAT,
+	/// Data is a Sciter internal string, unit is [`VALUE_UNIT_TYPE_STRING`].
 	T_STRING,
+	/// Data is `FILETIME` (64-bit value in 100ns since the unix epoch).
 	T_DATE,
+	/// Data is a 64-bit number; no unit is stored but `is_utc` boolean is used during creation.
 	T_CURRENCY,
+	/// Data is a 32-bit number, unit is [`VALUE_UNIT_TYPE_LENGTH`].
 	T_LENGTH,
+	/// Data is a Sciter internal array, unit is
 	T_ARRAY,
 	T_MAP,
 	T_FUNCTION,
@@ -91,13 +101,22 @@ pub enum VALUE_TYPE {
 	T_UNKNOWN,
 }
 
+impl Default for VALUE_TYPE {
+    fn default() -> Self {
+        Self::T_UNDEFINED
+    }
+}
+
+/// `undefined` sub-state.
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
 pub enum VALUE_UNIT_UNDEFINED
 {
+	/// 'nothing' a.k.a. 'void' value in script.
 	UT_NOTHING = 1,
 }
 
+/// String sub-types.
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
 pub enum VALUE_UNIT_TYPE_STRING
@@ -109,6 +128,25 @@ pub enum VALUE_UNIT_TYPE_STRING
 	SELECTOR = 4,			 // selector(...)
 	FILE = 0xfffe,     // file name
 	SYMBOL = 0xffff,   // symbol in tiscript sense
+}
+
+/// Length sub-types.
+#[repr(C)]
+#[derive(Debug, PartialOrd, PartialEq)]
+pub enum VALUE_UNIT_TYPE_LENGTH
+{
+	EM = 1, //height of the element's font.
+	EX = 2, //height of letter 'x'
+	PR = 3, //%
+	SP = 4, //%% "springs", a.k.a. flex units
+	PX = 7, //pixels
+	IN = 8, //inches (1 inch = 2.54 centimeters).
+	CM = 9, //centimeters.
+	MM = 10, //millimeters.
+	PT = 11, //points (1 point = 1/72 inches).
+	PC = 12, //picas (1 pica = 12 points).
+	DIP = 13,
+	URL   = 16,  // url in string
 }
 
 // Sciter or TIScript specific
