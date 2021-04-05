@@ -679,6 +679,21 @@ impl Value {
 		self.data.t == VALUE_TYPE::T_ASSET
 	}
 
+	/// I.e. non-reference types that do not need a destructor.
+	pub fn is_primitive(&self) -> bool {
+		use capi::scvalue::VALUE_TYPE::*;
+		match self.data.t {
+			| T_UNDEFINED
+			| T_NULL
+			| T_BOOL
+			| T_INT
+			| T_FLOAT
+			| T_DATE
+			=> true,
+			_ => false,
+		}
+	}
+
   // script types:
   #[allow(missing_docs)]
   pub fn is_object_array(&self) -> bool {
@@ -797,8 +812,16 @@ impl ::std::fmt::Debug for Value {
 /// Destroy pointed value.
 impl Drop for Value {
 	fn drop(&mut self) {
+		// drop the attached side-data if any.
 		if !self.tmp.is_null() {
-			unsafe { Box::from_raw(self.tmp) };
+			let _drop_tmp = unsafe { Box::from_raw(self.tmp) };
+		}
+		if std::thread::panicking() {
+			// it is fine to do nothing for the non-reference types.
+			if self.is_primitive() {
+				return;
+			}
+			// well, if we're panicking, expect a recursive panic here :(
 		}
 		(_API.ValueClear)(self.as_ptr());
 	}
