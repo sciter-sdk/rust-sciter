@@ -52,7 +52,7 @@ windowless = []
 libc = "0.2"
 lazy_static = "1.0"
 
-[target.x86_64-apple-darwin.dependencies]
+[target.'cfg(target_vendor = "apple")'.dependencies]
 objc = "0.2"
 objc-foundation = "0.1"
 
