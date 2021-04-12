@@ -158,7 +158,6 @@ assert!(v.get_item("one").is_int());
 */
 
 use ::{_API};
-use std::convert::TryFrom;
 
 use capi::sctypes::*;
 use capi::scvalue::{VALUE_UNIT_TYPE_STRING, VALUE_UNIT_TYPE_OBJECT, VALUE_UNIT_UNDEFINED};
@@ -203,13 +202,13 @@ impl Value {
 	}
 
 	/// Make an explicit json [null](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null) value.
-	pub fn null() -> Value {
+	pub const fn null() -> Value {
 		let mut me = Value::new();
 		me.data.t = VALUE_TYPE::T_NULL;
 		return me;
 	}
 	/// Make an explicit `nothing` (where did it come from?).
-	pub fn nothing() -> Value {
+	pub const fn nothing() -> Value {
 		let mut me = Value::new();
 		me.data.t = VALUE_TYPE::T_UNDEFINED;
 		me.data.u = VALUE_UNIT_UNDEFINED::UT_NOTHING as UINT;
@@ -297,12 +296,12 @@ impl Value {
 	}
 
 	/// Get the inner type of the value.
-	pub fn get_type(&self) -> VALUE_TYPE {
+	pub const fn get_type(&self) -> VALUE_TYPE {
 		return self.data.t;
 	}
 
 	/// Get the inner type and its subtype (e.g. units) of the value.
-	pub fn full_type(&self) -> (VALUE_TYPE, UINT) {
+	pub const fn full_type(&self) -> (VALUE_TYPE, UINT) {
 		return (self.data.t, self.data.u);
 	}
 
@@ -597,92 +596,92 @@ impl Value {
 	}
 
 	#[allow(missing_docs)]
-	pub fn is_undefined(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_UNDEFINED && self.data.u == 0
+	pub const fn is_undefined(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_UNDEFINED as u32 && self.data.u == 0
 	}
 	#[allow(missing_docs)]
-	pub fn is_null(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_NULL
+	pub const fn is_null(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_NULL as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_nothing(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_UNDEFINED && self.data.u == VALUE_UNIT_UNDEFINED::UT_NOTHING as UINT
+	pub const fn is_nothing(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_UNDEFINED as u32 && self.data.u == VALUE_UNIT_UNDEFINED::UT_NOTHING as UINT
 	}
 	#[allow(missing_docs)]
-	pub fn is_bool(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_BOOL
+	pub const fn is_bool(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_BOOL as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_int(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_INT
+	pub const fn is_int(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_INT as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_float(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_FLOAT
+	pub const fn is_float(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_FLOAT as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_bytes(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_BYTES
+	pub const fn is_bytes(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_BYTES as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_string(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_STRING
+	pub const fn is_string(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_STRING as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_symbol(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_STRING && self.data.u == VALUE_UNIT_TYPE_STRING::SYMBOL as UINT
+	pub const fn is_symbol(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_STRING as u32 && self.data.u == VALUE_UNIT_TYPE_STRING::SYMBOL as UINT
 	}
 	#[allow(missing_docs)]
-	pub fn is_error_string(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_STRING && self.data.u == VALUE_UNIT_TYPE_STRING::ERROR as UINT
+	pub const fn is_error_string(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_STRING as u32 && self.data.u == VALUE_UNIT_TYPE_STRING::ERROR as UINT
 	}
 	#[allow(missing_docs)]
-	pub fn is_date(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_DATE
+	pub const fn is_date(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_DATE as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_currency(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_CURRENCY
+	pub const fn is_currency(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_CURRENCY as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_color(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_COLOR
+	pub const fn is_color(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_COLOR as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_duration(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_DURATION
+	pub const fn is_duration(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_DURATION as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_angle(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_ANGLE
+	pub const fn is_angle(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_ANGLE as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_map(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_MAP
+	pub const fn is_map(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_MAP as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_array(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_ARRAY
+	pub const fn is_array(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_ARRAY as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_function(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_FUNCTION
+	pub const fn is_function(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_FUNCTION as u32
 	}
 	#[allow(missing_docs)]
 	pub fn is_native_function(&self) -> bool {
 		(_API.ValueIsNativeFunctor)(self.as_cptr()) != 0
 	}
 	#[allow(missing_docs)]
-	pub fn is_object(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_OBJECT
+	pub const fn is_object(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32
 	}
 	#[allow(missing_docs)]
-	pub fn is_asset(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_ASSET
+	pub const fn is_asset(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_ASSET as u32
 	}
 
 	/// I.e. non-reference types that do not need a destructor.
-	pub fn is_primitive(&self) -> bool {
+	pub const fn is_primitive(&self) -> bool {
 		use capi::scvalue::VALUE_TYPE::*;
 		match self.data.t {
 			| T_UNDEFINED
@@ -698,41 +697,41 @@ impl Value {
 
   // script types:
   #[allow(missing_docs)]
-  pub fn is_object_array(&self) -> bool {
-    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::ARRAY as UINT
+  pub const fn is_object_array(&self) -> bool {
+    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::ARRAY as UINT
   }
   #[allow(missing_docs)]
-  pub fn is_object_map(&self) -> bool {
-    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::OBJECT as UINT
+  pub const fn is_object_map(&self) -> bool {
+    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::OBJECT as UINT
   }
   #[allow(missing_docs)]
-  pub fn is_object_class(&self) -> bool {
-    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::OBJECT as UINT
+  pub const fn is_object_class(&self) -> bool {
+    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::OBJECT as UINT
   }
   #[allow(missing_docs)]
-  pub fn is_object_native(&self) -> bool {
-    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::NATIVE as UINT
+  pub const fn is_object_native(&self) -> bool {
+    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::NATIVE as UINT
   }
   #[allow(missing_docs)]
-  pub fn is_object_function(&self) -> bool {
-    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::FUNCTION as UINT
+  pub const fn is_object_function(&self) -> bool {
+    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::FUNCTION as UINT
   }
   #[allow(missing_docs)]
-  pub fn is_object_error(&self) -> bool {
-    self.data.t == VALUE_TYPE::T_OBJECT && self.data.u == VALUE_UNIT_TYPE_OBJECT::ERROR as UINT
+  pub const fn is_object_error(&self) -> bool {
+    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::ERROR as UINT
   }
 	#[allow(missing_docs)]
-	pub fn is_dom_element(&self) -> bool {
-		self.data.t == VALUE_TYPE::T_DOM_OBJECT
+	pub const fn is_dom_element(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_DOM_OBJECT as u32
 	}
 
   // generic check (native or object):
   #[allow(missing_docs)]
-  pub fn is_varray(&self) -> bool {
+  pub const fn is_varray(&self) -> bool {
     self.is_array() || self.is_object()
   }
   #[allow(missing_docs)]
-  pub fn is_vmap(&self) -> bool {
+  pub const fn is_vmap(&self) -> bool {
     self.is_map() || self.is_object_map()
   }
   #[allow(missing_docs)]
@@ -740,7 +739,7 @@ impl Value {
     self.is_function() || self.is_object_function() || self.is_native_function()
   }
   #[allow(missing_docs)]
-  pub fn is_verror(&self) -> bool {
+  pub const fn is_verror(&self) -> bool {
     self.is_error_string() || self.is_object_error()
   }
 
@@ -1128,19 +1127,6 @@ impl ::std::iter::FromIterator<String> for Value {
 	}
 }
 
-// /// Value from function.
-// impl<F> From<F> for Value
-// 	where F: Fn(&[Value]) -> Value
-// {
-// 	fn from(f: F) -> Value {
-// 		let mut v = Value::new();
-// 		let boxed = Box::new(f);
-// 		let ptr = Box::into_raw(boxed);	// dropped in `_functor_release`
-// 		(_API.ValueNativeFunctorSet)(v.as_ptr(), _functor_invoke::<F>, _functor_release::<F>, ptr as LPVOID);
-// 		return v;
-// 	}
-// }
-
 /// Value from function.
 impl<F, R> From<F> for Value
 where
@@ -1179,7 +1165,6 @@ extern "C" fn _functor_invoke<F, R>(tag: LPVOID, argc: UINT, argv: *const VALUE,
 where
 	F: Fn(&[Value]) -> R,
 	R: Into<Value>,
-
 {
 	// reconstruct handler from pointer
 	let ptr = tag as *mut F;
@@ -1278,7 +1263,6 @@ impl<'a> ::std::iter::DoubleEndedIterator for KeyIterator<'a> {
 }
 
 
-
 /// An iterator over the sub-elements of a `Value`.
 #[doc(hidden)]
 pub struct SeqIterator<'a> {
@@ -1332,8 +1316,6 @@ impl<'a> ::std::iter::IntoIterator for &'a Value {
 		self.values()
 	}
 }
-
-
 
 
 #[cfg(test)]
