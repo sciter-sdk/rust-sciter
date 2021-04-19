@@ -628,6 +628,25 @@ impl Element {
 		ok_or!(handled != 0, ok)
 	}
 
+	/// Broadcast a custom named event to all windows.
+	pub fn broadcast_event(&self, name: &str, post: bool, data: Option<Value>) -> Result<bool> {
+		let name = s2w!(name);
+		let mut  params = BEHAVIOR_EVENT_PARAMS {
+			cmd: BEHAVIOR_EVENTS::CUSTOM as UINT,
+			heTarget: HELEMENT!(),
+			reason: 0,
+			he: self.he,
+			name: name.as_ptr(),
+			data: Default::default(),
+		};
+		if let Some(data) = data {
+			data.pack_to(&mut params.data);
+		}
+		let mut handled = false as BOOL;
+		let ok = (_API.SciterFireEvent)(&params, post as BOOL, &mut handled);
+		ok_or!(handled != 0, ok)
+	}
+
 
 	/// Evaluate the given script in context of the element.
 	pub fn eval_script(&self, script: &str) -> Result<Value> {
