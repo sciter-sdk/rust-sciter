@@ -122,6 +122,9 @@ pub struct MSG {
     pub time: UINT,
     pub pt: POINT,
 }
+
 #[cfg(windows)]
 pub type LPMSG = *mut MSG;
 
+#[cfg(not(windows))]
+pub type LPMSG = LPVOID;

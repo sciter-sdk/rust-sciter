@@ -29,9 +29,9 @@ pub struct ISciterAPI
 	pub SciterDataReadyAsync: extern "system" fn (hwnd: HWINDOW, uri: LPCWSTR, data: LPCBYTE, dataLength: UINT, requestId: HREQUEST) -> BOOL,
 
   // #ifdef WINDOWS
-  #[cfg(all(windows, not(feature = "windowless")))]
+  #[cfg_attr(not(all(windows, not(feature = "windowless"))), deprecated(note = "Windows only"))]
 	pub SciterProc: extern "system" fn (hwnd: HWINDOW, msg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT,
-	#[cfg(all(windows, not(feature = "windowless")))]
+	#[cfg_attr(not(all(windows, not(feature = "windowless"))), deprecated(note = "Windows only"))]
 	pub SciterProcND: extern "system" fn (hwnd: HWINDOW, msg: UINT, wParam: WPARAM, lParam: LPARAM, pbHandled: * mut BOOL) -> LRESULT,
   // #endif
 
@@ -51,8 +51,8 @@ pub struct ISciterAPI
 	pub SciterUpdateWindow: extern "system" fn (hwnd: HWINDOW) -> VOID,
 
   // #ifdef WINDOWS
-  #[cfg(all(windows, not(feature = "windowless")))]
-	pub SciterTranslateMessage: extern "system" fn (lpMsg: * mut MSG) -> BOOL,
+  #[cfg_attr(not(all(windows, not(feature = "windowless"))), deprecated(note = "Windows only"))]
+	pub SciterTranslateMessage: extern "system" fn (lpMsg: LPMSG) -> BOOL,
   // #endif
 
 	pub SciterSetOption: extern "system" fn (hWnd: HWINDOW, option: SCITER_RT_OPTIONS, value: UINT_PTR) -> BOOL,
@@ -60,11 +60,11 @@ pub struct ISciterAPI
 	pub SciterGetViewExpando: extern "system" fn (hwnd: HWINDOW, pval: * mut VALUE) -> BOOL,
 
   // #ifdef WINDOWS
-  #[cfg(all(windows, not(feature = "windowless")))]
+  #[cfg_attr(not(all(windows, not(feature = "windowless"))), deprecated(note = "Windows only"))]
 	pub SciterRenderD2D: extern "system" fn (hWndSciter: HWINDOW, prt: * mut ID2D1RenderTarget) -> BOOL,
-	#[cfg(all(windows, not(feature = "windowless")))]
+	#[cfg_attr(not(all(windows, not(feature = "windowless"))), deprecated(note = "Windows only"))]
 	pub SciterD2DFactory: extern "system" fn (ppf: * mut* mut ID2D1Factory) -> BOOL,
-	#[cfg(all(windows, not(feature = "windowless")))]
+	#[cfg_attr(not(all(windows, not(feature = "windowless"))), deprecated(note = "Windows only"))]
 	pub SciterDWFactory: extern "system" fn (ppf: * mut* mut IDWriteFactory) -> BOOL,
   // #endif
 
@@ -72,16 +72,16 @@ pub struct ISciterAPI
 	pub SciterSetHomeURL: extern "system" fn (hWndSciter: HWINDOW, baseUrl: LPCWSTR) -> BOOL,
 
   // #if defined(OSX)
-	#[cfg(all(target_os="macos", not(feature = "windowless")))]
+	#[cfg_attr(not(all(target_os="macos", not(feature = "windowless"))), deprecated(note = "macOS only"))]
 	pub SciterCreateNSView: extern "system" fn (frame: LPRECT) -> HWINDOW, // returns NSView*
   // #endif
 
   // #if defined(LINUX)
-	#[cfg(all(target_os="linux", not(feature = "windowless")))]
+	#[cfg_attr(not(all(target_os="linux", not(feature = "windowless"))), deprecated(note = "Linux only"))]
 	pub SciterCreateWidget: extern "system" fn (frame: LPRECT) -> HWINDOW, // returns GtkWidget
   // #endif
 
-	#[cfg(not(feature = "windowless"))]
+	#[cfg_attr(feature = "windowless", deprecated(note = "Windowed only"))]
 	pub SciterCreateWindow: extern "system" fn (creationFlags: UINT, frame: LPCRECT, delegate: * const SciterWindowDelegate, delegateParam: LPVOID, parent: HWINDOW) -> HWINDOW,
 
 	pub SciterSetupDebugOutput: extern "system" fn (hwndOrNull: HWINDOW, param: LPVOID, pfOutput: DEBUG_OUTPUT_PROC),
@@ -259,11 +259,11 @@ pub struct ISciterAPI
 
   // #ifdef WINDOWS
   // since 3.3.1.4
-  #[cfg(all(windows, not(feature = "windowless")))]
+  #[cfg_attr(not(all(windows, not(feature = "windowless"))), deprecated(note = "Windows only"))]
 	pub SciterCreateOnDirectXWindow: extern "system" fn (hwnd: HWINDOW, pSwapChain: * mut IDXGISwapChain) -> BOOL,
-	#[cfg(all(windows, not(feature = "windowless")))]
+	#[cfg_attr(not(all(windows, not(feature = "windowless"))), deprecated(note = "Windows only"))]
 	pub SciterRenderOnDirectXWindow: extern "system" fn (hwnd: HWINDOW, elementToRenderOrNull: HELEMENT, frontLayer: BOOL) -> BOOL,
-	#[cfg(all(windows, not(feature = "windowless")))]
+	#[cfg_attr(not(all(windows, not(feature = "windowless"))), deprecated(note = "Windows only"))]
 	pub SciterRenderOnDirectXTexture: extern "system" fn (hwnd: HWINDOW, elementToRenderOrNull: HELEMENT, surface: * mut IDXGISurface) -> BOOL,
   // #endif
 
