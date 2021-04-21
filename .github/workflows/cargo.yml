@@ -102,7 +102,6 @@ jobs:
         export PATH="$PATH:$SCITER_DEPS"
         cargo run --example first
         cargo test -p sciter-rs
-        cargo test -p sciter-serde
       env:
         SCITER_DEPS: ${{ runner.workspace }}
 

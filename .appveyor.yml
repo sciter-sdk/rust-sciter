@@ -93,6 +93,3 @@ test_script:
 
   - cargo test -p sciter-rs %FEATURES%
   - cargo test -p sciter-rs %FEATURES% --release
-
-  - cargo test -p sciter-serde %FEATURES%
-  - cargo test -p sciter-serde %FEATURES% --release

@@ -93,7 +93,4 @@ script:
   - cargo test -p sciter-rs
   - cargo test -p sciter-rs --release
 
-  - cargo test -p sciter-serde
-  - cargo test -p sciter-serde --release
-
 after_script: set +e
