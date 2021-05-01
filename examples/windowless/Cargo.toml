@@ -1,0 +1,23 @@
+[package]
+name = "windowless"
+version = "0.1.0"
+description = "Sciter.Lite windowless example"
+authors = ["pravic <ehysta@gmail.com>"]
+edition = "2018"
+publish = false
+
+[[bin]]
+name = "windowless"
+path = "src/windowless.rs"
+
+[dependencies]
+sciter-rs = { version = "0.5", path="../../", features = ["windowless", "dynamic"] }
+
+winit = "0.24"
+winapi = { version = "0.3", features = [
+  "impl-default",
+  "winuser",
+  "wingdi",
+  "sysinfoapi",
+] }
+raw-window-handle = "0.3"

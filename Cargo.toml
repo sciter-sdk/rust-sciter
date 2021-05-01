@@ -20,7 +20,7 @@ travis-ci = { repository = "sciter-sdk/rust-sciter" }
 maintenance = { status = "passively-maintained" }
 
 [workspace]
-members = [".", "serde", "examples/extension"]
+members = [".", "serde", "examples/extension", "examples/windowless"]
 
 
 [lib]
@@ -55,16 +55,6 @@ lazy_static = "1.0"
 [target.'cfg(target_vendor = "apple")'.dependencies]
 objc = "0.2"
 objc-foundation = "0.1"
-
-[dev-dependencies]
-winit = "0.24"
-winapi = { version = "0.3", features = [
-  "impl-default",
-  "winuser",
-  "wingdi",
-  "sysinfoapi",
-] }
-raw-window-handle = "0.3"
 
 [[example]]
 name = "first"
@@ -105,10 +95,6 @@ path = "examples/video.rs"
 [[example]]
 name = "clock"
 path = "examples/clock.rs"
-
-[[example]]
-name = "windowless"
-path = "examples/windowless.rs"
 
 [[example]]
 name = "som"

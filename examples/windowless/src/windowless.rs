@@ -10,21 +10,13 @@ use winit::window::WindowBuilder;
 
 
 fn main() {
-	// "Windowless" Sciter builds are incompatible with the regular ones.
-	if !cfg!(feature = "windowless") {
-		panic!("This example requires \"windowless\" feature!");
-	}
-
-	// We need this to explicitly set path to the windowless sciter dll.
-	if !cfg!(feature = "dynamic") {
-		panic!("This example requires the \"dynamic\" feature enabled.")
-	}
-
 	if let Some(arg) = std::env::args().nth(1) {
 		println!("loading sciter from {:?}", arg);
 		if let Err(_) = sciter::set_options(sciter::RuntimeOptions::LibraryPath(&arg)) {
 			panic!("Invalid sciter-lite dll specified.");
 		}
+	} else {
+		panic!("usage: cargo run -p windowless -- sciter-sdk/bin.win/x64lite/sciter.dll")
 	}
 
 	// prepare and create a new window
@@ -81,7 +73,7 @@ fn main() {
 
 		let instance = sciter::Host::attach_with(scwnd, handler);
 
-		let html = include_bytes!("minimal.htm");
+		let html = include_bytes!("../../minimal.htm");
 		instance.load_html(html, Some("example://minimal.htm"));
 	}
 

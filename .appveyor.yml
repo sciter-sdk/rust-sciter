@@ -83,7 +83,6 @@ build_script:
 
   - cmd: echo Building examples
   - cargo build --example first
-  - cargo build --example windowless --features windowless
   - cargo build --release --examples %FEATURES%
 
 test_script:
