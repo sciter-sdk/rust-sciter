@@ -96,6 +96,25 @@ jobs:
         cargo build --all
         cargo build --examples
 
+    - name: serde
+      shell: bash
+      continue-on-error: true
+      run: |
+        cargo build -p sciter-serde
+        cargo test -p sciter-serde
+
+    - name: windowless
+      shell: bash
+      continue-on-error: true
+      run: |
+        cargo build -p windowless
+
+    - name: extension
+      shell: bash
+      continue-on-error: true
+      run: |
+        cargo build -p extension
+
     - name: Tests
       shell: bash
       run: |
