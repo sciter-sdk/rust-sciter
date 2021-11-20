@@ -129,7 +129,7 @@ pub use capi::scapi::{ISciterAPI};
 use capi::scgraphics::SciterGraphicsAPI;
 use capi::screquest::SciterRequestAPI;
 
-#[cfg(windows)]
+#[cfg(all(windows, feature = "dynamic"))]
 mod ext {
 	// Note:
 	// Sciter 4.x shipped with universal "sciter.dll" library for different builds:
@@ -215,6 +215,13 @@ mod ext {
       Err(error) => panic!("{}", error),
     }
 	}
+}
+
+#[cfg(all(windows, not(feature = "dynamic")))]
+mod ext {
+	use capi::scapi::{ISciterAPI};
+
+	extern "C" { pub fn SciterAPI() -> *const ISciterAPI;	}
 }
 
 #[cfg(all(feature = "dynamic", unix))]

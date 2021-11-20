@@ -43,6 +43,9 @@ extension = []
 # Otherwise, links statically to `libsciter-gtk.so` or `libsciter.dylib`.
 dynamic = []
 
+# Only for windows static linking
+skia = []
+
 # Build this crate specifically for Sciter.Lite versions
 # which are incompatible with the regular ones.
 windowless = []
