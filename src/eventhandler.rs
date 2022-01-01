@@ -296,6 +296,20 @@ fn process_events(me: &mut dyn EventHandler, he: HELEMENT, evtg: UINT, params: L
 			handled
 		},
 
+		// known notifications:
+		EVENT_GROUPS::HANDLE_MOUSE
+		| EVENT_GROUPS::HANDLE_KEY
+		| EVENT_GROUPS::HANDLE_FOCUS
+		| EVENT_GROUPS::HANDLE_SCROLL
+		| EVENT_GROUPS::HANDLE_SIZE
+		| EVENT_GROUPS::HANDLE_DATA_ARRIVED
+		| EVENT_GROUPS::HANDLE_EXCHANGE
+		| EVENT_GROUPS::HANDLE_GESTURE => {
+			// it's a known event but it's not added yet to dom::EventHandler
+			// they can be added if somebody needs it
+			false
+		}
+
 		// unknown `EVENT_GROUPS` notification
 		_ => {
 			eprintln!("[sciter] warning! unknown event group {:04X}", evtg as u32);
