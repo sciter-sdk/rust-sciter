@@ -88,9 +88,9 @@ methods:
 # #[macro_use] extern crate sciter;
 # fn main() {
 let map = vmap! {
-  "one" => 1,
-  "two" => 2.0,
-  "three" => "",
+	"one" => 1,
+	"two" => 2.0,
+	"three" => "",
 };
 assert!(map.is_map());
 assert_eq!(map.len(), 3);
@@ -157,13 +157,13 @@ assert!(v.get_item("one").is_int());
 .
 */
 
-use ::{_API};
+use _API;
 
 use capi::sctypes::*;
-use capi::scvalue::{VALUE_UNIT_TYPE_STRING, VALUE_UNIT_TYPE_OBJECT, VALUE_UNIT_UNDEFINED};
-pub use capi::scvalue::{VALUE_RESULT, VALUE_STRING_CVT_TYPE, VALUE_TYPE};
 use capi::scvalue::VALUE;
-use ::om::IAsset;
+pub use capi::scvalue::{VALUE_RESULT, VALUE_STRING_CVT_TYPE, VALUE_TYPE};
+use capi::scvalue::{VALUE_UNIT_TYPE_OBJECT, VALUE_UNIT_TYPE_STRING, VALUE_UNIT_UNDEFINED};
+use om::IAsset;
 
 
 // TODO: `get`, `get_item` methods should return `Option<Value>`
@@ -171,20 +171,21 @@ use ::om::IAsset;
 /// `sciter::value` wrapper.
 ///
 /// See the [module-level](index.html) documentation.
-pub struct Value
-{
+pub struct Value {
 	data: VALUE,
-	tmp: * mut Value,
+	tmp: *mut Value,
 }
 
 /// `sciter::Value` can be transferred across thread boundaries.
 unsafe impl Send for Value {}
 
 impl Value {
-
 	/// Return a new Sciter value object ([`undefined`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined)).
 	pub const fn new() -> Value {
-		Value { data: VALUE::new(), tmp: ::std::ptr::null_mut() }
+		Value {
+			data: VALUE::new(),
+			tmp: ::std::ptr::null_mut(),
+		}
 	}
 
 	/// Make an explicit [array](https://sciter.com/docs/content/script/Array.htm) value with the given length.
@@ -258,7 +259,7 @@ impl Value {
 	/// Parse a json string into value. Returns the number of chars left unparsed in case of error.
 	pub fn parse_as(val: &str, how: VALUE_STRING_CVT_TYPE) -> Result<Value, usize> {
 		let mut me = Value::new();
-		let (s,n) = s2wn!(val);
+		let (s, n) = s2wn!(val);
 		let ok: u32 = (_API.ValueFromString)(me.as_ptr(), s.as_ptr(), n, how);
 		if ok == 0 {
 			Ok(me)
@@ -271,7 +272,7 @@ impl Value {
 	pub fn to_asset<T>(&self) -> Option<&mut IAsset<T>> {
 		if self.is_asset() {
 			let mut val = 0_i64;
-			if (_API.ValueInt64Data)(self.as_cptr(), &mut val)  == VALUE_RESULT::OK {
+			if (_API.ValueInt64Data)(self.as_cptr(), &mut val) == VALUE_RESULT::OK {
 				let ptr = val as usize as *mut IAsset<T>;
 				let asset = unsafe { &mut *ptr };
 				return Some(asset);
@@ -378,7 +379,7 @@ impl Value {
 	/// * `T_OBJECT` - names of key/value properties in the object;
 	/// * `T_FUNCTION` - names of arguments of the function (if any).
 	///
-  /// The iterator element type is `Value` (as a key).
+	/// The iterator element type is `Value` (as a key).
 	pub fn keys(&self) -> KeyIterator {
 		KeyIterator {
 			base: self,
@@ -394,7 +395,7 @@ impl Value {
 	/// * `T_OBJECT` - values of key/value properties in the object;
 	/// * `T_FUNCTION` - values of arguments of the function.
 	///
-  /// The iterator element type is `Value`.
+	/// The iterator element type is `Value`.
 	pub fn values(&self) -> SeqIterator {
 		SeqIterator {
 			base: self,
@@ -405,8 +406,8 @@ impl Value {
 
 	/// An iterator visiting all key-value pairs in arbitrary order.
 	///
-  /// The `Value` must has a key-value type (map, object, function).
-  ///
+	/// The `Value` must has a key-value type (map, object, function).
+	///
 	/// The iterator element type is `(Value, Value)`.
 	pub fn items(&self) -> Vec<(Value, Value)> {
 		type VecType = Vec<(Value, Value)>;
@@ -434,7 +435,7 @@ impl Value {
 		let mut val = 0i32;
 		match (_API.ValueIntData)(self.as_cptr(), &mut val) {
 			VALUE_RESULT::OK => Some(val),
-			_ => None
+			_ => None,
 		}
 	}
 
@@ -443,7 +444,7 @@ impl Value {
 		let mut val = 0i32;
 		match (_API.ValueIntData)(self.as_cptr(), &mut val) {
 			VALUE_RESULT::OK => Some(val != 0),
-			_ => None
+			_ => None,
 		}
 	}
 
@@ -452,7 +453,7 @@ impl Value {
 		let mut val = 0f64;
 		match (_API.ValueFloatData)(self.as_cptr(), &mut val) {
 			VALUE_RESULT::OK => Some(val),
-			_ => None
+			_ => None,
 		}
 	}
 
@@ -461,7 +462,7 @@ impl Value {
 		let mut val = 0i32;
 		match (_API.ValueIntData)(self.as_cptr(), &mut val) {
 			VALUE_RESULT::OK => Some(val as u32),
-			_ => None
+			_ => None,
 		}
 	}
 
@@ -470,7 +471,7 @@ impl Value {
 		let mut val = 0f64;
 		match (_API.ValueFloatData)(self.as_cptr(), &mut val) {
 			VALUE_RESULT::OK => Some(val),
-			_ => None
+			_ => None,
 		}
 	}
 
@@ -479,7 +480,7 @@ impl Value {
 		let mut val = 0f64;
 		match (_API.ValueFloatData)(self.as_cptr(), &mut val) {
 			VALUE_RESULT::OK => Some(val),
-			_ => None
+			_ => None,
 		}
 	}
 
@@ -489,7 +490,7 @@ impl Value {
 		let mut n = 0_u32;
 		match (_API.ValueStringData)(self.as_cptr(), &mut s, &mut n) {
 			VALUE_RESULT::OK => Some(::utf::w2sn(s, n as usize)),
-			_ => None
+			_ => None,
 		}
 	}
 
@@ -505,7 +506,7 @@ impl Value {
 		let mut n = 0_u32;
 		match (_API.ValueBinaryData)(self.as_cptr(), &mut s, &mut n) {
 			VALUE_RESULT::OK => Some(unsafe { ::std::slice::from_raw_parts(s, n as usize) }),
-			_ => None
+			_ => None,
 		}
 	}
 
@@ -527,11 +528,17 @@ impl Value {
 		let mut rv = Value::new();
 		let argv = Value::pack_args(args);
 		let name = s2w!(name.unwrap_or(""));
-		let ok = (_API.ValueInvoke)(self.as_cptr(), this.unwrap_or_default().as_ptr(),
-			argv.len() as UINT, argv.as_ptr(), rv.as_ptr(), name.as_ptr());
+		let ok = (_API.ValueInvoke)(
+			self.as_cptr(),
+			this.unwrap_or_default().as_ptr(),
+			argv.len() as UINT,
+			argv.as_ptr(),
+			rv.as_ptr(),
+			name.as_ptr(),
+		);
 		match ok {
 			VALUE_RESULT::OK => Ok(rv),
-			_ => Err(ok)
+			_ => Err(ok),
 		}
 	}
 
@@ -552,7 +559,7 @@ impl Value {
 	}
 
 	#[doc(hidden)]
-	pub unsafe fn unpack_from(args: * const VALUE, count: UINT) -> Vec<Value> {
+	pub unsafe fn unpack_from(args: *const VALUE, count: UINT) -> Vec<Value> {
 		let argc = count as usize;
 		let mut argv: Vec<Value> = Vec::with_capacity(argc);
 		assert!(argc == 0 || !args.is_null());
@@ -571,7 +578,7 @@ impl Value {
 		return v;
 	}
 
-  #[allow(clippy::mut_from_ref)]
+	#[allow(clippy::mut_from_ref)]
 	fn ensure_tmp_mut(&self) -> &mut Value {
 		let cp = self as *const Value;
 		let mp = cp as *mut Value;
@@ -680,66 +687,59 @@ impl Value {
 	/// I.e. non-reference types that do not need a destructor.
 	pub const fn is_primitive(&self) -> bool {
 		use capi::scvalue::VALUE_TYPE::*;
-		matches!(self.data.t,
-			T_UNDEFINED
-			| T_NULL
-			| T_BOOL
-			| T_INT
-			| T_FLOAT
-			| T_DATE
-		)
+		matches!(self.data.t, T_UNDEFINED | T_NULL | T_BOOL | T_INT | T_FLOAT | T_DATE)
 	}
 
-  // script types:
-  #[allow(missing_docs)]
-  pub const fn is_object_array(&self) -> bool {
-    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::ARRAY as UINT
-  }
-  #[allow(missing_docs)]
-  pub const fn is_object_map(&self) -> bool {
-    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::OBJECT as UINT
-  }
-  #[allow(missing_docs)]
-  pub const fn is_object_class(&self) -> bool {
-    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::OBJECT as UINT
-  }
-  #[allow(missing_docs)]
-  pub const fn is_object_native(&self) -> bool {
-    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::NATIVE as UINT
-  }
-  #[allow(missing_docs)]
-  pub const fn is_object_function(&self) -> bool {
-    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::FUNCTION as UINT
-  }
-  #[allow(missing_docs)]
-  pub const fn is_object_error(&self) -> bool {
-    self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::ERROR as UINT
-  }
+	// script types:
+	#[allow(missing_docs)]
+	pub const fn is_object_array(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::ARRAY as UINT
+	}
+	#[allow(missing_docs)]
+	pub const fn is_object_map(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::OBJECT as UINT
+	}
+	#[allow(missing_docs)]
+	pub const fn is_object_class(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::OBJECT as UINT
+	}
+	#[allow(missing_docs)]
+	pub const fn is_object_native(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::NATIVE as UINT
+	}
+	#[allow(missing_docs)]
+	pub const fn is_object_function(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::FUNCTION as UINT
+	}
+	#[allow(missing_docs)]
+	pub const fn is_object_error(&self) -> bool {
+		self.data.t as u32 == VALUE_TYPE::T_OBJECT as u32 && self.data.u == VALUE_UNIT_TYPE_OBJECT::ERROR as UINT
+	}
 	#[allow(missing_docs)]
 	pub const fn is_dom_element(&self) -> bool {
 		self.data.t as u32 == VALUE_TYPE::T_DOM_OBJECT as u32
 	}
 
-  // generic check (native or object):
-  #[allow(missing_docs)]
-  pub const fn is_varray(&self) -> bool {
-    self.is_array() || self.is_object()
-  }
-  #[allow(missing_docs)]
-  pub const fn is_vmap(&self) -> bool {
-    self.is_map() || self.is_object_map()
-  }
-  #[allow(missing_docs)]
-  pub fn is_vfunction(&self) -> bool {
-    self.is_function() || self.is_object_function() || self.is_native_function()
-  }
-  #[allow(missing_docs)]
-  pub const fn is_verror(&self) -> bool {
-    self.is_error_string() || self.is_object_error()
-  }
+	// generic check (native or object):
+	#[allow(missing_docs)]
+	pub const fn is_varray(&self) -> bool {
+		self.is_array() || self.is_object()
+	}
+	#[allow(missing_docs)]
+	pub const fn is_vmap(&self) -> bool {
+		self.is_map() || self.is_object_map()
+	}
+	#[allow(missing_docs)]
+	pub fn is_vfunction(&self) -> bool {
+		self.is_function() || self.is_object_function() || self.is_native_function()
+	}
+	#[allow(missing_docs)]
+	pub const fn is_verror(&self) -> bool {
+		self.is_error_string() || self.is_object_error()
+	}
 
 	fn assign_str(&mut self, val: &str, unit: VALUE_UNIT_TYPE_STRING) -> VALUE_RESULT {
-		let (s,n) = s2wn!(val);
+		let (s, n) = s2wn!(val);
 		return (_API.ValueStringDataSet)(self.as_ptr(), s.as_ptr(), n, unit as UINT);
 	}
 }
@@ -757,22 +757,23 @@ impl ::std::fmt::Display for Value {
 /// Print `Value` as json string with explicit type showed.
 impl ::std::fmt::Debug for Value {
 	fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-
 		let mut tname = format!("{:?}", self.data.t);
 
 		if self.is_undefined() || self.is_null() {
 			return f.write_str(&tname[2..].to_lowercase());
-
 		} else if self.is_nothing() {
 			return f.write_str("nothing");
-
 		} else if self.is_string() && self.data.u != 0 {
 			// VALUE_UNIT_TYPE_STRING
 			let units = [
-				("file", 0xfffe), ("symbol", 0xffff),
-				("string", 0), ("error", 1), ("secure", 2),
-				("url", 3), ("selector", 4),
-				];
+				("file", 0xfffe),
+				("symbol", 0xffff),
+				("string", 0),
+				("error", 1),
+				("secure", 2),
+				("url", 3),
+				("selector", 4),
+			];
 
 			tname.push(':');
 			if let Some(name) = units.iter().find(|&&x| x.1 == self.data.u) {
@@ -780,7 +781,6 @@ impl ::std::fmt::Debug for Value {
 			} else {
 				tname.push_str(&self.data.u.to_string());
 			}
-
 		} else if self.is_object() {
 			// VALUE_UNIT_TYPE_OBJECT
 			let units = ["array", "object", "class", "native", "function", "error"];
@@ -791,7 +791,6 @@ impl ::std::fmt::Debug for Value {
 			} else {
 				tname.push_str(&u.to_string());
 			}
-
 		} else if self.data.u != 0 {
 			// VALUE_UNIT_TYPE
 			// redundant? like "length:7:12px" instead of "length:12px" (7 == `UT_PX`).
@@ -911,9 +910,9 @@ impl From<()> for Value {
 
 /// Value from a native `VALUE` object.
 impl<'a> From<&'a VALUE> for Value {
-  fn from(val: &'a VALUE) -> Self {
-    unsafe { Value::copy_from(val as *const _) }
-  }
+	fn from(val: &'a VALUE) -> Self {
+		unsafe { Value::copy_from(val as *const _) }
+	}
 }
 
 /// Value from integer.
@@ -1035,7 +1034,11 @@ impl From<std::time::SystemTime> for Value {
 }
 
 /// Value from [`Result`].
-impl<T, E> From<Result<T, E>> for Value where T: Into<Value>, E: std::fmt::Display {
+impl<T, E> From<Result<T, E>> for Value
+where
+	T: Into<Value>,
+	E: std::fmt::Display,
+{
 	fn from(val: Result<T, E>) -> Self {
 		match val {
 			Ok(v) => v.into(),
@@ -1059,25 +1062,25 @@ impl<T, E> From<Result<T, E>> for Value where T: Into<Value>, E: std::fmt::Displ
 
 /// Value from sequence of `Value`.
 impl ::std::iter::FromIterator<Value> for Value {
-  fn from_iter<I: IntoIterator<Item=Value>>(iterator: I) -> Self {
-    let iterator = iterator.into_iter();
-    let capacity = iterator.size_hint().0;
-    let mut v = Value::array(capacity);
-    for (i, m) in iterator.enumerate() {
-      v.set(i, m);
-    }
-    return v;
-  }
+	fn from_iter<I: IntoIterator<Item = Value>>(iterator: I) -> Self {
+		let iterator = iterator.into_iter();
+		let capacity = iterator.size_hint().0;
+		let mut v = Value::array(capacity);
+		for (i, m) in iterator.enumerate() {
+			v.set(i, m);
+		}
+		return v;
+	}
 }
 
 /// Value from sequence of `i32`.
 impl ::std::iter::FromIterator<i32> for Value {
-	fn from_iter<I: IntoIterator<Item=i32>>(iterator: I) -> Self {
-    let iterator = iterator.into_iter();
-    let capacity = iterator.size_hint().0;
+	fn from_iter<I: IntoIterator<Item = i32>>(iterator: I) -> Self {
+		let iterator = iterator.into_iter();
+		let capacity = iterator.size_hint().0;
 		let mut v = Value::array(capacity);
-    for (i, m) in iterator.enumerate() {
-      v.set(i, Value::from(m));
+		for (i, m) in iterator.enumerate() {
+			v.set(i, Value::from(m));
 		}
 		return v;
 	}
@@ -1085,12 +1088,12 @@ impl ::std::iter::FromIterator<i32> for Value {
 
 /// Value from sequence of `f64`.
 impl ::std::iter::FromIterator<f64> for Value {
-	fn from_iter<I: IntoIterator<Item=f64>>(iterator: I) -> Self {
-    let iterator = iterator.into_iter();
-    let capacity = iterator.size_hint().0;
-    let mut v = Value::array(capacity);
-    for (i, m) in iterator.enumerate() {
-      v.set(i, Value::from(m));
+	fn from_iter<I: IntoIterator<Item = f64>>(iterator: I) -> Self {
+		let iterator = iterator.into_iter();
+		let capacity = iterator.size_hint().0;
+		let mut v = Value::array(capacity);
+		for (i, m) in iterator.enumerate() {
+			v.set(i, Value::from(m));
 		}
 		return v;
 	}
@@ -1098,12 +1101,12 @@ impl ::std::iter::FromIterator<f64> for Value {
 
 /// Value from sequence of `&str`.
 impl<'a> ::std::iter::FromIterator<&'a str> for Value {
-	fn from_iter<I: IntoIterator<Item=&'a str>>(iterator: I) -> Self {
-    let iterator = iterator.into_iter();
-    let capacity = iterator.size_hint().0;
-    let mut v = Value::array(capacity);
-    for (i, m) in iterator.enumerate() {
-      v.set(i, Value::from(m));
+	fn from_iter<I: IntoIterator<Item = &'a str>>(iterator: I) -> Self {
+		let iterator = iterator.into_iter();
+		let capacity = iterator.size_hint().0;
+		let mut v = Value::array(capacity);
+		for (i, m) in iterator.enumerate() {
+			v.set(i, Value::from(m));
 		}
 		return v;
 	}
@@ -1111,12 +1114,12 @@ impl<'a> ::std::iter::FromIterator<&'a str> for Value {
 
 /// Value from sequence of `String`.
 impl ::std::iter::FromIterator<String> for Value {
-	fn from_iter<I: IntoIterator<Item=String>>(iterator: I) -> Self {
-    let iterator = iterator.into_iter();
-    let capacity = iterator.size_hint().0;
-    let mut v = Value::array(capacity);
-    for (i, m) in iterator.enumerate() {
-      v.set(i, Value::from(m));
+	fn from_iter<I: IntoIterator<Item = String>>(iterator: I) -> Self {
+		let iterator = iterator.into_iter();
+		let capacity = iterator.size_hint().0;
+		let mut v = Value::array(capacity);
+		for (i, m) in iterator.enumerate() {
+			v.set(i, Value::from(m));
 		}
 		return v;
 	}
@@ -1131,8 +1134,8 @@ where
 	fn from(f: F) -> Value {
 		let mut v = Value::new();
 		let boxed = Box::new(f);
-		let ptr = Box::into_raw(boxed);	// dropped in `_functor_release`
-		(_API.ValueNativeFunctorSet)(v.as_ptr(), _functor_invoke::<F,R>, _functor_release::<F>, ptr as LPVOID);
+		let ptr = Box::into_raw(boxed); // dropped in `_functor_release`
+		(_API.ValueNativeFunctorSet)(v.as_ptr(), _functor_invoke::<F, R>, _functor_release::<F>, ptr as LPVOID);
 		return v;
 	}
 }
@@ -1147,8 +1150,7 @@ impl<T> From<Box<IAsset<T>>> for Value {
 	}
 }
 
-extern "C" fn _functor_release<F>(tag: LPVOID)
-{
+extern "C" fn _functor_release<F>(tag: LPVOID) {
 	// reconstruct handler from pointer
 	let ptr = tag as *mut F;
 	let boxed = unsafe { Box::from_raw(ptr) };
@@ -1175,7 +1177,9 @@ where
 /// Helper trait
 pub trait FromValue {
 	/// Converts value to specified type.
-	fn from_value(v: &Value) -> Option<Self> where Self: Sized;
+	fn from_value(v: &Value) -> Option<Self>
+	where
+		Self: Sized;
 }
 
 impl FromValue for Value {
@@ -1317,10 +1321,10 @@ impl<'a> ::std::iter::IntoIterator for &'a Value {
 mod tests {
 	#![allow(unused_imports)]
 
-	use super::{Value, FromValue};
+	use super::{FromValue, Value};
 	use capi::scvalue::{VALUE, VALUE_TYPE};
 	use std::mem;
-	use ::{_API};
+	use _API;
 
 	fn check1(a: i32) {
 		assert_eq!(a, 12);
@@ -1329,12 +1333,12 @@ mod tests {
 	#[test]
 	fn test_from_value() {
 		let v = Value::from(12);
-		check1(
-			match FromValue::from_value(&v) {
-				Some(x) => { x },
-				None => { return; }
+		check1(match FromValue::from_value(&v) {
+			Some(x) => x,
+			None => {
+				return;
 			}
-		);
+		});
 	}
 
 	#[test]
@@ -1345,8 +1349,11 @@ mod tests {
 
 	#[test]
 	fn test_abi() {
-
-		let mut data = VALUE { t: VALUE_TYPE::T_UNDEFINED, u: 0, d: 0 };
+		let mut data = VALUE {
+			t: VALUE_TYPE::T_UNDEFINED,
+			u: 0,
+			d: 0,
+		};
 		assert_eq!(data.t, VALUE_TYPE::T_UNDEFINED);
 
 		(_API.ValueInit)(&mut data);

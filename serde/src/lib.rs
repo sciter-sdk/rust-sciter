@@ -142,9 +142,9 @@ extern crate serde;
 extern crate sciter;
 
 
+mod de;
 mod error;
 mod ser;
-mod de;
 
 #[doc(inline)]
 pub use ser::to_value;
@@ -152,4 +152,4 @@ pub use ser::to_value;
 #[doc(inline)]
 pub use de::from_value;
 
-pub use error::{Result, Error};
+pub use error::{Error, Result};

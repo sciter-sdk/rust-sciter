@@ -1,16 +1,16 @@
 //! Sciter host application helpers.
 
-use ::{_API};
 use capi::scdef::SCITER_RT_OPTIONS;
-use capi::sctypes::*;
-use capi::screquest::HREQUEST;
 use capi::schandler::NativeHandler;
+use capi::screquest::HREQUEST;
+use capi::sctypes::*;
 use dom::{self, event::EventHandler};
 use eventhandler::*;
-use value::{Value};
+use value::Value;
+use _API;
 
-pub use capi::scdef::{LOAD_RESULT, OUTPUT_SUBSYTEMS, OUTPUT_SEVERITY};
-pub use capi::scdef::{SCN_LOAD_DATA, SCN_DATA_LOADED, SCN_ATTACH_BEHAVIOR, SCN_INVALIDATE_RECT};
+pub use capi::scdef::{LOAD_RESULT, OUTPUT_SEVERITY, OUTPUT_SUBSYTEMS};
+pub use capi::scdef::{SCN_ATTACH_BEHAVIOR, SCN_DATA_LOADED, SCN_INVALIDATE_RECT, SCN_LOAD_DATA};
 
 
 /// A specialized `Result` type for Sciter host operations.
@@ -64,7 +64,6 @@ in order to send notifications while loading.
 */
 #[allow(unused_variables)]
 pub trait HostHandler {
-
 	/// Notifies that Sciter is about to download the referred resource.
 	///
 	/// You can load or overload data immediately by calling `self.data_ready()` with parameters provided by `SCN_LOAD_DATA`,
@@ -72,21 +71,25 @@ pub trait HostHandler {
 	///
 	/// Also you can discard the request (data will not be loaded at the document)
 	/// or take care about this request completely by yourself (via the [request API](../request/index.html)).
-	fn on_data_load(&mut self, pnm: &mut SCN_LOAD_DATA) -> Option<LOAD_RESULT> { return None; }
+	fn on_data_load(&mut self, pnm: &mut SCN_LOAD_DATA) -> Option<LOAD_RESULT> {
+		return None;
+	}
 
 	/// This notification indicates that external data (for example, image) download process completed.
-	fn on_data_loaded(&mut self, pnm: &SCN_DATA_LOADED) { }
+	fn on_data_loaded(&mut self, pnm: &SCN_DATA_LOADED) {}
 
 	/// This notification is sent on parsing the document and while processing elements
 	/// having non empty `behavior: ` style attribute value.
-	fn on_attach_behavior(&mut self, pnm: &mut SCN_ATTACH_BEHAVIOR) -> bool { return false; }
+	fn on_attach_behavior(&mut self, pnm: &mut SCN_ATTACH_BEHAVIOR) -> bool {
+		return false;
+	}
 
 	/// This notification is sent when instance of the engine is destroyed.
-	fn on_engine_destroyed(&mut self) { }
+	fn on_engine_destroyed(&mut self) {}
 
 	/// This notification is sent when the engine encounters critical rendering error: e.g. DirectX gfx driver error.
-  /// Most probably bad gfx drivers.
-	fn on_graphics_critical_failure(&mut self) { }
+	/// Most probably bad gfx drivers.
+	fn on_graphics_critical_failure(&mut self) {}
 
 	/// This notification is sent when the engine needs some area to be redrawn.
 	fn on_invalidate(&mut self, pnm: &SCN_INVALIDATE_RECT) {}
@@ -111,21 +114,17 @@ pub trait HostHandler {
 	fn data_ready(&self, hwnd: HWINDOW, uri: &str, data: &[u8], request_id: Option<HREQUEST>) {
 		let s = s2w!(uri);
 		match request_id {
-			Some(req) => {
-				(_API.SciterDataReadyAsync)(hwnd, s.as_ptr(), data.as_ptr(), data.len() as UINT, req)
-			},
-			None => {
-				(_API.SciterDataReady)(hwnd, s.as_ptr(), data.as_ptr(), data.len() as UINT)
-			},
+			Some(req) => (_API.SciterDataReadyAsync)(hwnd, s.as_ptr(), data.as_ptr(), data.len() as UINT, req),
+			None => (_API.SciterDataReady)(hwnd, s.as_ptr(), data.as_ptr(), data.len() as UINT),
 		};
 	}
 
-  /// This function is used as a response to the [`on_attach_behavior`](#method.on_attach_behavior) request
-  /// to attach a newly created behavior `handler` to the requested element.
+	/// This function is used as a response to the [`on_attach_behavior`](#method.on_attach_behavior) request
+	/// to attach a newly created behavior `handler` to the requested element.
 	fn attach_behavior<Handler: EventHandler>(&self, pnm: &mut SCN_ATTACH_BEHAVIOR, handler: Handler) {
 		// make native handler
 		let boxed = Box::new(handler);
-		let ptr = Box::into_raw(boxed);	// dropped in `_event_handler_proc`
+		let ptr = Box::into_raw(boxed); // dropped in `_event_handler_proc`
 		pnm.elementProc = ::eventhandler::_event_handler_proc::<Handler>;
 		pnm.elementTag = ptr as LPVOID;
 	}
@@ -137,12 +136,10 @@ pub trait HostHandler {
 struct DefaultHandler;
 
 /// Default `HostHandler` implementation
-impl HostHandler for DefaultHandler {
+impl HostHandler for DefaultHandler {}
 
-}
-
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 type BehaviorList = Vec<(String, Box<dyn Fn() -> Box<dyn EventHandler>>)>;
 type SharedBehaviorList = Rc<RefCell<BehaviorList>>;
@@ -153,7 +150,7 @@ struct HostCallback<Callback> {
 	sig: u32,
 	behaviors: SharedBehaviorList,
 	handler: Callback,
-  archive: SharedArchive,
+	archive: SharedArchive,
 }
 
 /// Sciter host runtime support.
@@ -161,11 +158,10 @@ pub struct Host {
 	hwnd: HWINDOW,
 	behaviors: SharedBehaviorList,
 	handler: RefCell<NativeHandler>,
-  archive: SharedArchive,
+	archive: SharedArchive,
 }
 
 impl Host {
-
 	/// Attach Sciter host to an existing window.
 	///
 	/// Usually Sciter window is created by [`sciter::Window::create()`](../window/struct.Window.html#method.create),
@@ -177,25 +173,25 @@ impl Host {
 	pub fn attach(hwnd: HWINDOW) -> Host {
 		// Host with default debug handler installed
 		let host = Host {
-      hwnd,
-      behaviors: Default::default(),
-      handler: Default::default(),
-      archive: Default::default(),
-    };
+			hwnd,
+			behaviors: Default::default(),
+			handler: Default::default(),
+			archive: Default::default(),
+		};
 		host.setup_callback(DefaultHandler::default());
 		return host;
 	}
 
 	/// Attach Sciter host to an existing window with the given `Host` handler.
 	pub fn attach_with<Handler: HostHandler>(hwnd: HWINDOW, handler: Handler) -> Host {
-	  let host = Host {
-      hwnd,
-      behaviors: Default::default(),
-      handler: Default::default(),
-      archive: Default::default(),
-    };
-	  host.setup_callback(handler);
-	  return host;
+		let host = Host {
+			hwnd,
+			behaviors: Default::default(),
+			handler: Default::default(),
+			archive: Default::default(),
+		};
+		host.setup_callback(handler);
+		return host;
 	}
 
 	/// Attach [`dom::EventHandler`](../dom/event/trait.EventHandler.html) to the Sciter window.
@@ -207,9 +203,9 @@ impl Host {
 	#[doc(hidden)]
 	pub fn attach_handler<Handler: EventHandler>(&self, handler: Handler) {
 		let hwnd = self.get_hwnd();
-		let boxed = Box::new( WindowHandler { hwnd, handler } );
-		let ptr = Box::into_raw(boxed);	// dropped in `_event_handler_window_proc`
-		// eprintln!("{}: {:?}", std::any::type_name::<Handler>(), ptr);
+		let boxed = Box::new(WindowHandler { hwnd, handler });
+		let ptr = Box::into_raw(boxed); // dropped in `_event_handler_window_proc`
+																// eprintln!("{}: {:?}", std::any::type_name::<Handler>(), ptr);
 
 		let func = _event_handler_window_proc::<Handler>;
 		let flags = dom::event::default_events();
@@ -218,11 +214,10 @@ impl Host {
 
 	/// Set callback for Sciter engine events.
 	pub(crate) fn setup_callback<Callback: HostHandler>(&self, handler: Callback) {
-
 		let payload: HostCallback<Callback> = HostCallback {
 			sig: 17,
 			behaviors: Rc::clone(&self.behaviors),
-      archive: Rc::clone(&self.archive),
+			archive: Rc::clone(&self.archive),
 			handler: handler,
 		};
 
@@ -238,20 +233,20 @@ impl Host {
 	/// See the [`Window::register_behavior`](../window/struct.Window.html#method.register_behavior) for an example.
 	pub fn register_behavior<Factory>(&self, name: &str, factory: Factory)
 	where
-		Factory: Fn() -> Box<dyn EventHandler> + 'static
+		Factory: Fn() -> Box<dyn EventHandler> + 'static,
 	{
 		let make: Box<dyn Fn() -> Box<dyn EventHandler>> = Box::new(factory);
 		let pair = (name.to_owned(), make);
 		self.behaviors.borrow_mut().push(pair);
 	}
 
-  /// Register an archive produced by `packfolder`.
-  ///
-  /// See documentation of the [`Archive`](struct.Archive.html).
-  pub fn register_archive(&self, resource: &[u8]) -> Result<()> {
-    *self.archive.borrow_mut() = Some(Archive::open(resource)?);
-    Ok(())
-  }
+	/// Register an archive produced by `packfolder`.
+	///
+	/// See documentation of the [`Archive`](struct.Archive.html).
+	pub fn register_archive(&self, resource: &[u8]) -> Result<()> {
+		*self.archive.borrow_mut() = Some(Archive::open(resource)?);
+		Ok(())
+	}
 
 	/// Set debug mode for this window.
 	pub fn enable_debug(&self, enable: bool) {
@@ -281,10 +276,8 @@ impl Host {
 			Some(uri) => {
 				let s = s2w!(uri);
 				(_API.SciterLoadHtml)(self.hwnd, html.as_ptr(), html.len() as UINT, s.as_ptr()) != 0
-			},
-			None => {
-				(_API.SciterLoadHtml)(self.hwnd, html.as_ptr(), html.len() as UINT, 0 as LPCWSTR) != 0
 			}
+			None => (_API.SciterLoadHtml)(self.hwnd, html.as_ptr(), html.len() as UINT, 0 as LPCWSTR) != 0,
 		}
 	}
 
@@ -311,7 +304,7 @@ impl Host {
 	///
 	/// This function returns `Result<Value,Value>` with script function result value or with Sciter script error.
 	pub fn eval_script(&self, script: &str) -> ::std::result::Result<Value, Value> {
-		let (s,n) = s2wn!(script);
+		let (s, n) = s2wn!(script);
 		let mut rv = Value::new();
 		let ok = (_API.SciterEval)(self.hwnd, s.as_ptr(), n, rv.as_ptr());
 		ok_or!(ok, rv, rv)
@@ -406,15 +399,13 @@ impl Host {
 		let ok = (_API.SciterSetCSS)(self.hwnd, b.as_ptr(), n, url.as_ptr(), media.as_ptr());
 		ok_or!(ok)
 	}
-
 }
 
 
 // Sciter notification handler.
 // This comes as free function due to https://github.com/rust-lang/rust/issues/32364
-extern "system" fn _on_handle_notification<T: HostHandler>(pnm: *mut ::capi::scdef::SCITER_CALLBACK_NOTIFICATION, param: LPVOID) -> UINT
-{
-	use capi::scdef::{SCITER_NOTIFICATION, SCITER_CALLBACK_NOTIFICATION};
+extern "system" fn _on_handle_notification<T: HostHandler>(pnm: *mut ::capi::scdef::SCITER_CALLBACK_NOTIFICATION, param: LPVOID) -> UINT {
+	use capi::scdef::{SCITER_CALLBACK_NOTIFICATION, SCITER_NOTIFICATION};
 
 	// reconstruct pointer to Handler
 	let callback = NativeHandler::get_data::<HostCallback<T>>(&param);
@@ -428,29 +419,29 @@ extern "system" fn _on_handle_notification<T: HostHandler>(pnm: *mut ::capi::scd
 	let result: UINT = match code {
 		SCITER_NOTIFICATION::SC_LOAD_DATA => {
 			let scnm = pnm as *mut SCN_LOAD_DATA;
-      let scnm = unsafe { &mut *scnm };
+			let scnm = unsafe { &mut *scnm };
 			let mut re = me.on_data_load(scnm);
-      if re.is_none() {
-        if let Some(archive) = callback.archive.borrow().as_ref() {
-          let uri = w2s!(scnm.uri);
-          if uri.starts_with("this://app/") {
-            if let Some(data) = archive.get(&uri) {
-              me.data_ready(scnm.hwnd, &uri, data, None);
-            } else {
-              eprintln!("[sciter] error: can't load {:?}", uri);
-            }
-          }
-          re = Some(LOAD_RESULT::LOAD_DEFAULT);
-        }
-      }
+			if re.is_none() {
+				if let Some(archive) = callback.archive.borrow().as_ref() {
+					let uri = w2s!(scnm.uri);
+					if uri.starts_with("this://app/") {
+						if let Some(data) = archive.get(&uri) {
+							me.data_ready(scnm.hwnd, &uri, data, None);
+						} else {
+							eprintln!("[sciter] error: can't load {:?}", uri);
+						}
+					}
+					re = Some(LOAD_RESULT::LOAD_DEFAULT);
+				}
+			}
 			re.unwrap_or(LOAD_RESULT::LOAD_DEFAULT) as UINT
-		},
+		}
 
 		SCITER_NOTIFICATION::SC_DATA_LOADED => {
 			let scnm = pnm as *mut SCN_DATA_LOADED;
-			me.on_data_loaded(unsafe { &mut *scnm } );
+			me.on_data_loaded(unsafe { &mut *scnm });
 			0
-		},
+		}
 
 		SCITER_NOTIFICATION::SC_ATTACH_BEHAVIOR => {
 			let scnm = pnm as *mut SCN_ATTACH_BEHAVIOR;
@@ -458,15 +449,11 @@ extern "system" fn _on_handle_notification<T: HostHandler>(pnm: *mut ::capi::scd
 			let mut re = me.on_attach_behavior(scnm);
 			if !re {
 				let name = u2s!(scnm.name);
-				let behavior = callback.behaviors
-					.borrow()
-					.iter()
-					.find(|x| x.0 == name)
-					.map(|x| x.1());
+				let behavior = callback.behaviors.borrow().iter().find(|x| x.0 == name).map(|x| x.1());
 
 				if let Some(behavior) = behavior {
-					let boxed = Box::new( BoxedHandler { handler: behavior } );
-					let ptr = Box::into_raw(boxed);	// dropped in `_event_handler_behavior_proc`
+					let boxed = Box::new(BoxedHandler { handler: behavior });
+					let ptr = Box::into_raw(boxed); // dropped in `_event_handler_behavior_proc`
 
 					scnm.elementProc = ::eventhandler::_event_handler_behavior_proc;
 					scnm.elementTag = ptr as LPVOID;
@@ -474,17 +461,17 @@ extern "system" fn _on_handle_notification<T: HostHandler>(pnm: *mut ::capi::scd
 				}
 			}
 			re as UINT
-		},
+		}
 
 		SCITER_NOTIFICATION::SC_ENGINE_DESTROYED => {
 			me.on_engine_destroyed();
 			0
-		},
+		}
 
 		SCITER_NOTIFICATION::SC_GRAPHICS_CRITICAL_FAILURE => {
 			me.on_graphics_critical_failure();
 			0
-		},
+		}
 
 		SCITER_NOTIFICATION::SC_INVALIDATE_RECT => {
 			let scnm = pnm as *const SCN_INVALIDATE_RECT;
@@ -499,9 +486,13 @@ extern "system" fn _on_handle_notification<T: HostHandler>(pnm: *mut ::capi::scd
 }
 
 // Sciter debug output handler.
-extern "system" fn _on_debug_notification<T: HostHandler>(param: LPVOID, subsystem: OUTPUT_SUBSYTEMS, severity: OUTPUT_SEVERITY,
-	text: LPCWSTR, _text_length: UINT)
-{
+extern "system" fn _on_debug_notification<T: HostHandler>(
+	param: LPVOID,
+	subsystem: OUTPUT_SUBSYTEMS,
+	severity: OUTPUT_SEVERITY,
+	text: LPCWSTR,
+	_text_length: UINT,
+) {
 	// reconstruct pointer to Handler
 	// let me = unsafe { &mut *(param as *mut HostCallback<T>) };
 	let me = NativeHandler::get_data::<HostCallback<T>>(&param);
@@ -541,46 +532,46 @@ pub struct Archive(HSARCHIVE);
 
 /// Close the archive.
 impl Drop for Archive {
-  fn drop(&mut self) {
-    (_API.SciterCloseArchive)(self.0);
-  }
+	fn drop(&mut self) {
+		(_API.SciterCloseArchive)(self.0);
+	}
 }
 
 impl Archive {
-  /// Open an archive blob.
-  pub fn open(archived: &[u8]) -> Result<Self> {
-    let p = (_API.SciterOpenArchive)(archived.as_ptr(), archived.len() as u32);
-    if !p.is_null() {
-      Ok(Archive(p))
-    } else {
-      Err(())
-    }
-  }
+	/// Open an archive blob.
+	pub fn open(archived: &[u8]) -> Result<Self> {
+		let p = (_API.SciterOpenArchive)(archived.as_ptr(), archived.len() as u32);
+		if !p.is_null() {
+			Ok(Archive(p))
+		} else {
+			Err(())
+		}
+	}
 
-  /// Get an archive item.
-  ///
-  /// Given a path, returns a reference to the contents of an archived item.
-  pub fn get(&self, path: &str) -> Option<&[u8]> {
-    // skip initial part of the path
-    let skip = if path.starts_with("this://app/") {
-      "this://app/".len()
-    } else if path.starts_with("//") {
-      "//".len()
-    } else {
-      0
-    };
+	/// Get an archive item.
+	///
+	/// Given a path, returns a reference to the contents of an archived item.
+	pub fn get(&self, path: &str) -> Option<&[u8]> {
+		// skip initial part of the path
+		let skip = if path.starts_with("this://app/") {
+			"this://app/".len()
+		} else if path.starts_with("//") {
+			"//".len()
+		} else {
+			0
+		};
 
-    let wname = s2w!(path);
-    let name = &wname[skip..];
+		let wname = s2w!(path);
+		let name = &wname[skip..];
 
-    let mut pb = ::std::ptr::null();
-    let mut cb = 0;
-    let ok = (_API.SciterGetArchiveItem)(self.0, name.as_ptr(), &mut pb, &mut cb);
-    if ok != 0 && !pb.is_null() {
-      let data = unsafe { ::std::slice::from_raw_parts(pb, cb as usize) };
-      Some(data)
-    } else {
-      None
-    }
-  }
+		let mut pb = ::std::ptr::null();
+		let mut cb = 0;
+		let ok = (_API.SciterGetArchiveItem)(self.0, name.as_ptr(), &mut pb, &mut cb);
+		if ok != 0 && !pb.is_null() {
+			let data = unsafe { ::std::slice::from_raw_parts(pb, cb as usize) };
+			Some(data)
+		} else {
+			None
+		}
+	}
 }

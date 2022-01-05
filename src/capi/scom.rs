@@ -75,7 +75,6 @@ pub struct som_passport_t {
 	/// pst.n_properties = 2;
 	/// pst.properties = Box::into_raw(props) as *const _;
 	/// ```
-
 	pub properties: *const som_property_def_t,
 
 	/// Properties count.

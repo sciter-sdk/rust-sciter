@@ -2,12 +2,13 @@
 use serde::de::{self, Deserialize, Visitor};
 
 use error::{Error, Result};
-use sciter::{Value};
+use sciter::Value;
 
 
 /// Deserializes a Sciter value to the specific Rust type.
 pub fn from_value<'a, T>(input: &'a Value) -> Result<T>
-	where T: Deserialize<'a>
+where
+	T: Deserialize<'a>,
 {
 	let p = Deserializer::from_value(input.clone());
 	T::deserialize(p)
@@ -21,7 +22,6 @@ pub struct Deserializer {
 
 
 impl<'de> Deserializer {
-
 	pub fn from_value(input: Value) -> Self {
 		Deserializer { input: input }
 	}
@@ -32,11 +32,10 @@ impl<'de, 'a> ::serde::de::Deserializer<'de> for Deserializer {
 	type Error = Error;
 
 
-	fn deserialize_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value>
-	{
+	fn deserialize_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
 		use sciter::value::VALUE_TYPE;
 		match self.input.get_type() {
-			VALUE_TYPE::T_UNDEFINED|VALUE_TYPE::T_NULL => visitor.visit_none(),
+			VALUE_TYPE::T_UNDEFINED | VALUE_TYPE::T_NULL => visitor.visit_none(),
 			VALUE_TYPE::T_BOOL => visitor.visit_bool(self.input.to_bool().unwrap()),
 			VALUE_TYPE::T_INT => visitor.visit_i32(self.input.to_int().unwrap()),
 			VALUE_TYPE::T_FLOAT => visitor.visit_f64(self.input.to_float().unwrap()),
@@ -49,7 +48,7 @@ impl<'de, 'a> ::serde::de::Deserializer<'de> for Deserializer {
 		}
 	}
 
-	fn deserialize_ignored_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value>	{
+	fn deserialize_ignored_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
 		self.deserialize_any(visitor)
 	}
 
@@ -89,7 +88,7 @@ impl<'de, 'a> ::serde::de::Deserializer<'de> for Deserializer {
 		visitor.visit_newtype_struct(self)
 	}
 
-	fn deserialize_seq<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value>	{
+	fn deserialize_seq<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
 		if self.input.is_array() {
 			let it = self.input.values();
 			let sq = de::value::SeqDeserializer::new(it);
@@ -117,33 +116,28 @@ impl<'de, 'a> ::serde::de::Deserializer<'de> for Deserializer {
 		}
 	}
 
-	fn deserialize_struct<V: Visitor<'de>>(self, _name: &'static str, _fields: &'static [&'static str], visitor: V) -> Result<V::Value>
-	{
+	fn deserialize_struct<V: Visitor<'de>>(self, _name: &'static str, _fields: &'static [&'static str], visitor: V) -> Result<V::Value> {
 		self.deserialize_map(visitor)
 	}
 
-	fn deserialize_identifier<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value>
-	{
+	fn deserialize_identifier<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
 		self.deserialize_str(visitor)
 	}
 
-	fn deserialize_enum<V: Visitor<'de>>(self, _name: &'static str, _fields: &'static [&'static str], visitor: V) -> Result<V::Value>
-	{
+	fn deserialize_enum<V: Visitor<'de>>(self, _name: &'static str, _fields: &'static [&'static str], visitor: V) -> Result<V::Value> {
 		// it can be `"A"`, `{"T": u8}`, `{S: {"x": u8}}`
 		match (self.input.is_string(), self.input.is_map()) {
-
 			(true, _) => {
 				use self::de::IntoDeserializer;
 				visitor.visit_enum(self.input.as_string().unwrap().into_deserializer())
-			},
-
-			(_, true) => {
-				visitor.visit_enum(SeqAccess::new(self))
-			},
-
-			_ => {
-				Err(Error::ExpectedType(format!("expected enum (as string or map), given {:?}", self.input)))
 			}
+
+			(_, true) => visitor.visit_enum(SeqAccess::new(self)),
+
+			_ => Err(Error::ExpectedType(format!(
+				"expected enum (as string or map), given {:?}",
+				self.input
+			))),
 		}
 	}
 }
@@ -167,7 +161,7 @@ struct SeqAccess {
 }
 
 impl SeqAccess {
-	fn new(d: Deserializer) -> Self	{
+	fn new(d: Deserializer) -> Self {
 		let len = d.input.len();
 		SeqAccess {
 			de: d,
@@ -186,7 +180,8 @@ impl<'de> de::SeqAccess<'de> for SeqAccess {
 	}
 
 	fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-		where T: de::DeserializeSeed<'de>
+	where
+		T: de::DeserializeSeed<'de>,
 	{
 		if self.pos < self.len {
 			self.pos += 1;
@@ -207,7 +202,8 @@ impl<'de> de::MapAccess<'de> for SeqAccess {
 	}
 
 	fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
-		where K: de::DeserializeSeed<'de>
+	where
+		K: de::DeserializeSeed<'de>,
 	{
 		if self.pos < self.len {
 			self.pos += 1;
@@ -220,7 +216,8 @@ impl<'de> de::MapAccess<'de> for SeqAccess {
 	}
 
 	fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
-		where V: de::DeserializeSeed<'de>
+	where
+		V: de::DeserializeSeed<'de>,
 	{
 		let v = self.de.input.get(self.pos - 1);
 		let inner = Deserializer::from_value(v);
@@ -233,13 +230,14 @@ impl<'de> de::EnumAccess<'de> for SeqAccess {
 	type Variant = Self;
 
 	fn variant_seed<V>(mut self, seed: V) -> Result<(V::Value, Self::Variant)>
-		where V: de::DeserializeSeed<'de>
+	where
+		V: de::DeserializeSeed<'de>,
 	{
 		// `{ "N": ... }`
 		// Here I suppose to deserialize the variant key.
 		let v = self.de.input.key_at(0);
 		self.key = Some(v.clone());
-		let vkey = seed.deserialize( Deserializer::from_value(v) )?;
+		let vkey = seed.deserialize(Deserializer::from_value(v))?;
 		Ok((vkey, self))
 	}
 }
@@ -252,15 +250,17 @@ impl<'de> de::VariantAccess<'de> for SeqAccess {
 	}
 
 	fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value>
-		where T: de::DeserializeSeed<'de>
+	where
+		T: de::DeserializeSeed<'de>,
 	{
 		// `{ "N": u8 }`
 		let v = self.de.input.get_item(self.key.unwrap());
-		seed.deserialize( Deserializer::from_value(v) )
+		seed.deserialize(Deserializer::from_value(v))
 	}
 
 	fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value>
-		where V: de::Visitor<'de>
+	where
+		V: de::Visitor<'de>,
 	{
 		// `{ "T": [u8, u8] }`
 		let v = self.de.input.get_item(self.key.unwrap());
@@ -268,11 +268,11 @@ impl<'de> de::VariantAccess<'de> for SeqAccess {
 	}
 
 	fn struct_variant<V>(self, fields: &'static [&'static str], visitor: V) -> Result<V::Value>
-		where V: de::Visitor<'de>
+	where
+		V: de::Visitor<'de>,
 	{
 		// `{ "S": {r: u8, g: u8, b: u8} }`
 		let v = self.de.input.get_item(self.key.unwrap());
 		de::Deserializer::deserialize_struct(Deserializer::from_value(v), "", fields, visitor)
 	}
-
 }

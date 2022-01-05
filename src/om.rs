@@ -4,9 +4,9 @@ See [Native code exposure to script](http://sciter.com/native-code-exposure-to-s
 and [Sciter Object Model](http://sciter.com/developers/for-native-gui-programmers/sciter-object-model/) blog articles.
 
 */
-use std::sync::atomic::{AtomicI32, Ordering};
-use capi::sctypes::{LPVOID, LPCSTR};
 pub use capi::scom::*;
+use capi::sctypes::{LPCSTR, LPVOID};
+use std::sync::atomic::{AtomicI32, Ordering};
 
 
 /// Get the index of an interned string.
@@ -127,14 +127,14 @@ impl<T> IAssetRef<T> {
 
 	/// Get a reference to the underlaying pointer.
 	pub fn as_asset(&self) -> &som_asset_t {
-		unsafe { & *self.asset }
+		unsafe { &*self.asset }
 	}
 
 	/// Get the passport of the asset.
 	pub fn get_passport(&self) -> &som_passport_t {
 		// TODO: do we need this?
 		let ptr = (self.isa().get_passport)(self.asset);
-		unsafe { & *ptr }
+		unsafe { &*ptr }
 	}
 }
 
@@ -251,8 +251,7 @@ impl<T: Passport> IAsset<T> {
 			eprintln!("iasset<T>::get_interface({}) is not implemented.", name);
 			return false;
 		}
-		extern "C" fn asset_get_passport<T: Passport>(thing: *mut som_asset_t) -> *const som_passport_t
-		{
+		extern "C" fn asset_get_passport<T: Passport>(thing: *mut som_asset_t) -> *const som_passport_t {
 			// here we cache the returned reference in order not to allocate things again
 			let me = IAsset::<T>::from_raw(&thing);
 			if me.passport.is_none() {

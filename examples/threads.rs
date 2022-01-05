@@ -7,10 +7,8 @@ struct EventHandler;
 impl EventHandler {
 	// script handler
 	fn exec_task(&self, task_no: i32, progress: sciter::Value, done: sciter::Value) -> bool {
-
 		use std::{thread, time};
 		thread::spawn(move || {
-
 			for i in 1..100 {
 				// call `onProgress` callback
 				thread::sleep(time::Duration::from_millis(100));
@@ -33,9 +31,7 @@ impl sciter::EventHandler for EventHandler {
 
 fn main() {
 	let html = include_bytes!("threads.htm");
-  let mut frame = sciter::WindowBuilder::main_window()
-  	.with_size((1200, 900))
-  	.create();
+	let mut frame = sciter::WindowBuilder::main_window().with_size((1200, 900)).create();
 	frame.event_handler(EventHandler);
 	frame.load_html(html, None);
 	frame.run_app();

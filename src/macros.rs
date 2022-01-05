@@ -11,7 +11,9 @@
 ///
 #[macro_export]
 macro_rules! s2u {
-	($s:expr) => ( $crate::utf::s2un($s.as_ref()).0 )
+	($s:expr) => {
+		$crate::utf::s2un($s.as_ref()).0
+	};
 }
 
 /// Rust string to UTF-8 conversion. See also `utf::u2s`.
@@ -25,7 +27,9 @@ macro_rules! s2u {
 ///
 #[macro_export]
 macro_rules! s2un {
-	($s:expr) => ( $crate::utf::s2un($s.as_ref()) )
+	($s:expr) => {
+		$crate::utf::s2un($s.as_ref())
+	};
 }
 
 
@@ -40,7 +44,9 @@ macro_rules! s2un {
 ///
 #[macro_export]
 macro_rules! s2w {
-	($s:expr) => ( $crate::utf::s2vec($s.as_ref()) )
+	($s:expr) => {
+		$crate::utf::s2vec($s.as_ref())
+	};
 }
 
 /// Rust string to UTF-16 conversion. See also `utf::w2s`.
@@ -54,21 +60,27 @@ macro_rules! s2w {
 ///
 #[macro_export]
 macro_rules! s2wn {
-	($s:expr) => ( $crate::utf::s2vecn($s.as_ref()) )
+	($s:expr) => {
+		$crate::utf::s2vecn($s.as_ref())
+	};
 }
 
 
 /// UTF-16 to `String` conversion.
 #[macro_export]
 macro_rules! w2s {
-	($s:expr) => ( $crate::utf::w2s($s) )
+	($s:expr) => {
+		$crate::utf::w2s($s)
+	};
 }
 
 
 /// UTF-8 to `String` conversion.
 #[macro_export]
 macro_rules! u2s {
-	($s:expr) => ( $crate::utf::u2s($s) )
+	($s:expr) => {
+		$crate::utf::u2s($s)
+	};
 }
 
 

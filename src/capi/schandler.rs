@@ -28,18 +28,23 @@ impl Drop for NativeHandler {
 
 impl Default for NativeHandler {
 	fn default() -> Self {
-		NativeHandler { handler: ::std::ptr::null(), dtor: NativeHandler::drop_it::<i32> }
+		NativeHandler {
+			handler: ::std::ptr::null(),
+			dtor: NativeHandler::drop_it::<i32>,
+		}
 	}
 }
 
 impl NativeHandler {
-
 	/// Construct boxed wrapper from handler object.
 	pub fn from<T>(handler: T) -> NativeHandler {
 		let boxed = Box::new(handler);
 		let ptr = Box::into_raw(boxed);
 		let dtor = NativeHandler::drop_it::<T>;
-		return NativeHandler { handler: ptr as Opaque, dtor: dtor };
+		return NativeHandler {
+			handler: ptr as Opaque,
+			dtor: dtor,
+		};
 	}
 
 	/// Return a native pointer to handler wrapper.
@@ -66,11 +71,11 @@ impl NativeHandler {
 		return boxed;
 	}
 
-  #[allow(clippy::mut_from_ref)]
+	#[allow(clippy::mut_from_ref)]
 	pub fn get_data<T>(ptr: &LPVOID) -> &mut T {
 		assert!(!ptr.is_null());
 		let obj = *ptr as *mut T;
-		unsafe { &mut *obj}
+		unsafe { &mut *obj }
 	}
 
 	// Call destructor of handler.
@@ -99,7 +104,6 @@ mod test {
 	}
 
 
-
 	#[test]
 	fn test1() {
 		{
@@ -114,5 +118,4 @@ mod test {
 
 		// assert!(false);
 	}
-
 }

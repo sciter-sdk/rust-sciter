@@ -13,73 +13,73 @@ use sciter::graphics::*;
 const OK: Result<()> = Ok(());
 
 macro_rules! assert_ok {
-  ($left:expr, $right:expr) => {
-    assert_eq!($left, $right.map(|_| ()));
-  };
+	($left:expr, $right:expr) => {
+		assert_eq!($left, $right.map(|_| ()));
+	};
 }
 
 fn get() -> Image {
-  Image::create((100, 100), true).expect("Can't create a `100x100` image")
+	Image::create((100, 100), true).expect("Can't create a `100x100` image")
 }
 
 #[test]
 #[ignore]
 fn image_new() {
-  let ok = Image::create((100, 100), false);
-  assert_ok!(OK, ok);
+	let ok = Image::create((100, 100), false);
+	assert_ok!(OK, ok);
 
-  let ok = Image::create((100, 100), true);
-  assert_ok!(OK, ok);
+	let ok = Image::create((100, 100), true);
+	assert_ok!(OK, ok);
 }
 
 #[test]
 #[ignore]
 fn image_dimensions() {
-  let size = get().dimensions().unwrap();
-  assert_eq!((100, 100), size);
+	let size = get().dimensions().unwrap();
+	assert_eq!((100, 100), size);
 }
 
 #[test]
 #[ignore]
 fn image_save() {
-  let ok = get().save(SaveImageEncoding::Raw);
-  assert!(ok.is_ok());
-  assert_eq!(ok.unwrap().len(), 100 * 100 * 4);
+	let ok = get().save(SaveImageEncoding::Raw);
+	assert!(ok.is_ok());
+	assert_eq!(ok.unwrap().len(), 100 * 100 * 4);
 
-  fn verify(image: &Image, format: SaveImageEncoding) -> Result<()> {
-    image.save(format).map(|_| ())
-  }
+	fn verify(image: &Image, format: SaveImageEncoding) -> Result<()> {
+		image.save(format).map(|_| ())
+	}
 
-  let image = get();
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Png));
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Jpeg(10)));
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Jpeg(100)));
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(0)));
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(10)));
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(100)));
+	let image = get();
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Png));
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Jpeg(10)));
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Jpeg(100)));
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(0)));
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(10)));
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(100)));
 }
 
 #[test]
 #[ignore]
 fn image_load() {
-  fn verify(image: &Image, format: SaveImageEncoding) -> Result<()> {
-    let ok = image.save(format).and_then(|saved| Image::load(&saved));
-    ok.map(|_| ())
-  }
+	fn verify(image: &Image, format: SaveImageEncoding) -> Result<()> {
+		let ok = image.save(format).and_then(|saved| Image::load(&saved));
+		ok.map(|_| ())
+	}
 
-  let image = get();
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Png));
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Jpeg(10)));
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Jpeg(100)));
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(0)));
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(10)));
-  assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(100)));
+	let image = get();
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Png));
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Jpeg(10)));
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Jpeg(100)));
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(0)));
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(10)));
+	assert_ok!(OK, verify(&image, SaveImageEncoding::Webp(100)));
 
-  let r = image.save(SaveImageEncoding::Raw).and_then(|saved| {
-    let size = image.dimensions().unwrap();
-    Image::with_data(size, true, &saved)
-  });
-  assert_ok!(OK, r);
+	let r = image.save(SaveImageEncoding::Raw).and_then(|saved| {
+		let size = image.dimensions().unwrap();
+		Image::with_data(size, true, &saved)
+	});
+	assert_ok!(OK, r);
 }
 
 #[test]
@@ -169,27 +169,27 @@ fn load_formats() {
 #[test]
 #[ignore]
 fn image_clear() {
-  assert_eq!(OK, get().clear());
-  assert_eq!(OK, get().clear_with(rgb(255, 255, 255)));
+	assert_eq!(OK, get().clear());
+	assert_eq!(OK, get().clear_with(rgb(255, 255, 255)));
 }
 
 #[test]
 #[ignore]
 fn make_color() {
-  // ABGR
-  assert_eq!(0xFF000000, rgb(0, 0, 0));
-  assert_eq!(0x00000000, rgba((0, 0, 0), 0));
+	// ABGR
+	assert_eq!(0xFF000000, rgb(0, 0, 0));
+	assert_eq!(0x00000000, rgba((0, 0, 0), 0));
 
-  assert_eq!(0xFF112233, rgb(0x33, 0x22, 0x11));
+	assert_eq!(0xFF112233, rgb(0x33, 0x22, 0x11));
 }
 
 #[test]
 #[ignore]
 fn paint() {
-  let mut image = Image::create((100, 100), false).unwrap();
-  let ok = image.paint(|gfx, size| {
-    gfx.rectangle((5.0, 5.0), (size.0 - 5.0, size.1 - 5.0))?;
-    Ok(())
-  });
-  assert_ok!(OK, ok);
+	let mut image = Image::create((100, 100), false).unwrap();
+	let ok = image.paint(|gfx, size| {
+		gfx.rectangle((5.0, 5.0), (size.0 - 5.0, size.1 - 5.0))?;
+		Ok(())
+	});
+	assert_ok!(OK, ok);
 }

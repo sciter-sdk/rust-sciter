@@ -8,14 +8,14 @@ the difference between the desktop and the windowless Sciter engine versions.
 
 */
 
-use ::{_API};
-use capi::scdef::{GFX_LAYER};
+use capi::scdef::GFX_LAYER;
 use capi::scdom::HELEMENT;
-use capi::sctypes::{HWINDOW, POINT, UINT, BOOL, RECT, LPCBYTE, LPVOID, INT};
 use capi::scmsg::*;
+use capi::sctypes::{BOOL, HWINDOW, INT, LPCBYTE, LPVOID, POINT, RECT, UINT};
+use _API;
 
+pub use capi::scbehavior::{KEYBOARD_STATES, KEY_EVENTS, MOUSE_BUTTONS, MOUSE_EVENTS};
 pub use capi::scmsg::key_codes;
-pub use capi::scbehavior::{MOUSE_BUTTONS, MOUSE_EVENTS, KEYBOARD_STATES, KEY_EVENTS};
 
 
 /// Application-provided events to notify Sciter.
@@ -118,8 +118,7 @@ pub struct PaintLayer {
 }
 
 /// Events for rendering UI to a bitmap.
-pub struct RenderEvent
-{
+pub struct RenderEvent {
 	/// Which layer to render (or the whole document if `None`).
 	pub layer: Option<PaintLayer>,
 
@@ -158,8 +157,7 @@ pub struct DxgiRenderEvent {
 /// Notify Sciter about UI-specific events.
 ///
 /// `wnd` here is not a window handle but rather a window instance (pointer).
-pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
-{
+pub fn handle_message(wnd: HWINDOW, event: Message) -> bool {
 	let ok = match event {
 		Message::Create { backend, transparent } => {
 			let msg = SCITER_X_MSG_CREATE {
@@ -168,23 +166,23 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				transparent: transparent as BOOL,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
 		Message::Destroy => {
 			let msg = SCITER_X_MSG_DESTROY {
 				header: SCITER_X_MSG_CODE::SXM_DESTROY.into(),
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
-		Message::Size { width, height} => {
+		Message::Size { width, height } => {
 			let msg = SCITER_X_MSG_SIZE {
 				header: SCITER_X_MSG_CODE::SXM_SIZE.into(),
 				width,
 				height,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
 		Message::Resolution { ppi } => {
 			let msg = SCITER_X_MSG_RESOLUTION {
@@ -192,7 +190,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				ppi,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
 		Message::Focus { enter } => {
 			let msg = SCITER_X_MSG_FOCUS {
@@ -200,7 +198,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				enter: enter as BOOL,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
 		Message::Heartbit { milliseconds } => {
 			let msg = SCITER_X_MSG_HEARTBIT {
@@ -208,7 +206,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				time: milliseconds,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
 		Message::Mouse(params) => {
 			let msg = SCITER_X_MSG_MOUSE {
@@ -220,7 +218,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				pos: params.pos,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
 		Message::Keyboard(params) => {
 			let msg = SCITER_X_MSG_KEY {
@@ -231,7 +229,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				modifiers: params.modifiers,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
 		Message::Redraw => {
 			use std::ptr;
@@ -244,7 +242,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				callback: None,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
 		Message::Paint(paint) => {
 			let msg = SCITER_X_MSG_PAINT {
@@ -256,7 +254,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				callback: None,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
 		#[cfg(windows)]
 		Message::RenderToDxgiSurface(paint) => {
@@ -274,19 +272,19 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				callback: None,
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
+		}
 
 		Message::RenderTo(paint) => {
-
 			struct Callback {
 				callback: Box<dyn Fn(&RECT, &[u8])>,
 			}
 
-			extern "system" fn inner(rgba: LPCBYTE, x: INT, y: INT, width: UINT, height: UINT, param: LPVOID)
-			{
+			extern "system" fn inner(rgba: LPCBYTE, x: INT, y: INT, width: UINT, height: UINT, param: LPVOID) {
 				assert!(!param.is_null());
 				assert!(!rgba.is_null());
-				if param.is_null() || rgba.is_null() { return; }
+				if param.is_null() || rgba.is_null() {
+					return;
+				}
 
 				let bitmap_area = RECT {
 					left: x,
@@ -303,9 +301,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				(wrapper.callback)(&bitmap_area, bitmap_data);
 			}
 
-			let wrapper = Callback {
-				callback: paint.callback,
-			};
+			let wrapper = Callback { callback: paint.callback };
 			let param = &wrapper as *const _ as LPVOID;
 
 			let layer = paint.layer.unwrap_or(PaintLayer {
@@ -322,8 +318,7 @@ pub fn handle_message(wnd: HWINDOW, event: Message) -> bool
 				callback: Some(inner),
 			};
 			(_API.SciterProcX)(wnd, &msg.header as *const _)
-		},
-
+		}
 	};
 
 	ok != 0

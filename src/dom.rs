@@ -58,8 +58,8 @@ You can change the **text** or **html** of a DOM element:
 ```rust,no_run
 # let root = sciter::dom::Element::from(::std::ptr::null_mut());
 if let Some(mut el) = root.find_first("#cancel").unwrap() {
-  el.set_text("Abort!");
-  el.set_html(br##"<img src="http://lorempixel.com/32/32/cats/" alt="some cat"/>"##, None);
+	el.set_text("Abort!");
+	el.set_html(br##"<img src="http://lorempixel.com/32/32/cats/" alt="some cat"/>"##, None);
 }
 ```
 
@@ -142,8 +142,8 @@ Here is how to set a numeric value of a DOM element in native code:
 # use sciter::Value;
 # let root = sciter::dom::Element::from(::std::ptr::null_mut());
 if let Some(mut num) = root.find_first("input[type=number]").unwrap() {
-  num.set_value( Value::from(12) );  // sciter::Value with T_INT type (i32 in Rust)
-  num.set_value(12);  // equivalent but with implicit conversion
+	num.set_value( Value::from(12) );  // sciter::Value with T_INT type (i32 in Rust)
+	num.set_value(12);  // equivalent but with implicit conversion
 }
 ```
 
@@ -151,23 +151,23 @@ In script the same will look like:
 
 ```tiscript
 if (var num = self.select("input[type=number]")) {
-  num.value = 12;
+	num.value = 12;
 }
 ```
 
 .
 */
 
-use ::{_API};
 use capi::sctypes::*;
 use value::Value;
+use _API;
 
-use capi::screquest::{REQUEST_PARAM, REQUEST_TYPE};
+use capi::scbehavior::{BEHAVIOR_EVENTS, BEHAVIOR_EVENT_PARAMS, CLICK_REASON};
 use capi::scdef::RESOURCE_TYPE;
-use capi::scbehavior::{CLICK_REASON, BEHAVIOR_EVENTS, BEHAVIOR_EVENT_PARAMS};
-use utf::{store_astr, store_wstr, store_bstr};
+use capi::screquest::{REQUEST_PARAM, REQUEST_TYPE};
+use utf::{store_astr, store_bstr, store_wstr};
 
-pub use capi::scdom::{SCDOM_RESULT, HELEMENT, SET_ELEMENT_HTML, ELEMENT_AREAS, ELEMENT_STATE_BITS};
+pub use capi::scdom::{ELEMENT_AREAS, ELEMENT_STATE_BITS, HELEMENT, SCDOM_RESULT, SET_ELEMENT_HTML};
 pub use dom::event::{EventHandler, EventReason};
 
 
@@ -177,7 +177,9 @@ pub type Result<T> = ::std::result::Result<T, SCDOM_RESULT>;
 
 /// Initialize HELEMENT by nullptr.
 macro_rules! HELEMENT {
-	() => { ::std::ptr::null_mut() }
+	() => {
+		::std::ptr::null_mut()
+	};
 }
 
 
@@ -215,7 +217,7 @@ struct FindFirstElement {
 impl ElementVisitor for FindFirstElement {
 	fn on_element(&mut self, el: Element) -> bool {
 		self.all.push(el);
-		return true;	// stop enumeration
+		return true; // stop enumeration
 	}
 	fn result(&self) -> Vec<Element> {
 		self.all.clone()
@@ -230,7 +232,7 @@ struct FindAllElements {
 impl ElementVisitor for FindAllElements {
 	fn on_element(&mut self, el: Element) -> bool {
 		self.all.push(el);
-		return false;	// continue enumeration
+		return false; // continue enumeration
 	}
 	fn result(&self) -> Vec<Element> {
 		self.all.clone()
@@ -300,7 +302,6 @@ impl crate::value::FromValue for Element {
 }
 
 impl Element {
-
 	//\name Creation
 
 	/// Create a new element, it is disconnected initially from the DOM.
@@ -323,7 +324,7 @@ impl Element {
 	}
 
 	/// Create new element as child of `parent`. Deprecated.
-	#[deprecated(since="0.5.0", note="please use `Element::with_parent()` instead.")]
+	#[deprecated(since = "0.5.0", note = "please use `Element::with_parent()` instead.")]
 	pub fn create_at(tag: &str, parent: &mut Element) -> Result<Element> {
 		Element::with_parent(tag, parent)
 	}
@@ -454,7 +455,7 @@ impl Element {
 
 	/// Set inner text of the element.
 	pub fn set_text(&mut self, text: &str) -> Result<()> {
-		let (s,n) = s2wn!(text);
+		let (s, n) = s2wn!(text);
 		let ok = (_API.SciterSetElementText)(self.he, s.as_ptr(), n);
 		ok_or!((), ok)
 	}
@@ -471,7 +472,12 @@ impl Element {
 		if html.is_empty() {
 			return self.clear();
 		}
-		let ok = (_API.SciterSetElementHtml)(self.he, html.as_ptr(), html.len() as UINT, how.unwrap_or(SET_ELEMENT_HTML::SIH_REPLACE_CONTENT) as UINT);
+		let ok = (_API.SciterSetElementHtml)(
+			self.he,
+			html.as_ptr(),
+			html.len() as UINT,
+			how.unwrap_or(SET_ELEMENT_HTML::SIH_REPLACE_CONTENT) as UINT,
+		);
 		ok_or!((), ok)
 	}
 
@@ -547,7 +553,14 @@ impl Element {
 	pub fn send_get_request(&self, url: &str) -> Result<()> {
 		let url = s2w!(url);
 		let no_params = ::std::ptr::null();
-		let ok = (_API.SciterHttpRequest)(self.he, url.as_ptr(), RESOURCE_TYPE::HTML as u32, REQUEST_TYPE::AsyncGet as u32, no_params, 0);
+		let ok = (_API.SciterHttpRequest)(
+			self.he,
+			url.as_ptr(),
+			RESOURCE_TYPE::HTML as u32,
+			REQUEST_TYPE::AsyncGet as u32,
+			no_params,
+			0,
+		);
 		ok_or!((), ok)
 	}
 
@@ -555,8 +568,13 @@ impl Element {
 	///
 	/// GET params (if any) are appended to the url to form the request.<br/>
 	/// HTTP POST params are serialized as `Content-Type: application/x-www-form-urlencoded;charset=utf-8;`.
-	pub fn send_request(&self, url: &str, params: Option<&[(&str, &str)]>, method: Option<REQUEST_TYPE>, data_type: Option<RESOURCE_TYPE>) -> Result<()> {
-
+	pub fn send_request(
+		&self,
+		url: &str,
+		params: Option<&[(&str, &str)]>,
+		method: Option<REQUEST_TYPE>,
+		data_type: Option<RESOURCE_TYPE>,
+	) -> Result<()> {
 		let url = s2w!(url);
 		let method = method.unwrap_or(REQUEST_TYPE::AsyncGet) as u32;
 		let data_type = data_type.unwrap_or(RESOURCE_TYPE::HTML) as u32;
@@ -572,9 +590,9 @@ impl Element {
 			wide_params.reserve_exact(count);
 			call_params.reserve_exact(count);
 
-			for (k,v) in params {
+			for (k, v) in params {
 				let (kw, vw) = (s2w!(k), s2w!(v));
-				call_params.push (REQUEST_PARAM {
+				call_params.push(REQUEST_PARAM {
 					name: kw.as_ptr(),
 					value: vw.as_ptr(),
 				});
@@ -582,7 +600,14 @@ impl Element {
 			}
 		}
 
-		let ok = (_API.SciterHttpRequest)(self.he, url.as_ptr(), data_type, method, call_params.as_ptr(), call_params.len() as u32);
+		let ok = (_API.SciterHttpRequest)(
+			self.he,
+			url.as_ptr(),
+			data_type,
+			method,
+			call_params.as_ptr(),
+			call_params.len() as u32,
+		);
 		ok_or!((), ok)
 	}
 
@@ -604,7 +629,14 @@ impl Element {
 	}
 
 	/// Send or posts event to the child/parent chain of the element.
-	pub fn fire_event(&self, code: BEHAVIOR_EVENTS, reason: Option<CLICK_REASON>, source: Option<HELEMENT>, post: bool, data: Option<Value>) -> Result<bool> {
+	pub fn fire_event(
+		&self,
+		code: BEHAVIOR_EVENTS,
+		reason: Option<CLICK_REASON>,
+		source: Option<HELEMENT>,
+		post: bool,
+		data: Option<Value>,
+	) -> Result<bool> {
 		let mut handled = false as BOOL;
 		let mut params = BEHAVIOR_EVENT_PARAMS {
 			cmd: code as UINT,
@@ -631,7 +663,7 @@ impl Element {
 	/// Broadcast a custom named event to all windows.
 	pub fn broadcast_event(&self, name: &str, post: bool, data: Option<Value>) -> Result<bool> {
 		let name = s2w!(name);
-		let mut  params = BEHAVIOR_EVENT_PARAMS {
+		let mut params = BEHAVIOR_EVENT_PARAMS {
 			cmd: BEHAVIOR_EVENTS::CUSTOM as UINT,
 			heTarget: HELEMENT!(),
 			reason: 0,
@@ -651,7 +683,7 @@ impl Element {
 	/// Evaluate the given script in context of the element.
 	pub fn eval_script(&self, script: &str) -> Result<Value> {
 		let mut rv = Value::new();
-		let (s,n) = s2wn!(script);
+		let (s, n) = s2wn!(script);
 		let ok = (_API.SciterEvalElementScript)(self.he, s.as_ptr(), n, rv.as_ptr());
 		return ok_or!(rv, ok, SCDOM_RESULT::OPERATION_FAILED);
 	}
@@ -680,60 +712,56 @@ impl Element {
 		return ok_or!(rv, ok, SCDOM_RESULT::OPERATION_FAILED);
 	}
 
-  /// Call behavior specific method.
-  pub fn call_behavior_method(&self, params: event::MethodParams) -> Result<()> {
-    let call = |p| {
-      (_API.SciterCallBehaviorMethod)(self.he, p)
-    };
-    use capi::scbehavior::{METHOD_PARAMS, VALUE_PARAMS, IS_EMPTY_PARAMS};
-    use capi::scbehavior::BEHAVIOR_METHOD_IDENTIFIERS::*;
-    let ok = match params {
-      event::MethodParams::Click => {
-        let mut p = METHOD_PARAMS {
-          method: DO_CLICK as u32,
-        };
-        call(&mut p as *mut _)
-      },
-      event::MethodParams::SetValue(v) => {
-        let mut p = VALUE_PARAMS {
-          method: SET_VALUE as u32,
-          value: Default::default(),
-        };
-        v.pack_to(&mut p.value);
-        call(&mut p as *mut _ as *mut METHOD_PARAMS)
-      },
-      event::MethodParams::GetValue(retv) => {
-        let mut p = VALUE_PARAMS {
-          method: SET_VALUE as u32,
-          value: Default::default(),
-        };
-        let ok = call(&mut p as *mut _ as *mut METHOD_PARAMS);
-        if ok != SCDOM_RESULT::OK {
-          return Err(ok);
-        }
-        *retv = Value::from(&p.value);
-        ok
-      },
-      event::MethodParams::IsEmpty(retv) => {
-        let mut p = IS_EMPTY_PARAMS {
-          method: IS_EMPTY as u32,
-          is_empty: Default::default(),
-        };
-        let ok = call(&mut p as *mut _ as *mut METHOD_PARAMS);
-        if ok != SCDOM_RESULT::OK {
-          return Err(ok);
-        }
-        *retv = p.is_empty != 0;
-        ok
-      },
+	/// Call behavior specific method.
+	pub fn call_behavior_method(&self, params: event::MethodParams) -> Result<()> {
+		let call = |p| (_API.SciterCallBehaviorMethod)(self.he, p);
+		use capi::scbehavior::BEHAVIOR_METHOD_IDENTIFIERS::*;
+		use capi::scbehavior::{IS_EMPTY_PARAMS, METHOD_PARAMS, VALUE_PARAMS};
+		let ok = match params {
+			event::MethodParams::Click => {
+				let mut p = METHOD_PARAMS { method: DO_CLICK as u32 };
+				call(&mut p as *mut _)
+			}
+			event::MethodParams::SetValue(v) => {
+				let mut p = VALUE_PARAMS {
+					method: SET_VALUE as u32,
+					value: Default::default(),
+				};
+				v.pack_to(&mut p.value);
+				call(&mut p as *mut _ as *mut METHOD_PARAMS)
+			}
+			event::MethodParams::GetValue(retv) => {
+				let mut p = VALUE_PARAMS {
+					method: SET_VALUE as u32,
+					value: Default::default(),
+				};
+				let ok = call(&mut p as *mut _ as *mut METHOD_PARAMS);
+				if ok != SCDOM_RESULT::OK {
+					return Err(ok);
+				}
+				*retv = Value::from(&p.value);
+				ok
+			}
+			event::MethodParams::IsEmpty(retv) => {
+				let mut p = IS_EMPTY_PARAMS {
+					method: IS_EMPTY as u32,
+					is_empty: Default::default(),
+				};
+				let ok = call(&mut p as *mut _ as *mut METHOD_PARAMS);
+				if ok != SCDOM_RESULT::OK {
+					return Err(ok);
+				}
+				*retv = p.is_empty != 0;
+				ok
+			}
 
-      _ => {
-        // Can't handle `MethodParams::Custom` yet.
-        SCDOM_RESULT::INVALID_PARAMETER
-      },
-    };
-    ok_or!((), ok)
-  }
+			_ => {
+				// Can't handle `MethodParams::Custom` yet.
+				SCDOM_RESULT::INVALID_PARAMETER
+			}
+		};
+		ok_or!((), ok)
+	}
 
 
 	//\name Attributes
@@ -932,7 +960,7 @@ impl Element {
 		let ok = (_API.SciterGetNthChild)(self.he, index as UINT, &mut p);
 		match ok {
 			SCDOM_RESULT::OK => Some(Element::from(p)),
-			_ => None
+			_ => None,
 		}
 	}
 
@@ -1035,7 +1063,7 @@ impl Element {
 	/// Call specified function for every element in a DOM that meets specified CSS selectors.
 	fn select_elements<T: ElementVisitor>(&self, selector: &str, callback: T) -> Result<Vec<Element>> {
 		extern "system" fn inner<T: ElementVisitor>(he: HELEMENT, param: LPVOID) -> BOOL {
-      let p = param as *mut T;
+			let p = param as *mut T;
 			let obj = unsafe { &mut *p };
 			let e = Element::from(he);
 			let stop = obj.on_element(e);
@@ -1043,9 +1071,9 @@ impl Element {
 		}
 		let s = s2u!(selector);
 		let handler = Box::new(callback);
-    let param = Box::into_raw(handler);
+		let param = Box::into_raw(handler);
 		let ok = (_API.SciterSelectElements)(self.he, s.as_ptr(), inner::<T>, param as LPVOID);
-    let handler = unsafe { Box::from_raw(param) };
+		let handler = unsafe { Box::from_raw(param) };
 		if ok != SCDOM_RESULT::OK {
 			return Err(ok);
 		}
@@ -1060,14 +1088,18 @@ impl Element {
 		if ok != SCDOM_RESULT::OK {
 			return Err(ok);
 		}
-		if p.is_null() { Ok(None) } else { Ok(Some(Element::from(p))) }
+		if p.is_null() {
+			Ok(None)
+		} else {
+			Ok(Some(Element::from(p)))
+		}
 	}
 
 	/// Will find first element starting from this satisfying given css selector(s).
 	pub fn find_first(&self, selector: &str) -> Result<Option<Element>> {
 		let cb = FindFirstElement::default();
 		let all = self.select_elements(selector, cb);
-		all.map(|mut x| { x.pop() })
+		all.map(|mut x| x.pop())
 	}
 
 	/// Will find all elements starting from this satisfying given css selector(s).
@@ -1120,7 +1152,7 @@ impl Element {
 	pub fn attach_handler<Handler: EventHandler>(&mut self, handler: Handler) -> Result<u64> {
 		// make native handler
 		let boxed = Box::new(handler);
-		let ptr = Box::into_raw(boxed);	// dropped in `_event_handler_proc`
+		let ptr = Box::into_raw(boxed); // dropped in `_event_handler_proc`
 		let token = ptr as usize as u64;
 		let ok = (_API.SciterAttachEventHandler)(self.he, ::eventhandler::_event_handler_proc::<Handler>, ptr as LPVOID);
 		ok_or!(token, ok)
@@ -1158,19 +1190,19 @@ impl ::std::fmt::Display for Element {
 		// "tag#id.class|type(name)"
 		// "tag#id.class"
 
-    let tag = self.get_tag();
+		let tag = self.get_tag();
 		f.write_str(&tag)?;
 
 		if let Some(i) = self.get_attribute("id") {
 			write!(f, "#{}", i)?;
 		}
-    if let Some(c) = self.get_attribute("class") {
+		if let Some(c) = self.get_attribute("class") {
 			write!(f, ".{}", c)?;
 		}
-    if let Some(t) = self.get_attribute("type") {
+		if let Some(t) = self.get_attribute("type") {
 			write!(f, "|{}", t)?;
 		}
-    if let Some(n) = self.get_attribute("name") {
+		if let Some(n) = self.get_attribute("name") {
 			write!(f, "({})", n)?;
 		}
 		return Ok(());
@@ -1181,7 +1213,7 @@ impl ::std::fmt::Display for Element {
 impl ::std::fmt::Debug for Element {
 	fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
 		if f.alternate() {
-			use ::std::mem;
+			use std::mem;
 
 			fn state_name(value: &ELEMENT_STATE_BITS) -> &'static str {
 				match *value {
@@ -1237,7 +1269,6 @@ impl ::std::fmt::Debug for Element {
 				}
 			}
 			write!(f, "}}")
-
 		} else {
 			// "tag#id.class(name):0xdfdfdf"
 			write!(f, "{{{}:{:?}}}", self, self.he)
@@ -1354,130 +1385,130 @@ pub mod event {
 	//!
 	/*!
 
-# Behaviors and event handling.
+	# Behaviors and event handling.
 
-The primary goal of the User Interface (UI) as a subsystem is to present some information to the user
-and generate some events according to user’s actions.
-Your application handles UI events and acts accordingly executing its functions.
+	The primary goal of the User Interface (UI) as a subsystem is to present some information to the user
+	and generate some events according to user’s actions.
+	Your application handles UI events and acts accordingly executing its functions.
 
-To be able to handle events in native code you will need to attach an instance of
-[`sciter::EventHandler`](trait.EventHandler.html)
-to an existing DOM element or to the window itself.
-In `EventHandler`'s implementation you will receive all events
-dispatched to the element and its children as before children (in [`PHASE_MASK::SINKING`](enum.PHASE_MASK.html) phase)
-as after them ([`PHASE_MASK::BUBBLING`](enum.PHASE_MASK.html) event phase),
-see [Events Propagation](https://sciter.com/developers/for-native-gui-programmers/#events-propagation).
+	To be able to handle events in native code you will need to attach an instance of
+	[`sciter::EventHandler`](trait.EventHandler.html)
+	to an existing DOM element or to the window itself.
+	In `EventHandler`'s implementation you will receive all events
+	dispatched to the element and its children as before children (in [`PHASE_MASK::SINKING`](enum.PHASE_MASK.html) phase)
+	as after them ([`PHASE_MASK::BUBBLING`](enum.PHASE_MASK.html) event phase),
+	see [Events Propagation](https://sciter.com/developers/for-native-gui-programmers/#events-propagation).
 
-`EventHandler` attached to the window will receive all DOM events no matter which element they are targeted to.
+	`EventHandler` attached to the window will receive all DOM events no matter which element they are targeted to.
 
-`EventHandler` contains [various methods](trait.EventHandler.html#provided-methods) –
-receivers of events of various types.
-You can override any of these methods in order to receive events you are interested in
-in your implementation of `sciter::EventHandler`.
-
-
-To attach a native event handler to a DOM element or to the window you can do one of these:
-
-* "Manually", to a Sciter window: `sciter::Window.event_handler(your_event_handler)`
-* "Manually", to an arbitrary DOM element: `sciter::dom::Element.attach_handler(your_event_handler)`
-* To a group of DOM elements by declaration in CSS: `selector { behavior:your-behavior-name }`
-
-You also can assign events handlers defined in script code:
-
-* "Manually", individual events: if you have a reference `el` of some element then
-to handle mouse events you can do this, for example:
-
-```tiscript
-el.onMouse = function(evt) { ... }
-```
-
-* "Manually", by assigning a behavior class to the [Element](https://sciter.com/docs/content/sciter/Element.htm):
-
-```tiscript
-class MyEventsHandler: Element { ... }  // your behavior class which inherits sciter's Element class
-el.prototype = MyEventsHandler; // "sub-class" the element.
-```
-
-* By declaration in CSS - to all elements satisfying some CSS selector:
-
-```css
-selector { prototype: MyEventsHandler; }
-```
-
-In this case `MyEventsHandler` class should be defined in one of script files loaded by your HTML.
-
-See the **Behavior attributes** section of [Sciter CSS property map](https://sciter.com/docs/content/css/cssmap.html)
-and [this blog article](http://www.terrainformatica.com/2014/07/sciter-declarative-behavior-assignment-by-css-prototype-and-aspect-properties/) which covers
-Behaviors, Prototypes and Aspects of Sciter CSS behavior assignment.
+	`EventHandler` contains [various methods](trait.EventHandler.html#provided-methods) –
+	receivers of events of various types.
+	You can override any of these methods in order to receive events you are interested in
+	in your implementation of `sciter::EventHandler`.
 
 
+	To attach a native event handler to a DOM element or to the window you can do one of these:
+
+	* "Manually", to a Sciter window: `sciter::Window.event_handler(your_event_handler)`
+	* "Manually", to an arbitrary DOM element: `sciter::dom::Element.attach_handler(your_event_handler)`
+	* To a group of DOM elements by declaration in CSS: `selector { behavior:your-behavior-name }`
+
+	You also can assign events handlers defined in script code:
+
+	* "Manually", individual events: if you have a reference `el` of some element then
+	to handle mouse events you can do this, for example:
+
+	```tiscript
+	el.onMouse = function(evt) { ... }
+	```
+
+	* "Manually", by assigning a behavior class to the [Element](https://sciter.com/docs/content/sciter/Element.htm):
+
+	```tiscript
+	class MyEventsHandler: Element { ... }  // your behavior class which inherits sciter's Element class
+	el.prototype = MyEventsHandler; // "sub-class" the element.
+	```
+
+	* By declaration in CSS - to all elements satisfying some CSS selector:
+
+	```css
+	selector { prototype: MyEventsHandler; }
+	```
+
+	In this case `MyEventsHandler` class should be defined in one of script files loaded by your HTML.
+
+	See the **Behavior attributes** section of [Sciter CSS property map](https://sciter.com/docs/content/css/cssmap.html)
+	and [this blog article](http://www.terrainformatica.com/2014/07/sciter-declarative-behavior-assignment-by-css-prototype-and-aspect-properties/) which covers
+	Behaviors, Prototypes and Aspects of Sciter CSS behavior assignment.
 
 
 
-# Script and native code interaction
 
 
-In Sciter you may want to define native functions that can be called by script.
-At the same time you may need to call script functions from native code.
-Sciter supports such interaction providing set of simple API functions:
-
-## Evaluating scripts and invoking script functions from native code
-
-You can use one of these methods to call scripts from code of your application:
-
-* To evaluate arbitrary script in context of current document loaded into the window:
-
-```rust,no_run
-# use sciter::dom::Element;
-# use sciter::Value;
-# let hwnd = ::std::ptr::null_mut();
-let root = Element::from_window(hwnd).unwrap();
-let result: Value = root.eval_script("... script ...").unwrap();
-```
-
-* To call a global function defined in script using its full name (may include the name of namespaces where it resides):
-
-```ignore
-# #[macro_use] extern crate sciter;
-# use sciter::Value;
-# let root = sciter::dom::Element::from(::std::ptr::null_mut());
-let result: Value = root.call_function("namespace.name", &make_args!(1, "2", 3.0)).unwrap();
-```
-The parameters are passed as a `&[Value]` slice.
-
-* To call a method (function) defined in script for particular DOM element:
-
-```ignore
-# #[macro_use] extern crate sciter;
-# use sciter::Value;
-# let root = sciter::dom::Element::from(::std::ptr::null_mut());
-if let Some(el) = root.find_first("input").unwrap() {
-  let result: Value = el.call_method("canUndo", &make_args!()).unwrap();
-}
-```
+	# Script and native code interaction
 
 
-## Calling native code from script
+	In Sciter you may want to define native functions that can be called by script.
+	At the same time you may need to call script functions from native code.
+	Sciter supports such interaction providing set of simple API functions:
 
-If needed, your application may expose some [native] functions to be called by script code.
-Usually this is made by implementing your own `EventHandler` and overriding its `on_script_call` method.
-If you do this, then you can invoke this callback from script as:
+	## Evaluating scripts and invoking script functions from native code
 
-* "global" native functions: `var r = view.funcName( p0, p1, ... );` – calling
-`on_script_call` of an `EventHandler` instance attached to the **window**.
-* As element’s methods: `var r = el.funcName( p0, p1, ... );` – calling
-`on_script_call` of an `EventHandler` instance (native behavior) attached to the **element**.
+	You can use one of these methods to call scripts from code of your application:
 
-This way you can establish interaction between scipt and native code inside your application.
+	* To evaluate arbitrary script in context of current document loaded into the window:
 
-*/
+	```rust,no_run
+	# use sciter::dom::Element;
+	# use sciter::Value;
+	# let hwnd = ::std::ptr::null_mut();
+	let root = Element::from_window(hwnd).unwrap();
+	let result: Value = root.eval_script("... script ...").unwrap();
+	```
 
-	pub use capi::scbehavior::{EVENT_GROUPS, BEHAVIOR_EVENTS, PHASE_MASK};
-  pub use capi::scbehavior::{CLICK_REASON, EDIT_CHANGED_REASON, DRAW_EVENTS};
+	* To call a global function defined in script using its full name (may include the name of namespaces where it resides):
 
-	use capi::sctypes::*;
+	```ignore
+	# #[macro_use] extern crate sciter;
+	# use sciter::Value;
+	# let root = sciter::dom::Element::from(::std::ptr::null_mut());
+	let result: Value = root.call_function("namespace.name", &make_args!(1, "2", 3.0)).unwrap();
+	```
+	The parameters are passed as a `&[Value]` slice.
+
+	* To call a method (function) defined in script for particular DOM element:
+
+	```ignore
+	# #[macro_use] extern crate sciter;
+	# use sciter::Value;
+	# let root = sciter::dom::Element::from(::std::ptr::null_mut());
+	if let Some(el) = root.find_first("input").unwrap() {
+		let result: Value = el.call_method("canUndo", &make_args!()).unwrap();
+	}
+	```
+
+
+	## Calling native code from script
+
+	If needed, your application may expose some [native] functions to be called by script code.
+	Usually this is made by implementing your own `EventHandler` and overriding its `on_script_call` method.
+	If you do this, then you can invoke this callback from script as:
+
+	* "global" native functions: `var r = view.funcName( p0, p1, ... );` – calling
+	`on_script_call` of an `EventHandler` instance attached to the **window**.
+	* As element’s methods: `var r = el.funcName( p0, p1, ... );` – calling
+	`on_script_call` of an `EventHandler` instance (native behavior) attached to the **element**.
+
+	This way you can establish interaction between scipt and native code inside your application.
+
+	*/
+
+	pub use capi::scbehavior::{BEHAVIOR_EVENTS, EVENT_GROUPS, PHASE_MASK};
+	pub use capi::scbehavior::{CLICK_REASON, DRAW_EVENTS, EDIT_CHANGED_REASON};
+
 	use capi::scdom::HELEMENT;
 	use capi::scgraphics::HGFX;
+	use capi::sctypes::*;
 	use value::Value;
 
 	/// Default subscription events.
@@ -1496,32 +1527,32 @@ This way you can establish interaction between scipt and native code inside your
 		/// Edit control change trigger.
 		EditChanged(EDIT_CHANGED_REASON),
 		/// `<video>` request for frame source binding.
-    ///
-    /// See the [`sciter::video`](../../video/index.html) module for more reference.
+		///
+		/// See the [`sciter::video`](../../video/index.html) module for more reference.
 		VideoBind(LPVOID),
 	}
 
-  /// Behavior method params.
-  ///
-  /// Sciter sends these events to native behaviors.
-  #[derive(Debug)]
-  pub enum MethodParams<'a> {
-    /// Click event (either from mouse or code).
-    Click,
+	/// Behavior method params.
+	///
+	/// Sciter sends these events to native behaviors.
+	#[derive(Debug)]
+	pub enum MethodParams<'a> {
+		/// Click event (either from mouse or code).
+		Click,
 
-    /// Get current [`:empty`](https://sciter.com/docs/content/sciter/States.htm) state,
-    /// i.e. if behavior has no children and no text.
-    IsEmpty(&'a mut bool),
+		/// Get current [`:empty`](https://sciter.com/docs/content/sciter/States.htm) state,
+		/// i.e. if behavior has no children and no text.
+		IsEmpty(&'a mut bool),
 
-    /// Get the current value of the behavior.
-    GetValue(&'a mut Value),
+		/// Get the current value of the behavior.
+		GetValue(&'a mut Value),
 
-    /// Set the current value of the behavior.
-    SetValue(Value),
+		/// Set the current value of the behavior.
+		SetValue(Value),
 
-    /// Custom methods, unknown for engine. Sciter will not intrepret it and will do just dispatching.
-    Custom(u32, LPVOID),
-  }
+		/// Custom methods, unknown for engine. Sciter will not intrepret it and will do just dispatching.
+		Custom(u32, LPVOID),
+	}
 
 
 	/// DOM event handler which can be attached to any DOM element.
@@ -1538,7 +1569,6 @@ This way you can establish interaction between scipt and native code inside your
 	///
 	#[allow(unused_variables)]
 	pub trait EventHandler {
-
 		/// Return a list of event groups this event handler is subscribed to.
 		///
 		/// Default are `HANDLE_BEHAVIOR_EVENT | HANDLE_SCRIPTING_METHOD_CALL | HANDLE_METHOD_CALL`.
@@ -1549,45 +1579,47 @@ This way you can establish interaction between scipt and native code inside your
 
 		/// Called when handler was attached to element or window.
 		/// `root` is `NULL` if attaching to window without loaded document.
-    ///
-    /// **Subscription**: always.
+		///
+		/// **Subscription**: always.
 		fn attached(&mut self, root: HELEMENT) {}
 
 		/// Called when handler was detached from element or window.
-    ///
-    /// **Subscription**: always.
+		///
+		/// **Subscription**: always.
 		fn detached(&mut self, root: HELEMENT) {}
 
 		/// Notification that document finishes its loading - all requests for external resources are finished.
-    ///
-    /// **Subscription**: requires [`HANDLE_BEHAVIOR_EVENT`](enum.EVENT_GROUPS.html),
-    /// but will be sent only for the root element (`<html>`).
+		///
+		/// **Subscription**: requires [`HANDLE_BEHAVIOR_EVENT`](enum.EVENT_GROUPS.html),
+		/// but will be sent only for the root element (`<html>`).
 		fn document_complete(&mut self, root: HELEMENT, target: HELEMENT) {}
 
 		/// The last notification before document removal from the DOM.
-    ///
-    /// **Subscription**: requires [`HANDLE_BEHAVIOR_EVENT`](enum.EVENT_GROUPS.html),
-    /// but will be sent only for the root element (`<html>`).
+		///
+		/// **Subscription**: requires [`HANDLE_BEHAVIOR_EVENT`](enum.EVENT_GROUPS.html),
+		/// but will be sent only for the root element (`<html>`).
 		fn document_close(&mut self, root: HELEMENT, target: HELEMENT) {}
 
-    /// Behavior method calls from script or other behaviors.
-    ///
-    /// Return `false` to skip this event.
-    ///
-    /// **Subscription**: requires [`HANDLE_METHOD_CALL`](enum.EVENT_GROUPS.html).
-    fn on_method_call(&mut self, root: HELEMENT, params: MethodParams) -> bool { return false }
+		/// Behavior method calls from script or other behaviors.
+		///
+		/// Return `false` to skip this event.
+		///
+		/// **Subscription**: requires [`HANDLE_METHOD_CALL`](enum.EVENT_GROUPS.html).
+		fn on_method_call(&mut self, root: HELEMENT, params: MethodParams) -> bool {
+			return false;
+		}
 
 		/// Script calls from CSSS! script and TIScript.
-    ///
-    /// Return `None` to skip this event.
-    ///
-    /// **Subscription**: requires [`HANDLE_SCRIPTING_METHOD_CALL`](enum.EVENT_GROUPS.html).
+		///
+		/// Return `None` to skip this event.
+		///
+		/// **Subscription**: requires [`HANDLE_SCRIPTING_METHOD_CALL`](enum.EVENT_GROUPS.html).
 		fn on_script_call(&mut self, root: HELEMENT, name: &str, args: &[Value]) -> Option<Value> {
 			return self.dispatch_script_call(root, name, args);
 		}
 
 		/// Autogenerated dispatcher for script calls.
-    #[doc(hidden)]
+		#[doc(hidden)]
 		fn dispatch_script_call(&mut self, root: HELEMENT, name: &str, args: &[Value]) -> Option<Value> {
 			return None;
 		}
@@ -1600,34 +1632,45 @@ This way you can establish interaction between scipt and native code inside your
 		}
 
 		/// Notification event from builtin behaviors.
-    ///
-    /// Return `false` to skip this event.
-    ///
-    /// **Subscription**: requires [`HANDLE_BEHAVIOR_EVENT`](enum.EVENT_GROUPS.html).
-		fn on_event(&mut self, root: HELEMENT, source: HELEMENT, target: HELEMENT, code: BEHAVIOR_EVENTS, phase: PHASE_MASK, reason: EventReason) -> bool {
+		///
+		/// Return `false` to skip this event.
+		///
+		/// **Subscription**: requires [`HANDLE_BEHAVIOR_EVENT`](enum.EVENT_GROUPS.html).
+		fn on_event(
+			&mut self,
+			root: HELEMENT,
+			source: HELEMENT,
+			target: HELEMENT,
+			code: BEHAVIOR_EVENTS,
+			phase: PHASE_MASK,
+			reason: EventReason,
+		) -> bool {
 			return false;
 		}
 
 		/// Timer event from attached element.
-    ///
-    /// Return `false` to skip this event.
-    ///
-    /// **Subscription**: requires [`HANDLE_TIMER`](enum.EVENT_GROUPS.html).
-		fn on_timer(&mut self, root: HELEMENT, timer_id: u64) -> bool { return false; }
+		///
+		/// Return `false` to skip this event.
+		///
+		/// **Subscription**: requires [`HANDLE_TIMER`](enum.EVENT_GROUPS.html).
+		fn on_timer(&mut self, root: HELEMENT, timer_id: u64) -> bool {
+			return false;
+		}
 
 		/// Drawing request event.
 		///
 		/// It allows to intercept drawing events of an `Element` and to manually draw its content, background and foreground layers.
-    ///
-    /// Return `false` to skip this event.
-    ///
-    /// **Subscription**: requires [`HANDLE_DRAW`](enum.EVENT_GROUPS.html).
-		fn on_draw(&mut self, root: HELEMENT, gfx: HGFX, area: &RECT, layer: DRAW_EVENTS) -> bool { return false; }
+		///
+		/// Return `false` to skip this event.
+		///
+		/// **Subscription**: requires [`HANDLE_DRAW`](enum.EVENT_GROUPS.html).
+		fn on_draw(&mut self, root: HELEMENT, gfx: HGFX, area: &RECT, layer: DRAW_EVENTS) -> bool {
+			return false;
+		}
 
 		/// Size changed event.
-    ///
-    /// **Subscription**: requires [`HANDLE_SIZE`](enum.EVENT_GROUPS.html).
+		///
+		/// **Subscription**: requires [`HANDLE_SIZE`](enum.EVENT_GROUPS.html).
 		fn on_size(&mut self, root: HELEMENT) {}
 	}
-
 }

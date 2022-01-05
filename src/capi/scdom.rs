@@ -4,8 +4,16 @@
 
 use capi::sctypes::*;
 
-MAKE_HANDLE!(#[doc = "Element native handle."] HELEMENT, _HELEMENT);
-MAKE_HANDLE!(#[doc = "Node native handle."] HNODE, _HNODE);
+MAKE_HANDLE!(
+	#[doc = "Element native handle."]
+	HELEMENT,
+	_HELEMENT
+);
+MAKE_HANDLE!(
+	#[doc = "Node native handle."]
+	HNODE,
+	_HNODE
+);
 
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
@@ -38,21 +46,19 @@ impl std::fmt::Display for SCDOM_RESULT {
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
 /// `dom::Element.set_html()` options.
-pub enum SET_ELEMENT_HTML
-{
-	SIH_REPLACE_CONTENT     = 0,
-	SIH_INSERT_AT_START     = 1,
-	SIH_APPEND_AFTER_LAST   = 2,
-	SOH_REPLACE             = 3,
-	SOH_INSERT_BEFORE       = 4,
-	SOH_INSERT_AFTER        = 5,
+pub enum SET_ELEMENT_HTML {
+	SIH_REPLACE_CONTENT = 0,
+	SIH_INSERT_AT_START = 1,
+	SIH_APPEND_AFTER_LAST = 2,
+	SOH_REPLACE = 3,
+	SOH_INSERT_BEFORE = 4,
+	SOH_INSERT_AFTER = 5,
 }
 
 /// Bounding rectangle of the element.
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
 pub enum ELEMENT_AREAS {
-
 	/// `or` this flag if you want to get Sciter window relative coordinates,
 	/// otherwise it will use nearest windowed container e.g. popup window.
 	ROOT_RELATIVE = 0x01,
@@ -73,10 +79,10 @@ pub enum ELEMENT_AREAS {
 	PADDING_BOX = 0x10,
 
 	/// Content + paddings + border.
-	BORDER_BOX  = 0x20,
+	BORDER_BOX = 0x20,
 
 	/// Content + paddings + border + margins.
-	MARGIN_BOX  = 0x30,
+	MARGIN_BOX = 0x30,
 
 	/// Relative to content origin - location of background image (if it set `no-repeat`).
 	BACK_IMAGE_AREA = 0x40,
@@ -108,126 +114,125 @@ impl ELEMENT_AREAS {
 /// Implements `|` and `&` bitwise operators.
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
-pub enum ELEMENT_STATE_BITS
-{
+pub enum ELEMENT_STATE_BITS {
 	/// Zero state.
-	STATE_NONE             = 0x00000000,
+	STATE_NONE = 0x00000000,
 
 	/// Element is a link.
 	///
 	/// E.g. `<a href`.
-	STATE_LINK             = 0x00000001,
+	STATE_LINK = 0x00000001,
 
 	/// Mouse over the element at the moment.
-	STATE_HOVER            = 0x00000002,
+	STATE_HOVER = 0x00000002,
 	/// Element is pressed.
 	///
 	/// Commonly used by `<button>` or `<a>` elements.
-	STATE_ACTIVE           = 0x00000004,
+	STATE_ACTIVE = 0x00000004,
 	/// Element is focused.
-	STATE_FOCUS            = 0x00000008,
+	STATE_FOCUS = 0x00000008,
 
 	/// Element was visited.
 	///
 	/// For example, a link that was clicked.
-	STATE_VISITED          = 0x00000010,
+	STATE_VISITED = 0x00000010,
 	/// Current (hot) item.
-	STATE_CURRENT          = 0x00000020,
+	STATE_CURRENT = 0x00000020,
 	/// Element is checked (or selected).
-	STATE_CHECKED          = 0x00000040,
+	STATE_CHECKED = 0x00000040,
 	/// Element is disabled.
-	STATE_DISABLED         = 0x00000080,
+	STATE_DISABLED = 0x00000080,
 	/// Readonly input element.
-	STATE_READONLY         = 0x00000100,
+	STATE_READONLY = 0x00000100,
 
 	/// Expanded state - e.g. nodes in tree view.
 	///
 	/// Mutually exclusive with `STATE_COLLAPSED`.
-	STATE_EXPANDED         = 0x00000200,
+	STATE_EXPANDED = 0x00000200,
 
 	/// Collapsed state - e.g. nodes in tree view.
 	///
 	/// Mutually exclusive with `STATE_EXPANDED`.
-	STATE_COLLAPSED        = 0x00000400,
+	STATE_COLLAPSED = 0x00000400,
 
 	/// One of fore/back images was requested but is not delivered.
-	STATE_INCOMPLETE       = 0x00000800,
+	STATE_INCOMPLETE = 0x00000800,
 	/// Is animating currently.
-	STATE_ANIMATING        = 0x00001000,
+	STATE_ANIMATING = 0x00001000,
 	/// Will accept focus.
-	STATE_FOCUSABLE        = 0x00002000,
+	STATE_FOCUSABLE = 0x00002000,
 
 	/// Anchor in selection (used with current in selects).
-	STATE_ANCHOR           = 0x00004000,
+	STATE_ANCHOR = 0x00004000,
 	/// This is a synthetic element - i.e. don't emit it's head/tail.
-	STATE_SYNTHETIC        = 0x00008000,
+	STATE_SYNTHETIC = 0x00008000,
 	/// A popup element is shown for this particular element.
-	STATE_OWNS_POPUP       = 0x00010000,
+	STATE_OWNS_POPUP = 0x00010000,
 
 	/// Focus gained by tab traversal.
-	STATE_TABFOCUS         = 0x00020000,
+	STATE_TABFOCUS = 0x00020000,
 
 	/// Element is empty.
 	///
 	/// i.e. the element has no text content nor children nodes.
 	///
 	/// If element has a behavior attached then the behavior is responsible for the value of this flag.
-	STATE_EMPTY            = 0x00040000,
+	STATE_EMPTY = 0x00040000,
 
 	/// Busy or loading.
-	STATE_BUSY             = 0x00080000,
+	STATE_BUSY = 0x00080000,
 
 	/// Drag over the block that can accept it (so is a current drop target).
 	///
 	/// Flag is set for the drop target block.
-	STATE_DRAG_OVER        = 0x00100000,
+	STATE_DRAG_OVER = 0x00100000,
 	/// Active drop target.
-	STATE_DROP_TARGET      = 0x00200000,
+	STATE_DROP_TARGET = 0x00200000,
 	/// Dragging/moving - the flag is set for the moving block.
-	STATE_MOVING           = 0x00400000,
+	STATE_MOVING = 0x00400000,
 	/// Dragging/copying - the flag is set for the copying block.
-	STATE_COPYING          = 0x00800000,
+	STATE_COPYING = 0x00800000,
 	/// Element that is a drag source.
-	STATE_DRAG_SOURCE      = 0x01000000,
+	STATE_DRAG_SOURCE = 0x01000000,
 	/// Element is drop marker.
-	STATE_DROP_MARKER      = 0x02000000,
+	STATE_DROP_MARKER = 0x02000000,
 
 	/// Close to `STATE_ACTIVE` but has wider life span.
 	///
 	/// E.g. in `MOUSE_UP` it is still on;
 	/// so behavior can check it in `MOUSE_UP` to discover the `CLICK` condition.
-	STATE_PRESSED          = 0x04000000,
+	STATE_PRESSED = 0x04000000,
 
 	/// This element is out of flow.
-	STATE_POPUP            = 0x08000000,
+	STATE_POPUP = 0x08000000,
 
 	/// The element or one of its containers has `dir=ltr` declared.
-	STATE_IS_LTR           = 0x10000000,
+	STATE_IS_LTR = 0x10000000,
 	/// The element or one of its containers has `dir=rtl` declared.
-	STATE_IS_RTL           = 0x20000000,
+	STATE_IS_RTL = 0x20000000,
 
 	/// Element is ready (behavior has finished initialization).
-	STATE_READY            = 0x40000000,
+	STATE_READY = 0x40000000,
 }
 
 /// Flags can be OR'ed.
 impl ::std::ops::BitOr for ELEMENT_STATE_BITS {
-  type Output = ELEMENT_STATE_BITS;
-  fn bitor(self, rhs: Self::Output) -> Self::Output {
-    let rn = (self as UINT) | (rhs as UINT);
-    unsafe { ::std::mem::transmute(rn) }
-  }
+	type Output = ELEMENT_STATE_BITS;
+	fn bitor(self, rhs: Self::Output) -> Self::Output {
+		let rn = (self as UINT) | (rhs as UINT);
+		unsafe { ::std::mem::transmute(rn) }
+	}
 }
 
 /// Flags can be AND'ed.
 impl ::std::ops::BitAnd for ELEMENT_STATE_BITS {
-  type Output = ELEMENT_STATE_BITS;
-  fn bitand(self, rhs: Self::Output) -> Self::Output {
-    let rn = (self as UINT) & (rhs as UINT);
-    unsafe { ::std::mem::transmute(rn) }
-  }
+	type Output = ELEMENT_STATE_BITS;
+	fn bitand(self, rhs: Self::Output) -> Self::Output {
+		let rn = (self as UINT) & (rhs as UINT);
+		unsafe { ::std::mem::transmute(rn) }
+	}
 }
 
-pub type SciterElementCallback = extern "system" fn (he: HELEMENT, param: LPVOID) -> BOOL;
+pub type SciterElementCallback = extern "system" fn(he: HELEMENT, param: LPVOID) -> BOOL;
 
-pub type ELEMENT_COMPARATOR = extern "system" fn (he1: HELEMENT, he2: HELEMENT, param: LPVOID) -> INT;
+pub type ELEMENT_COMPARATOR = extern "system" fn(he1: HELEMENT, he2: HELEMENT, param: LPVOID) -> INT;

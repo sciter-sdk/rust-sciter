@@ -2,7 +2,10 @@
 // #![windows_subsystem="windows"]
 extern crate sciter;
 
-use sciter::{HELEMENT, types::{BOOL, VALUE}};
+use sciter::{
+	types::{BOOL, VALUE},
+	HELEMENT,
+};
 
 #[derive(Default)]
 pub struct Object {
@@ -27,52 +30,52 @@ impl sciter::om::Passport for Object {
 	fn get_passport(&self) -> &'static sciter::om::som_passport_t {
 		use sciter::om::*;
 
-		extern "C" fn on_print(thing: *mut som_asset_t, _argc: u32, _argv: *const VALUE, p_result: &mut VALUE) -> BOOL
-		{
+		extern "C" fn on_print(thing: *mut som_asset_t, _argc: u32, _argv: *const VALUE, p_result: &mut VALUE) -> BOOL {
 			let me = IAsset::<Object>::from_raw(&thing);
 			let r = me.print();
 			let r: sciter::Value = r.into();
 			r.pack_to(p_result);
 			return true as BOOL;
 		}
-		extern "C" fn on_add_year(thing: *mut som_asset_t, argc: u32, argv: *const VALUE, p_result: &mut VALUE) -> BOOL
-		{
+		extern "C" fn on_add_year(thing: *mut som_asset_t, argc: u32, argv: *const VALUE, p_result: &mut VALUE) -> BOOL {
 			let me = IAsset::<Object>::from_raw(&thing);
 
 			let args = unsafe { sciter::Value::unpack_from(argv, argc) };
 			let required = 1;
 			if args.len() != required {
-				let r = sciter::Value::error(&format!("{} error: {} of {} arguments provided.", "Object::add_year", args.len(), required));
+				let r = sciter::Value::error(&format!(
+					"{} error: {} of {} arguments provided.",
+					"Object::add_year",
+					args.len(),
+					required
+				));
 				r.pack_to(p_result);
 				return true as BOOL;
 			}
 
-			let r = me.add_year(
-				match sciter::FromValue::from_value(&args[0]) {
-					Some(arg) => arg,
-					None => {
-							let r = sciter::Value::error(&format!("{} error: invalid type of {} argument ({} expected, {:?} provided).",
-								"Object::add_year", 0, "i32", &args[0]
-						));
-						r.pack_to(p_result);
-						return true as BOOL;
-					}
-				},
-			);
+			let r = me.add_year(match sciter::FromValue::from_value(&args[0]) {
+				Some(arg) => arg,
+				None => {
+					let r = sciter::Value::error(&format!(
+						"{} error: invalid type of {} argument ({} expected, {:?} provided).",
+						"Object::add_year", 0, "i32", &args[0]
+					));
+					r.pack_to(p_result);
+					return true as BOOL;
+				}
+			});
 			let r: sciter::Value = r.into();
 			r.pack_to(p_result);
 			return true as BOOL;
 		}
 
-		extern "C" fn on_get_age(thing: *mut som_asset_t, p_value: &mut VALUE) -> BOOL
-		{
+		extern "C" fn on_get_age(thing: *mut som_asset_t, p_value: &mut VALUE) -> BOOL {
 			let me = IAsset::<Object>::from_raw(&thing);
 			let r = sciter::Value::from(&me.age);
 			r.pack_to(p_value);
 			return true as BOOL;
 		}
-		extern "C" fn on_set_age(thing: *mut som_asset_t, p_value: &VALUE) -> BOOL
-		{
+		extern "C" fn on_set_age(thing: *mut som_asset_t, p_value: &VALUE) -> BOOL {
 			let me = IAsset::<Object>::from_raw(&thing);
 			use sciter::FromValue;
 			let v = sciter::Value::from(p_value);
@@ -84,15 +87,13 @@ impl sciter::om::Passport for Object {
 			}
 		}
 
-		extern "C" fn on_get_name(thing: *mut som_asset_t, p_value: &mut VALUE) -> BOOL
-		{
+		extern "C" fn on_get_name(thing: *mut som_asset_t, p_value: &mut VALUE) -> BOOL {
 			let me = IAsset::<Object>::from_raw(&thing);
 			let r = sciter::Value::from(&me.name);
 			r.pack_to(p_value);
 			return true as BOOL;
 		}
-		extern "C" fn on_set_name(thing: *mut som_asset_t, p_value: &VALUE) -> BOOL
-		{
+		extern "C" fn on_set_name(thing: *mut som_asset_t, p_value: &VALUE) -> BOOL {
 			let me = IAsset::<Object>::from_raw(&thing);
 			use sciter::FromValue;
 			let v = sciter::Value::from(p_value);
@@ -181,7 +182,7 @@ fn main() {
 	let object2 = sciter::om::IAssetRef::from(object2);
 	let ptr = object2.as_ptr();
 	let psp = object2.get_passport();
-	println!{"asset {:?} psp {:?}", ptr, psp as *const _};
+	println! {"asset {:?} psp {:?}", ptr, psp as *const _};
 	println!("asset: {:?}", object2);
 
 	let handler = Handler { asset: object2 };

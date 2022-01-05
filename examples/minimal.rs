@@ -2,7 +2,7 @@
 
 // Specify the Windows subsystem to eliminate console window.
 // Requires Rust 1.18.
-#![windows_subsystem="windows"]
+#![windows_subsystem = "windows"]
 
 extern crate sciter;
 
@@ -14,8 +14,9 @@ fn main() {
 	// Step 2: Enable the features we need in our tiscript code.
 	sciter::set_options(sciter::RuntimeOptions::ScriptFeatures(
 		sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_SYSINFO as u8		// Enables `Sciter.machineName()`.  Required for opening file dialog (`view.selectFile()`)
-		| sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_FILE_IO as u8	// Enables opening file dialog (`view.selectFile()`)
-		)).unwrap();
+		| sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_FILE_IO as u8, // Enables opening file dialog (`view.selectFile()`)
+	))
+	.unwrap();
 
 	// Enable debug mode for all windows, so that we can inspect them via Inspector.
 	sciter::set_options(sciter::RuntimeOptions::DebugMode(true)).unwrap();
@@ -25,7 +26,7 @@ fn main() {
 	// interesting functions to open or attach to another existing window.
 	let mut frame = sciter::Window::new();
 
-	if cfg!(target_os="macos") {
+	if cfg!(target_os = "macos") {
 		// a temporary workaround for OSX, see
 		// https://sciter.com/forums/topic/global-sciter_set_debug_mode-does-not-work-in-osx/
 		frame.set_options(sciter::window::Options::DebugMode(true)).unwrap();

@@ -9,13 +9,12 @@ functions and other load requests.
 pub use capi::screquest::{HREQUEST, REQUEST_RESULT};
 pub use capi::screquest::{REQUEST_METHOD, REQUEST_STATE, REQUEST_TYPE, RESOURCE_TYPE};
 
+use capi::scdef::LPCWSTR_RECEIVER;
 use capi::sctypes::{LPVOID, UINT};
-use capi::scdef::{LPCWSTR_RECEIVER};
 
-use utf::{store_astr, store_wstr, store_bstr};
+use utf::{store_astr, store_bstr, store_wstr};
 
 use _RAPI;
-
 
 
 macro_rules! ok_or {
@@ -23,21 +22,21 @@ macro_rules! ok_or {
 		ok_or!((), $ok)
 	};
 
-  ($rv:expr, $ok:ident) => {
-    if $ok == REQUEST_RESULT::OK {
-      Ok($rv)
-    } else {
-      Err($ok)
-    }
-  };
+	($rv:expr, $ok:ident) => {
+		if $ok == REQUEST_RESULT::OK {
+			Ok($rv)
+		} else {
+			Err($ok)
+		}
+	};
 }
 
 /// A specialized `Result` type for request operations.
 pub type Result<T> = ::std::result::Result<T, REQUEST_RESULT>;
 
-type GetCountFn = extern "system" fn (rq: HREQUEST, pNumber: &mut UINT) -> REQUEST_RESULT;
-type GetNameFn = extern "system" fn (rq: HREQUEST, n: UINT, rcv: LPCWSTR_RECEIVER, rcv_param: LPVOID) -> REQUEST_RESULT;
-type GetValueFn = extern "system" fn (rq: HREQUEST, n: UINT, rcv: LPCWSTR_RECEIVER, rcv_param: LPVOID) -> REQUEST_RESULT;
+type GetCountFn = extern "system" fn(rq: HREQUEST, pNumber: &mut UINT) -> REQUEST_RESULT;
+type GetNameFn = extern "system" fn(rq: HREQUEST, n: UINT, rcv: LPCWSTR_RECEIVER, rcv_param: LPVOID) -> REQUEST_RESULT;
+type GetValueFn = extern "system" fn(rq: HREQUEST, n: UINT, rcv: LPCWSTR_RECEIVER, rcv_param: LPVOID) -> REQUEST_RESULT;
 
 /// Request object.
 ///
@@ -76,7 +75,7 @@ impl Clone for Request {
 impl From<HREQUEST> for Request {
 	fn from(hrq: HREQUEST) -> Request {
 		assert!(!hrq.is_null());
-  	(_RAPI.RequestUse)(hrq);
+		(_RAPI.RequestUse)(hrq);
 		Request(hrq)
 	}
 }
@@ -167,7 +166,12 @@ impl Request {
 		ok_or!(ok)
 	}
 
-	fn get_collection_impl(&self, get_count: GetCountFn, get_name: GetNameFn, get_value: GetValueFn) -> Result<std::collections::HashMap<String, String>>	{
+	fn get_collection_impl(
+		&self,
+		get_count: GetCountFn,
+		get_name: GetNameFn,
+		get_value: GetValueFn,
+	) -> Result<std::collections::HashMap<String, String>> {
 		let mut count = 0;
 		let ok = get_count(self.0, &mut count);
 		if ok != REQUEST_RESULT::OK {
@@ -195,12 +199,20 @@ impl Request {
 
 	/// Get the parameters of the request.
 	pub fn parameters(&self) -> Result<std::collections::HashMap<String, String>> {
-		self.get_collection_impl(_RAPI.RequestGetNumberOfParameters, _RAPI.RequestGetNthParameterName, _RAPI.RequestGetNthParameterValue)
+		self.get_collection_impl(
+			_RAPI.RequestGetNumberOfParameters,
+			_RAPI.RequestGetNthParameterName,
+			_RAPI.RequestGetNthParameterValue,
+		)
 	}
 
 	/// Get the headers of the request.
 	pub fn request_headers(&self) -> Result<std::collections::HashMap<String, String>> {
-		self.get_collection_impl(_RAPI.RequestGetNumberOfRqHeaders, _RAPI.RequestGetNthRqHeaderName, _RAPI.RequestGetNthRqHeaderValue)
+		self.get_collection_impl(
+			_RAPI.RequestGetNumberOfRqHeaders,
+			_RAPI.RequestGetNthRqHeaderName,
+			_RAPI.RequestGetNthRqHeaderValue,
+		)
 	}
 
 	/// Set request header (a single item).
@@ -213,7 +225,11 @@ impl Request {
 
 	/// Get the headers of the response.
 	pub fn response_headers(&self) -> Result<std::collections::HashMap<String, String>> {
-		self.get_collection_impl(_RAPI.RequestGetNumberOfRspHeaders, _RAPI.RequestGetNthRspHeaderName, _RAPI.RequestGetNthRspHeaderValue)
+		self.get_collection_impl(
+			_RAPI.RequestGetNumberOfRspHeaders,
+			_RAPI.RequestGetNthRspHeaderName,
+			_RAPI.RequestGetNthRspHeaderValue,
+		)
 	}
 
 	/// Set respone header (a single item).
@@ -275,5 +291,4 @@ impl Request {
 			Err(ok)
 		}
 	}
-
 }

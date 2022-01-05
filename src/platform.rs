@@ -4,7 +4,6 @@ use capi::sctypes::*;
 
 
 pub trait BaseWindow {
-
 	fn create(&mut self, rc: RECT, flags: UINT, parent: HWINDOW) -> HWINDOW;
 
 	fn get_hwnd(&self) -> HWINDOW;
@@ -23,14 +22,13 @@ pub trait BaseWindow {
 #[cfg(windows)]
 mod windows {
 
-	use ::{_API};
-	use capi::sctypes::*;
 	use capi::scdef::*;
+	use capi::sctypes::*;
+	use _API;
 
 
-	#[link(name="user32")]
-	extern "system"
-	{
+	#[link(name = "user32")]
+	extern "system" {
 		fn ShowWindow(hwnd: HWINDOW, show: INT) -> BOOL;
 		fn PostMessageW(hwnd: HWINDOW, msg: UINT, w: WPARAM, l: LPARAM) -> BOOL;
 		fn SetWindowTextW(hwnd: HWINDOW, s: LPCWSTR) -> BOOL;
@@ -42,22 +40,22 @@ mod windows {
 		fn PostQuitMessage(code: INT);
 	}
 
-	#[link(name="ole32")]
-	extern "system"
-	{
-		fn OleInitialize(pv: LPCVOID) -> i32;	// HRESULT
+	#[link(name = "ole32")]
+	extern "system" {
+		fn OleInitialize(pv: LPCVOID) -> i32; // HRESULT
 	}
 
-	pub struct OsWindow
-	{
+	pub struct OsWindow {
 		hwnd: HWINDOW,
 		flags: UINT,
 	}
 
 	impl OsWindow {
-
 		pub fn new() -> OsWindow {
-			OsWindow { hwnd: 0 as HWINDOW, flags: 0 }
+			OsWindow {
+				hwnd: 0 as HWINDOW,
+				flags: 0,
+			}
 		}
 
 		pub fn from(hwnd: HWINDOW) -> OsWindow {
@@ -67,11 +65,9 @@ mod windows {
 		fn init_app() {
 			unsafe { OleInitialize(::std::ptr::null()) };
 		}
-
 	}
 
 	impl super::BaseWindow for OsWindow {
-
 		/// Get native window handle.
 		fn get_hwnd(&self) -> HWINDOW {
 			return self.hwnd;
@@ -79,7 +75,6 @@ mod windows {
 
 		/// Create a new native window.
 		fn create(&mut self, rc: RECT, flags: UINT, parent: HWINDOW) -> HWINDOW {
-
 			if (flags & SCITER_CREATE_WINDOW_FLAGS::SW_MAIN as u32) != 0 {
 				OsWindow::init_app();
 			}
@@ -129,7 +124,6 @@ mod windows {
 
 		/// Get native window title.
 		fn get_title(&self) -> String {
-
 			let n = unsafe { GetWindowTextLengthW(self.hwnd) + 1 };
 			let mut title: Vec<u16> = Vec::new();
 			title.resize(n as usize, 0);
@@ -139,7 +133,14 @@ mod windows {
 
 		/// Run the main app message loop until window been closed.
 		fn run_app(&self) {
-			let mut msg = MSG { hwnd: 0 as HWINDOW, message: 0, wParam: 0, lParam: 0, time: 0, pt: POINT { x: 0, y: 0 } };
+			let mut msg = MSG {
+				hwnd: 0 as HWINDOW,
+				message: 0,
+				wParam: 0,
+				lParam: 0,
+				time: 0,
+				pt: POINT { x: 0, y: 0 },
+			};
 			let pmsg: LPMSG = &mut msg;
 			let null: HWINDOW = ::std::ptr::null_mut();
 			unsafe {
@@ -155,22 +156,20 @@ mod windows {
 			unsafe { PostQuitMessage(0) };
 		}
 	}
-
 }
 
-#[cfg(target_os="linux")]
+#[cfg(target_os = "linux")]
 mod linux {
 
-	use ::{_API};
-	use capi::sctypes::*;
-	use capi::scdef::*;
 	use super::BaseWindow;
+	use capi::scdef::*;
+	use capi::sctypes::*;
+	use _API;
 
-	use ::std::ptr;
+	use std::ptr;
 
-	#[link(name="gtk-3")]
-	extern "C"
-	{
+	#[link(name = "gtk-3")]
+	extern "C" {
 		fn gtk_init(argc: *const i32, argv: *const *const LPCSTR);
 		fn gtk_main();
 		fn gtk_main_quit();
@@ -184,16 +183,17 @@ mod linux {
 		fn gtk_window_get_title(hwnd: HWINDOW) -> LPCSTR;
 	}
 
-	pub struct OsWindow
-	{
+	pub struct OsWindow {
 		hwnd: HWINDOW,
 		flags: UINT,
 	}
 
 	impl OsWindow {
-
 		pub fn new() -> OsWindow {
-			OsWindow { hwnd: 0 as HWINDOW, flags: 0 }
+			OsWindow {
+				hwnd: 0 as HWINDOW,
+				flags: 0,
+			}
 		}
 
 		pub fn from(hwnd: HWINDOW) -> OsWindow {
@@ -212,11 +212,9 @@ mod linux {
 				unsafe { gtk_widget_get_toplevel(hwnd) }
 			}
 		}
-
 	}
 
 	impl super::BaseWindow for OsWindow {
-
 		/// Get native window handle.
 		fn get_hwnd(&self) -> HWINDOW {
 			return self.hwnd;
@@ -224,7 +222,6 @@ mod linux {
 
 		/// Create a new native window.
 		fn create(&mut self, rc: RECT, flags: UINT, parent: HWINDOW) -> HWINDOW {
-
 			if (flags & SCITER_CREATE_WINDOW_FLAGS::SW_MAIN as u32) != 0 {
 				OsWindow::init_app();
 			}
@@ -298,16 +295,15 @@ mod linux {
 			unsafe { gtk_main_quit() };
 		}
 	}
-
 }
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 mod macos {
 
 	extern crate objc_foundation;
 
+	use self::objc_foundation::{INSString, NSString};
 	use objc::runtime::{Class, Object};
-	use self::objc_foundation::{NSString, INSString};
 
 
 	/// Activation policies that control whether and how an app may be activated.
@@ -322,27 +318,28 @@ mod macos {
 
 	// Note: Starting some OSX version (perhaps, 10.13),
 	// the AppKit framework isn't loaded implicitly.
-	#[link(name="CoreFoundation", kind="framework")]
-	extern {}
+	#[link(name = "CoreFoundation", kind = "framework")]
+	extern "C" {}
 
-	#[link(name="AppKit", kind="framework")]
-	extern {}
+	#[link(name = "AppKit", kind = "framework")]
+	extern "C" {}
 
-	use ::{_API};
-	use capi::sctypes::*;
-	use capi::scdef::*;
 	use super::BaseWindow;
+	use capi::scdef::*;
+	use capi::sctypes::*;
+	use _API;
 
-	pub struct OsWindow
-	{
+	pub struct OsWindow {
 		hwnd: HWINDOW,
 		flags: UINT,
 	}
 
 	impl OsWindow {
-
 		pub fn new() -> OsWindow {
-			OsWindow { hwnd: 0 as HWINDOW, flags: 0, }
+			OsWindow {
+				hwnd: 0 as HWINDOW,
+				flags: 0,
+			}
 		}
 
 		pub fn from(hwnd: HWINDOW) -> OsWindow {
@@ -358,7 +355,7 @@ mod macos {
 		fn init_app() {
 			// By default, unbundled apps start with `NSApplicationActivationPolicyProhibited` (no dock, no menu).
 			let app = OsWindow::get_app();
-			let _: () = unsafe { msg_send!(app, setActivationPolicy:NSApplicationActivationPolicy::Regular) };
+			let _: () = unsafe { msg_send!(app, setActivationPolicy: NSApplicationActivationPolicy::Regular) };
 		}
 
 		fn view(&self) -> *mut Object {
@@ -376,7 +373,6 @@ mod macos {
 	}
 
 	impl super::BaseWindow for OsWindow {
-
 		/// Get native window handle.
 		fn get_hwnd(&self) -> HWINDOW {
 			return self.hwnd;
@@ -384,7 +380,6 @@ mod macos {
 
 		/// Create a new native window.
 		fn create(&mut self, rc: RECT, flags: UINT, parent: HWINDOW) -> HWINDOW {
-
 			if (flags & SCITER_CREATE_WINDOW_FLAGS::SW_MAIN as u32) != 0 {
 				OsWindow::init_app();
 			}
@@ -395,11 +390,7 @@ mod macos {
 			{
 				let w = rc.right - rc.left;
 				let h = rc.bottom - rc.top;
-				let prc: *const RECT = if w > 0 && h > 0 {
-					&rc
-				} else {
-					std::ptr::null()
-				};
+				let prc: *const RECT = if w > 0 && h > 0 { &rc } else { std::ptr::null() };
 
 				let cb = std::ptr::null();
 				self.hwnd = (_API.SciterCreateWindow)(flags, prc, cb, 0 as LPVOID, parent);
@@ -423,7 +414,7 @@ mod macos {
 				let _: () = unsafe { msg_send!(wnd, orderOut:0) };
 			} else {
 				let hwnd = self.view();
-				let _: () = unsafe { msg_send!(wnd, performMiniaturize:hwnd) };
+				let _: () = unsafe { msg_send!(wnd, performMiniaturize: hwnd) };
 			}
 		}
 
@@ -453,7 +444,7 @@ mod macos {
 		fn set_title(&mut self, title: &str) {
 			let s = NSString::from_str(title);
 			let wnd = self.window();
-			let _: () = unsafe { msg_send!(wnd, setTitle:s) };
+			let _: () = unsafe { msg_send!(wnd, setTitle: s) };
 		}
 
 		/// Get native window title.
@@ -471,18 +462,17 @@ mod macos {
 		/// Post app quit message.
 		fn quit_app(&self) {
 			let app = OsWindow::get_app();
-			let _: () = unsafe { msg_send!(app, terminate:app) };
+			let _: () = unsafe { msg_send!(app, terminate: app) };
 		}
 	}
-
 }
 
 
 #[cfg(windows)]
 pub type OsWindow = windows::OsWindow;
 
-#[cfg(target_os="linux")]
+#[cfg(target_os = "linux")]
 pub type OsWindow = linux::OsWindow;
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 pub type OsWindow = macos::OsWindow;

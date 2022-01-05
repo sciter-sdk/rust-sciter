@@ -1,7 +1,7 @@
 use std;
 use std::fmt::{self, Display};
 
-use serde::{ser, de};
+use serde::{de, ser};
 
 
 /// Result type for serialization.

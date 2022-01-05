@@ -8,8 +8,16 @@ use self::libc::*;
 
 
 // common
-MAKE_HANDLE!(#[doc = "Window native handle."] HWINDOW, _HWINDOW); // HWND or NSView* or GtkWidget*
-MAKE_HANDLE!(#[doc = "Archive native handle."] HSARCHIVE, _HSARCHIVE);
+MAKE_HANDLE!(
+	#[doc = "Window native handle."]
+	HWINDOW,
+	_HWINDOW
+); // HWND or NSView* or GtkWidget*
+MAKE_HANDLE!(
+	#[doc = "Archive native handle."]
+	HSARCHIVE,
+	_HSARCHIVE
+);
 
 pub type BYTE = u8;
 pub type INT = i32;
@@ -51,13 +59,12 @@ pub type PBOOL = *mut BOOL;
 
 /// Defines the coordinates of the upper-left and lower-right corners of a rectangle.
 #[repr(C)]
-#[derive(Clone, Copy, PartialEq)]
-#[derive(Default, Debug)]
+#[derive(Clone, Copy, PartialEq, Default, Debug)]
 pub struct RECT {
-    pub left: LONG,
-    pub top: LONG,
-    pub right: LONG,
-    pub bottom: LONG,
+	pub left: LONG,
+	pub top: LONG,
+	pub right: LONG,
+	pub bottom: LONG,
 }
 pub type LPRECT = *mut RECT;
 pub type LPCRECT = *const RECT;
@@ -83,30 +90,25 @@ impl RECT {
 
 	/// Returns the top-left point of the rect.
 	pub fn topleft(&self) -> POINT {
-		POINT {
-			x: self.left,
-			y: self.top,
-		}
+		POINT { x: self.left, y: self.top }
 	}
 }
 
 /// Defines the `x` and `y` coordinates of a point.
 #[repr(C)]
-#[derive(Clone, Copy, PartialEq)]
-#[derive(Default, Debug)]
+#[derive(Clone, Copy, PartialEq, Default, Debug)]
 pub struct POINT {
-    pub x: LONG,
-    pub y: LONG,
+	pub x: LONG,
+	pub y: LONG,
 }
 pub type LPPOINT = *mut POINT;
 
 /// Specifies the width and height of a rectangle.
 #[repr(C)]
-#[derive(Clone, Copy, PartialEq)]
-#[derive(Default, Debug)]
+#[derive(Clone, Copy, PartialEq, Default, Debug)]
 pub struct SIZE {
-    pub cx: LONG,
-    pub cy: LONG,
+	pub cx: LONG,
+	pub cy: LONG,
 }
 pub type LPSIZE = *mut SIZE;
 
@@ -115,12 +117,12 @@ pub type LPSIZE = *mut SIZE;
 #[repr(C)]
 #[derive(Debug)]
 pub struct MSG {
-    pub hwnd: HWINDOW,
-    pub message: UINT,
-    pub wParam: WPARAM,
-    pub lParam: LPARAM,
-    pub time: UINT,
-    pub pt: POINT,
+	pub hwnd: HWINDOW,
+	pub message: UINT,
+	pub wParam: WPARAM,
+	pub lParam: LPARAM,
+	pub time: UINT,
+	pub pt: POINT,
 }
 
 #[cfg(windows)]

@@ -6,7 +6,7 @@
 #[macro_use]
 extern crate sciter;
 
-use sciter::{HELEMENT, Element, Value};
+use sciter::{Element, Value, HELEMENT};
 
 struct EventHandler {
 	root: Option<Element>,
@@ -19,9 +19,7 @@ impl Drop for EventHandler {
 }
 
 impl EventHandler {
-
 	fn script_call_test(&self, args: &[Value], root: &Element) -> Option<Value> {
-
 		println!("root: {:?}", root);
 		// return None;
 
@@ -58,7 +56,6 @@ impl EventHandler {
 	}
 
 	fn GetNativeApi(&mut self) -> Value {
-
 		fn on_add(args: &[Value]) -> Value {
 			let ints = args.iter().map(|x| x.to_int().unwrap());
 			// let sum: i32 = ints.sum();	// error: issue #27739
@@ -71,11 +68,11 @@ impl EventHandler {
 				return Value::error("sub requires 2 integer arguments!");
 			}
 			let ints: Vec<_> = args.iter().map(|x| x.to_int().unwrap()).collect();
-			let (a,b) = (ints[0], ints[1]);
+			let (a, b) = (ints[0], ints[1]);
 			Value::from(a - b)
 		}
 
-		let on_mul = |args: &[Value]|  -> Value {
+		let on_mul = |args: &[Value]| -> Value {
 			let prod: i32 = args.iter().map(|x| x.to_int().unwrap()).product();
 			Value::from(prod)
 		};
@@ -94,12 +91,10 @@ impl EventHandler {
 	fn calc_sum(&mut self, a: i32, b: i32) -> i32 {
 		a + b
 	}
-
 }
 
 
 impl sciter::EventHandler for EventHandler {
-
 	fn attached(&mut self, root: HELEMENT) {
 		self.root = Some(Element::from(root));
 	}
@@ -114,7 +109,6 @@ impl sciter::EventHandler for EventHandler {
 	}
 
 	fn on_script_call(&mut self, root: HELEMENT, name: &str, argv: &[Value]) -> Option<Value> {
-
 		let args = argv.iter().map(|x| format!("{:?}", &x)).collect::<Vec<String>>().join(", ");
 		println!("script->native: {}({}), root {:?}", name, args, Element::from(root));
 
@@ -129,14 +123,14 @@ impl sciter::EventHandler for EventHandler {
 
 		None
 	}
-
 }
 
 fn check_options() {
 	sciter::set_options(sciter::RuntimeOptions::ScriptFeatures(
 		sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_SYSINFO as u8		// Enables `Sciter.machineName()`
-		| sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_FILE_IO as u8	// Enables opening file dialog (`view.selectFile()`)
-	)).ok();
+		| sciter::SCRIPT_RUNTIME_FEATURES::ALLOW_FILE_IO as u8, // Enables opening file dialog (`view.selectFile()`)
+	))
+	.ok();
 
 	for arg in std::env::args() {
 		if arg.starts_with("--sciter-gfx=") {
@@ -159,7 +153,6 @@ fn check_options() {
 			if let Err(e) = ok {
 				println!("failed to set backend: {:?}", e);
 			}
-
 		} else if arg.starts_with("--ux-theme") {
 			#[cfg(windows)]
 			sciter::set_options(sciter::RuntimeOptions::UxTheming(true)).ok();

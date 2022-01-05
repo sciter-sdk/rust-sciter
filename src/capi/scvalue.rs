@@ -10,8 +10,7 @@ use capi::sctypes::*;
 /// An opaque union that can hold different types of values: numbers, strings, arrays, objects, etc.
 #[repr(C)]
 #[derive(Default, Debug, Clone)]
-pub struct VALUE
-{
+pub struct VALUE {
 	/// Value type.
 	pub t: VALUE_TYPE,
 
@@ -35,12 +34,11 @@ impl VALUE {
 
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
-pub enum VALUE_RESULT
-{
-  OK_TRUE = -1,
-  OK = 0,
-  BAD_PARAMETER = 1,
-  INCOMPATIBLE_TYPE = 2,
+pub enum VALUE_RESULT {
+	OK_TRUE = -1,
+	OK = 0,
+	BAD_PARAMETER = 1,
+	INCOMPATIBLE_TYPE = 2,
 }
 
 impl std::error::Error for VALUE_RESULT {}
@@ -116,16 +114,15 @@ pub enum VALUE_TYPE {
 }
 
 impl Default for VALUE_TYPE {
-    fn default() -> Self {
-        Self::T_UNDEFINED
-    }
+	fn default() -> Self {
+		Self::T_UNDEFINED
+	}
 }
 
 /// `undefined` sub-state.
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
-pub enum VALUE_UNIT_UNDEFINED
-{
+pub enum VALUE_UNIT_UNDEFINED {
 	/// 'nothing' a.k.a. 'void' value in script.
 	UT_NOTHING = 1,
 }
@@ -133,41 +130,38 @@ pub enum VALUE_UNIT_UNDEFINED
 /// String sub-types.
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
-pub enum VALUE_UNIT_TYPE_STRING
-{
-	STRING = 0,        // string
-	ERROR  = 1,        // is an error string
-	SECURE = 2,        // secure string ("wiped" on destroy)
-	URL 	 = 3,				 // url(...)
-	SELECTOR = 4,			 // selector(...)
-	FILE = 0xfffe,     // file name
-	SYMBOL = 0xffff,   // symbol in tiscript sense
+pub enum VALUE_UNIT_TYPE_STRING {
+	STRING = 0,      // string
+	ERROR = 1,       // is an error string
+	SECURE = 2,      // secure string ("wiped" on destroy)
+	URL = 3,         // url(...)
+	SELECTOR = 4,    // selector(...)
+	FILE = 0xfffe,   // file name
+	SYMBOL = 0xffff, // symbol in tiscript sense
 }
 
 /// Length sub-types.
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
-pub enum VALUE_UNIT_TYPE_LENGTH
-{
-	EM = 1, //height of the element's font.
-	EX = 2, //height of letter 'x'
-	PR = 3, //%
-	SP = 4, //%% "springs", a.k.a. flex units
-	PX = 7, //pixels
-	IN = 8, //inches (1 inch = 2.54 centimeters).
-	CM = 9, //centimeters.
+pub enum VALUE_UNIT_TYPE_LENGTH {
+	EM = 1,  //height of the element's font.
+	EX = 2,  //height of letter 'x'
+	PR = 3,  //%
+	SP = 4,  //%% "springs", a.k.a. flex units
+	PX = 7,  //pixels
+	IN = 8,  //inches (1 inch = 2.54 centimeters).
+	CM = 9,  //centimeters.
 	MM = 10, //millimeters.
 	PT = 11, //points (1 point = 1/72 inches).
 	PC = 12, //picas (1 pica = 12 points).
 	DIP = 13,
-	URL   = 16,  // url in string
+	URL = 16, // url in string
 }
 
 /// Array sub-types.
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
-pub enum VALUE_UNIT_TYPE_ARRAY
-{
+pub enum VALUE_UNIT_TYPE_ARRAY {
 	/// White space separated list.
 	WT_LIST = 1,
 	/// Comma separated list.
@@ -179,15 +173,14 @@ pub enum VALUE_UNIT_TYPE_ARRAY
 // Sciter or TIScript specific
 #[repr(C)]
 #[derive(Debug, PartialOrd, PartialEq)]
-pub enum VALUE_UNIT_TYPE_OBJECT
-{
-	ARRAY  = 0,   // type T_OBJECT of type Array
+pub enum VALUE_UNIT_TYPE_OBJECT {
+	ARRAY = 0,    // type T_OBJECT of type Array
 	OBJECT = 1,   // type T_OBJECT of type Object
-	CLASS  = 2,   // type T_OBJECT of type Class (class or namespace)
+	CLASS = 2,    // type T_OBJECT of type Class (class or namespace)
 	NATIVE = 3,   // type T_OBJECT of native Type with data slot (LPVOID)
 	FUNCTION = 4, // type T_OBJECT of type Function
 	ERROR = 5,    // type T_OBJECT of type Error
 }
 
-pub type NATIVE_FUNCTOR_INVOKE = extern "C" fn (tag: LPVOID, argc: UINT, argv: *const VALUE, retval: * mut VALUE);
-pub type NATIVE_FUNCTOR_RELEASE = extern "C" fn (tag: LPVOID);
+pub type NATIVE_FUNCTOR_INVOKE = extern "C" fn(tag: LPVOID, argc: UINT, argv: *const VALUE, retval: *mut VALUE);
+pub type NATIVE_FUNCTOR_RELEASE = extern "C" fn(tag: LPVOID);

@@ -5,10 +5,10 @@ extern crate sciter_serde;
 
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_bytes;
 extern crate serde;
+extern crate serde_bytes;
 
-use sciter::{Value};
+use sciter::Value;
 use sciter_serde::{from_value, to_value};
 
 
@@ -57,10 +57,10 @@ fn strings() {
 
 #[test]
 fn arrays() {
-	let it = [1,2,3].iter();
+	let it = [1, 2, 3].iter();
 	let v: Value = it.cloned().collect();
 	let v: Vec<i32> = from_value(&v).unwrap();
-	assert_eq!(v, &[1,2,3]);
+	assert_eq!(v, &[1, 2, 3]);
 }
 
 #[test]
@@ -73,7 +73,10 @@ fn structs() {
 
 	println!("");
 
-	let a = Test { int: 7, seq: vec!["a".to_owned(), "b".to_owned()]};
+	let a = Test {
+		int: 7,
+		seq: vec!["a".to_owned(), "b".to_owned()],
+	};
 
 	let v: Value = to_value(&a).unwrap();
 	println!("serialized Test:\n  {:?}", v);

@@ -25,12 +25,7 @@ pub extern "system" fn SciterLibraryInit(api: &'static sciter::ISciterAPI, expor
 
 /// Calculate the sum of all the given arguments.
 pub fn add(args: &[Value]) -> Value {
-	let sum: i32 = args
-		.iter()
-		.map(|v| v.to_int())
-		.filter(|v| v.is_some())
-		.map(|v| v.unwrap())
-		.sum();
+	let sum: i32 = args.iter().map(|v| v.to_int()).filter(|v| v.is_some()).map(|v| v.unwrap()).sum();
 
 	sum.into()
 }

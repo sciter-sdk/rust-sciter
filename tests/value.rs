@@ -15,43 +15,43 @@ fn new_works() {
 
 #[test]
 fn varray_works() {
-  let val = varray![];
-  assert!(val.is_array());
-  assert_eq!(val.len(), 0);
+	let val = varray![];
+	assert!(val.is_array());
+	assert_eq!(val.len(), 0);
 
-  let val = varray![42];
-  assert!(val.is_array());
-  assert_eq!(val.len(), 1);
+	let val = varray![42];
+	assert!(val.is_array());
+	assert_eq!(val.len(), 1);
 
-  let val = varray![1, 2.0, "three"];
-  assert!(val.is_array());
-  assert_eq!(val.len(), 3);
+	let val = varray![1, 2.0, "three"];
+	assert!(val.is_array());
+	assert_eq!(val.len(), 3);
 }
 
 #[test]
 fn vmap_works() {
-  let map = vmap!{};
-  assert!(map.is_map());
-  assert_eq!(map.len(), 0);
+	let map = vmap! {};
+	assert!(map.is_map());
+	assert_eq!(map.len(), 0);
 
-  let map = vmap! {
-    "one" => 1,
-  };
-  assert!(map.is_map());
-  assert_eq!(map.len(), 1);
+	let map = vmap! {
+		"one" => 1,
+	};
+	assert!(map.is_map());
+	assert_eq!(map.len(), 1);
 
-  let map = vmap! {
-    "one" => 1,
-    "two" => 2.0,
-    "three" => "",
-  };
-  assert!(map.is_map());
-  assert_eq!(map.len(), 3);
+	let map = vmap! {
+		"one" => 1,
+		"two" => 2.0,
+		"three" => "",
+	};
+	assert!(map.is_map());
+	assert_eq!(map.len(), 3);
 }
 
 #[test]
 fn null_works() {
- 	let v = Value::null();
+	let v = Value::null();
 	assert!(!v.is_undefined());
 	assert!(v.is_null());
 }
@@ -83,7 +83,9 @@ fn is_color_supported() -> bool {
 
 #[test]
 fn color_works() {
-	if !is_color_supported() { return; }
+	if !is_color_supported() {
+		return;
+	}
 
 	// yellow R255, G255, B000
 	// RGBA form in memory, ABGR in integer.
@@ -94,7 +96,9 @@ fn color_works() {
 
 #[test]
 fn duration_works() {
-	if !is_color_supported() { return; }
+	if !is_color_supported() {
+		return;
+	}
 
 	let v = Value::duration(12.5);
 	assert!(v.is_duration());
@@ -103,7 +107,9 @@ fn duration_works() {
 
 #[test]
 fn angle_works() {
-	if !is_color_supported() { return; }
+	if !is_color_supported() {
+		return;
+	}
 
 	let v = Value::angle(1.0);
 	assert!(v.is_angle());
@@ -169,7 +175,7 @@ fn from_str_works() {
 
 #[test]
 fn from_int_seq_works() {
-	let v: Value = [1,2,3].iter().cloned().collect();
+	let v: Value = [1, 2, 3].iter().cloned().collect();
 	assert!(v.is_array());
 	assert_eq!(v.len(), 3);
 }
@@ -177,12 +183,12 @@ fn from_int_seq_works() {
 #[test]
 fn from_str_seq_works() {
 	// &str
-	let v: Value = ["1","2","3"].iter().cloned().collect();
+	let v: Value = ["1", "2", "3"].iter().cloned().collect();
 	assert!(v.is_array());
 	assert_eq!(v.len(), 3);
 
 	// String
-	let v: Value = ["1","2","3"].iter().map(|x| x.to_string()).collect();
+	let v: Value = ["1", "2", "3"].iter().map(|x| x.to_string()).collect();
 	assert!(v.is_array());
 	assert_eq!(v.len(), 3);
 	assert_eq!(v[2].as_string(), Some("3".to_string()));
@@ -224,7 +230,16 @@ fn from_result_works() {
 
 #[test]
 fn parse_works() {
-	let items = ["", "null", "1", "\"2\"", "2.0", "true", "[3, 4]", r##"{"5": 5, "6": 6, seven: "seven"}"##];
+	let items = [
+		"",
+		"null",
+		"1",
+		"\"2\"",
+		"2.0",
+		"true",
+		"[3, 4]",
+		r##"{"5": 5, "6": 6, seven: "seven"}"##,
+	];
 	for item in &items {
 		let r = Value::parse(item);
 		if let Err(num) = r {
@@ -232,15 +247,15 @@ fn parse_works() {
 		}
 	}
 
-	let v :Value = "4".parse().unwrap();
+	let v: Value = "4".parse().unwrap();
 	assert_eq!(v.to_int(), Some(4));
 
 	let v = "true".parse::<Value>().unwrap();
 	assert_eq!(v.to_bool(), Some(true));
 }
 
-#[test]	// crashes with 1.7.0 i686-pc-windows-msvc
-#[should_panic(expected="failed on character")]
+#[test] // crashes with 1.7.0 i686-pc-windows-msvc
+#[should_panic(expected = "failed on character")]
 fn parse_fail_works() {
 	let item = "{item: "; // invalid json
 	let r = Value::parse(item);
@@ -257,13 +272,13 @@ fn pack_args_works() {
 	let args = pack_args!(777);
 	assert_eq!(args.len(), 1);
 
-	let args = pack_args!(1,2,3);
+	let args = pack_args!(1, 2, 3);
 	assert_eq!(args.len(), 3);
 
 	let args = pack_args!(1, "2", 3.0);
 	assert_eq!(args.len(), 3);
 
-	let args = pack_args!(1,2,3);
+	let args = pack_args!(1, 2, 3);
 	let unpacked = unsafe { Value::unpack_from(args.as_ptr(), args.len() as u32) };
 	assert_eq!(unpacked.len(), 3);
 	assert_eq!(unpacked[0], Value::from(1));
@@ -277,7 +292,7 @@ fn make_args_works() {
 	let args = make_args!(777);
 	assert_eq!(args.len(), 1);
 
-	let args = make_args!(1,2,3);
+	let args = make_args!(1, 2, 3);
 	assert_eq!(args.len(), 3);
 
 	let args = make_args!(1, "2", 3.0);
@@ -323,7 +338,6 @@ fn to_works() {
 
 #[test]
 fn into_works() {
-
 	let v = Value::from(1);
 	assert!(v.is_int());
 
@@ -347,10 +361,10 @@ fn into_works() {
 
 #[test]
 fn bytes_work() {
-	let b = [1,2,3];
+	let b = [1, 2, 3];
 	let v = Value::from(&b[..]);
 	assert!(v.is_bytes());
-	assert_eq!(v.as_bytes().expect("must be bytes"), [1,2,3]);
+	assert_eq!(v.as_bytes().expect("must be bytes"), [1, 2, 3]);
 }
 
 #[test]
@@ -388,18 +402,32 @@ fn index_works() {
 
 #[test]
 fn display_works() {
-	println!("\nvalue strings: new {}, null {}, bool {}, int {}, float {}, symbol {}, str {}",
-		Value::new(), Value::null(), Value::from(true), Value::from(123), Value::from(4.2),
-		Value::symbol("symbol"), Value::from("hello"));
+	println!(
+		"\nvalue strings: new {}, null {}, bool {}, int {}, float {}, symbol {}, str {}",
+		Value::new(),
+		Value::null(),
+		Value::from(true),
+		Value::from(123),
+		Value::from(4.2),
+		Value::symbol("symbol"),
+		Value::from("hello")
+	);
 
 	// assert!(false);
 }
 
 #[test]
 fn debug_works() {
-	println!("\nvalue strings: {:?}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?}",
-		Value::new(), Value::null(), Value::from(true), Value::from(123), Value::from(4.2),
-		Value::symbol("symbol"), Value::from("hello"));
+	println!(
+		"\nvalue strings: {:?}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?}",
+		Value::new(),
+		Value::null(),
+		Value::from(true),
+		Value::from(123),
+		Value::from(4.2),
+		Value::symbol("symbol"),
+		Value::from("hello")
+	);
 
 	// assert!(false);
 }
@@ -416,7 +444,7 @@ fn thread_works() {
 
 #[test]
 fn iterators_work() {
-	let v: Value = [1,2,3].iter().cloned().collect();
+	let v: Value = [1, 2, 3].iter().cloned().collect();
 
 	// `&v` == `v.into_iter()`
 	for a in &v {
@@ -430,7 +458,7 @@ fn iterators_work() {
 
 #[test]
 fn back_iter() {
-	let v: Value = [1,2,3].iter().cloned().collect();
+	let v: Value = [1, 2, 3].iter().cloned().collect();
 
 	let mut iter = v.into_iter();
 	assert_eq!(Some(1.into()), iter.next());
@@ -461,7 +489,7 @@ fn values_work() {
 #[test]
 fn items_work() {
 	let v = Value::parse("five: 5, seven: 7").unwrap();
-	for (k,a) in v.items() {
+	for (k, a) in v.items() {
 		assert!(k.is_string());
 		assert!(a.is_int());
 	}

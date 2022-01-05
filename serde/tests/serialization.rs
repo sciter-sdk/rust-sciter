@@ -5,11 +5,11 @@ extern crate sciter_serde;
 
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_bytes;
 extern crate serde;
+extern crate serde_bytes;
 
-use sciter::{Value};
-use sciter_serde::{to_value};
+use sciter::Value;
+use sciter_serde::to_value;
 
 
 #[test]
@@ -84,12 +84,12 @@ fn strings() {
 
 #[test]
 fn arrays() {
-	let a = [1,2,3];
+	let a = [1, 2, 3];
 	let v = to_value(&a).unwrap();
 	assert!(v.is_array());
 	assert_eq!(v.len(), a.len());
 
-	let a = vec![1,2,3];
+	let a = vec![1, 2, 3];
 	let v = to_value(&a).unwrap();
 	assert!(v.is_array());
 	assert_eq!(v.len(), a.len());
@@ -97,17 +97,19 @@ fn arrays() {
 
 #[test]
 fn structs() {
-
 	#[derive(Serialize)]
 	struct Test {
 		int: u32,
 		seq: Vec<&'static str>,
 	}
 
-	let a = Test { int: 7, seq: vec!["a", "b"]};
+	let a = Test {
+		int: 7,
+		seq: vec!["a", "b"],
+	};
 	let v = to_value(&a).unwrap();
 	assert!(v.is_map());
 	assert_eq!(v.len(), 2);
-	assert_eq!(v.get_item("int"), Value::from(7) );
+	assert_eq!(v.get_item("int"), Value::from(7));
 	assert_eq!(v.get_item("seq").len(), 2);
 }

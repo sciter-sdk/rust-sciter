@@ -5,8 +5,8 @@ Host application can render custom video streams using `<video>` infrastructure.
 */
 
 
-use capi::sctypes::{UINT, LPCBYTE, LPCSTR};
 use capi::scom::som_passport_t;
+use capi::sctypes::{LPCBYTE, LPCSTR, UINT};
 
 /// A type alias for Sciter functions that return `bool`.
 pub type Result<T> = ::std::result::Result<T, ()>;
@@ -69,7 +69,7 @@ macro_rules! cppresult {
 pub trait NamedInterface {
 	fn get_interface_name() -> &'static [u8];
 
-	fn query_interface(from: &mut iasset) -> Option<* mut iasset> {
+	fn query_interface(from: &mut iasset) -> Option<*mut iasset> {
 		let mut out: *mut iasset = ::std::ptr::null_mut();
 		from.get_interface(Self::get_interface_name().as_ptr() as LPCSTR, &mut out as *mut _);
 		if !out.is_null() {
@@ -271,7 +271,13 @@ struct video_destination_vtbl {
 	pub is_alive: extern "C" fn(this: *const video_destination) -> bool,
 
 	/// Start streaming/rendering.
-	pub start_streaming: extern "C" fn(this: *mut video_destination, frame_width: i32, frame_height: i32, color_space: COLOR_SPACE, src: *const video_source) -> bool,
+	pub start_streaming: extern "C" fn(
+		this: *mut video_destination,
+		frame_width: i32,
+		frame_height: i32,
+		color_space: COLOR_SPACE,
+		src: *const video_source,
+	) -> bool,
 
 	/// Stop streaming.
 	pub stop_streaming: extern "C" fn(this: *mut video_destination) -> bool,
@@ -291,7 +297,6 @@ pub struct video_destination {
 }
 
 impl video_destination {
-
 	/// Whether this instance of `video_renderer` is attached to a DOM element and is capable of playing.
 	pub fn is_alive(&self) -> bool {
 		cppcall!(const self.is_alive())
@@ -346,7 +351,13 @@ struct fragmented_video_destination_vtbl {
 	pub is_alive: extern "C" fn(this: *const fragmented_video_destination) -> bool,
 
 	/// Start streaming/rendering.
-	pub start_streaming: extern "C" fn(this: *mut fragmented_video_destination, frame_width: i32, frame_height: i32, color_space: COLOR_SPACE, src: *const video_source) -> bool,
+	pub start_streaming: extern "C" fn(
+		this: *mut fragmented_video_destination,
+		frame_width: i32,
+		frame_height: i32,
+		color_space: COLOR_SPACE,
+		src: *const video_source,
+	) -> bool,
 
 	/// Stop streaming.
 	pub stop_streaming: extern "C" fn(this: *mut fragmented_video_destination) -> bool,
@@ -360,7 +371,8 @@ struct fragmented_video_destination_vtbl {
 
 	// region: fragmented_video_destination
 	/// Render the specified part of the current frame.
-	pub render_frame_part: extern "C" fn(this: *mut fragmented_video_destination, data: LPCBYTE, size: UINT, x: i32, y: i32, width: i32, height: i32) -> bool,
+	pub render_frame_part:
+		extern "C" fn(this: *mut fragmented_video_destination, data: LPCBYTE, size: UINT, x: i32, y: i32, width: i32, height: i32) -> bool,
 	// endregion
 }
 
@@ -371,7 +383,6 @@ pub struct fragmented_video_destination {
 }
 
 impl fragmented_video_destination {
-
 	/// Whether this instance of `video_renderer` is attached to a DOM element and is capable of playing.
 	pub fn is_alive(&self) -> bool {
 		cppcall!(const self.is_alive())
@@ -407,7 +418,14 @@ impl fragmented_video_destination {
 	/// * `update_point` - X and Y coordinates of the update portion.
 	/// * `update_size` - width and height of the update portion.
 	pub fn render_frame_part(&mut self, data: &[u8], update_point: (i32, i32), update_size: (i32, i32)) -> Result<()> {
-		cppresult!(self.render_frame_part(data.as_ptr(), data.len() as UINT, update_point.0, update_point.1, update_size.0, update_size.1))
+		cppresult!(self.render_frame_part(
+			data.as_ptr(),
+			data.len() as UINT,
+			update_point.0,
+			update_point.1,
+			update_size.0,
+			update_size.1
+		))
 	}
 }
 
@@ -419,7 +437,7 @@ pub struct AssetPtr<T> {
 /// It's okay to transfer video pointers between threads.
 unsafe impl<T> Send for AssetPtr<T> {}
 
-use ::std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut};
 
 impl Deref for AssetPtr<video_destination> {
 	type Target = video_destination;
@@ -460,9 +478,7 @@ impl<T> AssetPtr<T> {
 	/// Attach to an existing `iasset` pointer without reference increment.
 	fn attach(lp: *mut T) -> Self {
 		assert!(!lp.is_null());
-		Self {
-			ptr: lp
-		}
+		Self { ptr: lp }
 	}
 
 	/// Attach to an `iasset` pointer and increment its reference count.
@@ -491,7 +507,6 @@ impl<T> From<*mut T> for AssetPtr<T> {
 
 /// Attempt to construct `Self` via a conversion.
 impl<T: NamedInterface> AssetPtr<T> {
-
 	/// Retrieve a supported interface of the managed pointer.
 	///
 	/// Example:
