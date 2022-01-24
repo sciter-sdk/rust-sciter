@@ -31,7 +31,7 @@ use capi::sctypes::*;
 
 use platform::{BaseWindow, OsWindow};
 use host::{Host, HostHandler};
-use dom::event::{EventHandler};
+use dom::{self, event::{EventHandler}};
 
 use std::rc::Rc;
 
@@ -345,27 +345,27 @@ impl Window {
 	/// Set a window variable by its path.
 	///
 	/// See the global [`sciter::set_variable`](../fn.set_variable.html).
-	pub fn set_variable(&self, path: &str, value: crate::Value) -> std::result::Result<(), ()> {
-		let ws = s2w!(path);
+	pub fn set_variable(&self, path: &str, value: crate::Value) -> dom::Result<()> {
+		let ws = s2u!(path);
 		let ok = (_API.SciterSetVariable)(self.get_hwnd(), ws.as_ptr(), value.as_cptr());
-		if ok != 0 {
+		if ok == dom::SCDOM_RESULT::OK {
 			Ok(())
 		} else {
-			Err(())
+			Err(ok)
 		}
 	}
 
 	/// Get a window variable by its path.
 	///
 	/// See the global [`sciter::get_variable`](../fn.get_variable.html).
-	pub fn get_variable(&self, path: &str) -> std::result::Result<crate::Value, ()> {
-		let ws = s2w!(path);
+	pub fn get_variable(&self, path: &str) -> dom::Result<crate::Value> {
+		let ws = s2u!(path);
 		let mut value = crate::Value::new();
 		let ok = (_API.SciterGetVariable)(self.get_hwnd(), ws.as_ptr(), value.as_mut_ptr());
-		if ok != 0 {
+		if ok == dom::SCDOM_RESULT::OK {
 			Ok(value)
 		} else {
-			Err(())
+			Err(ok)
 		}
 	}
 

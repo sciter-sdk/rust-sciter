@@ -281,10 +281,11 @@ pub struct ISciterAPI
 	pub SciterGetElementAsset: extern "system" fn(el: HELEMENT, atomv: som_atom_t, pass: *mut *mut som_asset_t) -> SCDOM_RESULT,
 
 	// since 4.4.4.6 (yet disabled)
+	// since 4.4.8.26
 	/// Set global value by path.
-	pub SciterSetVariable: extern "system" fn(hwndOrNull: HWINDOW, path: LPCWSTR, value: *const VALUE) -> UINT,
+	pub SciterSetVariable: extern "system" fn(hwndOrNull: HWINDOW, path: LPCSTR, value: *const VALUE) -> SCDOM_RESULT,
 	/// Get global value by path.
-	pub SciterGetVariable: extern "system" fn(hwndOrNull: HWINDOW, path: LPCWSTR, value: *mut VALUE) -> UINT,
+	pub SciterGetVariable: extern "system" fn(hwndOrNull: HWINDOW, path: LPCSTR, value: *mut VALUE) -> SCDOM_RESULT,
 
 	// since 4.4.5.4
 	pub SciterElementUnwrap: extern "system" fn(pval: *const VALUE, ppElement: *mut HELEMENT) -> SCDOM_RESULT,
