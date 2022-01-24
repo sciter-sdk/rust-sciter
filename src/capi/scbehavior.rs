@@ -250,6 +250,8 @@ impl KEYBOARD_STATES {
 	pub const CONTROL_KEY_PRESSED: u32 = 0x01;
 	pub const SHIFT_KEY_PRESSED: u32 = 0x02;
 	pub const ALT_KEY_PRESSED: u32 = 0x04;
+	pub const RIGHT_SHIFT_KEY_PRESSED: u32 = 0x08;
+	pub const CMD_KEY_PRESSED: u32 = 0x10;
 }
 
 impl std::convert::From<u32> for KEYBOARD_STATES {
